@@ -5,7 +5,7 @@ Must support independent execution across separate git worktrees on the same mac
 ## Purpose
 Self-hosted household grocery manager. Google Home voice → web confirmation → Woolworths/Coles purchase at lowest total cost (items + delivery). Unix home server, Docker Compose, Cloudflare Tunnel.
 
-Full feature specs: `FEATURE_*.md`. Full spec: `FEATURE_SPEC.md`.
+Full feature specs: `docs/features/FEATURE_*.md`, should be short description of feature specifications, agents read/write to stop regression.
 
 ## Developer note
 The developer may express tasks unclearly due to language generation difficulties.
@@ -60,6 +60,7 @@ Do not assume on non-trivial changes.
 | `make migration-new name="desc"` | Create Alembic migration |
 
 ## Rules (non-negotiable)
+
 1. **File length** — Python ≤ 300 lines · TypeScript ≤ 400 lines
 2. **Single responsibility** — one purpose per function/class/file. Check at task end.
 3. **TDD** — tests alongside or before code
@@ -72,10 +73,12 @@ Do not assume on non-trivial changes.
 10. **Skills** — update the relevant `skills/` file after change to that area.
 
 ## Toolchains
+
 **Python:** `uv` · `ruff` · `ty` · `pydantic` · `alembic` · `testcontainers`
 **TypeScript:** `pnpm` · `prettier` · `biome` · `vitest` (unit) · `playwright` (e2e)
 
 ## Key decisions
+
 - **Store integration priority:** official API → internal XHR/JSON endpoints → Playwright HTML scrape.
   Both stores protected by **Akamai**. Strategy: human logs in via browser → Playwright reuses session cookie until expiry. TLS spoofing fallback: `curl_cffi` or `tls-client`. Never use bare `requests`/`httpx` against store URLs.
 - **Checkout:** Playwright automates to payment page only. Never stores or enters card details.

@@ -52,12 +52,6 @@
     "vite": "^8.0.0",
     "vitest": "^5.0.2"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
-  },
   "intent": {
     "skills": [
       "*"

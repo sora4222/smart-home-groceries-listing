@@ -1,5 +1,7 @@
 # AGENT.md — Google Home Grocery List
 
+Must support independent execution across separate git worktrees on the same machine for concurrent multi-agent development.
+
 ## Purpose
 Self-hosted household grocery manager. Google Home voice → web confirmation → Woolworths/Coles purchase at lowest total cost (items + delivery). Unix home server, Docker Compose, Cloudflare Tunnel.
 
@@ -52,7 +54,7 @@ Do not assume on non-trivial changes.
 | `make down` | Stop all |
 | `make test` | All tests (compact output) |
 | `make migrate` | `alembic upgrade head` |
-| `make lint` | `ruff` + `ty` + `eslint` + `prettier` |
+| `make lint` | `ruff` + `ty` + `biome` + `prettier` |
 | `make hm-up` | Human-readable startup with logs |
 | `make hm-test` | Human-readable test output |
 | `make migration-new name="desc"` | Create Alembic migration |
@@ -71,7 +73,7 @@ Do not assume on non-trivial changes.
 
 ## Toolchains
 **Python:** `uv` · `ruff` · `ty` · `pydantic` · `alembic` · `testcontainers`
-**TypeScript:** `pnpm` · `prettier` · `eslint` · `vitest` (unit) · `playwright` (e2e)
+**TypeScript:** `pnpm` · `prettier` · `biome` · `vitest` (unit) · `playwright` (e2e)
 
 ## Key decisions
 - **Store integration priority:** official API → internal XHR/JSON endpoints → Playwright HTML scrape.

@@ -8,3 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Env
+.env
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+.output/

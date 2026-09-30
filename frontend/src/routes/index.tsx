@@ -8,6 +8,7 @@ import { GroceryItemCard } from "#/components/grocery/grocery-item-card";
 import { GroceryList } from "#/components/grocery/grocery-list";
 import {
 	type DuplicateItemDetail,
+	type GroceryItemEdit,
 	type NewGroceryItem,
 	type OnDuplicate,
 	api,
@@ -58,6 +59,26 @@ function GroceryListPage() {
 		}
 	}
 
+	async function saveItem(id: string, edit: GroceryItemEdit) {
+		try {
+			await api.grocery.update(id, edit);
+			await router.invalidate();
+		} catch {
+			toast.error("Could not save that change — try again.");
+			throw new Error("save failed");
+		}
+	}
+
+	async function removeItem(id: string) {
+		try {
+			await api.grocery.remove(id);
+			toast.success("Item removed from the list");
+			await router.invalidate();
+		} catch {
+			toast.error("Could not remove that item — try again.");
+		}
+	}
+
 	return (
 		<div className="flex flex-col gap-4">
 			<h1 className="text-lg font-semibold">Grocery List</h1>
@@ -82,7 +103,11 @@ function GroceryListPage() {
 				) : (
 					items.map((item) => (
 						<GroceryList.Item key={item.id}>
-							<GroceryItemCard item={item} />
+							<GroceryItemCard
+								item={item}
+								onSave={saveItem}
+								onRemove={removeItem}
+							/>
 						</GroceryList.Item>
 					))
 				)}

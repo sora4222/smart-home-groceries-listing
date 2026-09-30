@@ -3,13 +3,7 @@ import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import type { NewGroceryItem } from "#/lib/api";
-
-/** Reads a typed quantity as a whole number inside the column's 1..999 range. */
-function clampQuantity(typed: string): number {
-	const parsed = Number.parseInt(typed, 10);
-	if (Number.isNaN(parsed)) return 1;
-	return Math.min(999, Math.max(1, parsed));
-}
+import { MAX_QUANTITY, MIN_QUANTITY, clampQuantity } from "#/lib/quantity";
 
 interface AddItemFormProps {
 	/** Resolves once the item is on the list, or rejects to keep the draft. */
@@ -82,8 +76,8 @@ export function AddItemForm({ onAdd, disabled = false }: AddItemFormProps) {
 				<Input
 					id="new-item-quantity"
 					type="number"
-					min={1}
-					max={999}
+					min={MIN_QUANTITY}
+					max={MAX_QUANTITY}
 					value={quantity}
 					disabled={disabled}
 					onChange={(event) => setQuantity(event.target.value)}

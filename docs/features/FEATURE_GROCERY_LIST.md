@@ -102,7 +102,7 @@ button.
 | Row type | `backend/src/models/db.rs` (`GroceryItem`) |
 | Bodies | `backend/src/models/schemas.rs` |
 | Migration | `backend/migrations/0002_grocery_item_notes_filters_and_commit.sql` |
-| Backend tests | `backend/tests/grocery_items.rs`, `grocery_commit.rs` |
+| Backend tests | `backend/tests/grocery_items.rs`, `grocery_item_edits.rs`, `grocery_commit.rs` |
 | Page | `frontend/src/routes/index.tsx` |
 | Components | `frontend/src/components/grocery/` |
 | API client | `frontend/src/lib/api.ts` |

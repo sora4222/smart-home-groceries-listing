@@ -1,7 +1,7 @@
 //! Row types for the tables in `migrations/`.
 //!
-//! Only the tables the voice-intake goal needs are defined here
-//! (`voice_requests`, `grocery_items`). Later features (item rules, purchase
+//! One type per table (`voice_requests`, `grocery_items`, `item_rules`) plus
+//! the enumerations their TEXT + CHECK columns hold. Later features (purchase
 //! history, ...) add their own types alongside these without changing these.
 
 use chrono::{DateTime, Utc};
@@ -84,4 +84,22 @@ pub struct GroceryItem {
     pub filter_terms: Vec<String>,
     pub added_by_user_id: Option<String>,
     pub created_at: DateTime<Utc>,
+}
+
+/// A persistent filter attached to grocery item names.
+///
+/// When an item whose name matches one of `triggers` reaches the list, the
+/// rule's `filter_terms` are copied onto it as chips — always for accepted
+/// voice items, and for web-app additions only when `apply_to_manual` is set.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ItemRule {
+    pub id: Uuid,
+    /// Item names or phrases the rule matches, case-insensitively.
+    pub triggers: Vec<String>,
+    /// The chips a matching item receives.
+    pub filter_terms: Vec<String>,
+    /// Whether items typed into the web app get the rule too.
+    pub apply_to_manual: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }

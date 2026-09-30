@@ -6,6 +6,7 @@
 //! single transaction and locks the request row first, so two browser tabs
 //! racing to accept the same card cannot both succeed.
 
+mod log;
 pub mod repository;
 
 use sqlx::PgPool;
@@ -58,6 +59,7 @@ impl<'a> VoiceService<'a> {
             payload.quantity,
         )
         .await?;
+        log::recorded(&request);
         self.publish_pending_count().await?;
         Ok(request)
     }
@@ -78,11 +80,7 @@ impl<'a> VoiceService<'a> {
                 repository::find_by_external_id(self.pool, IntakeSource::Alexa, external_id)
                     .await?;
             if let Some(request) = existing {
-                tracing::info!(
-                    external_id,
-                    request_id = %request.id,
-                    "ignoring re-delivered Alexa item"
-                );
+                log::redelivered(&request, external_id);
                 return Ok((request, Delivery::AlreadySeen));
             }
         }
@@ -96,6 +94,7 @@ impl<'a> VoiceService<'a> {
             payload.quantity,
         )
         .await?;
+        log::recorded(&request);
         self.publish_pending_count().await?;
         Ok((request, Delivery::Recorded))
     }
@@ -137,40 +136,46 @@ impl<'a> VoiceService<'a> {
         let name = corrected_name(decision, &request);
         let quantity = decision.quantity.unwrap_or(request.parsed_quantity);
 
-        let grocery_item = match grocery_repository::lock_active_duplicate(&mut tx, &name).await? {
-            Some(existing) if !merge => {
-                // Nothing has been written yet; rolling back just releases
-                // the locks before the 409 goes out.
-                tx.rollback().await?;
-                return Err(duplicate_error(&existing));
-            }
-            Some(existing) => {
-                let merged = existing.quantity.saturating_add(quantity).min(MAX_QUANTITY);
-                grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?
-            }
-            None => {
-                // A voice item carries no note or chips of its own; its chips
-                // come from the item rules matching its name, and the user
-                // annotates it further on the list.
-                let rule_terms =
-                    item_rules::filter_terms_for(&mut *tx, &name, AddedVia::Voice).await?;
-                grocery_repository::insert_item(
-                    &mut tx,
-                    &name,
-                    quantity,
-                    GroceryItemSource::Voice,
-                    None,
-                    &rule_terms,
-                    user_id,
-                )
-                .await?
-            }
-        };
+        let (grocery_item, merged) =
+            match grocery_repository::lock_active_duplicate(&mut tx, &name).await? {
+                Some(existing) if !merge => {
+                    // Nothing has been written yet; rolling back just releases
+                    // the locks before the 409 goes out.
+                    tx.rollback().await?;
+                    log::duplicate_asked(&request, &existing);
+                    return Err(duplicate_error(&existing));
+                }
+                Some(existing) => {
+                    let merged = existing.quantity.saturating_add(quantity).min(MAX_QUANTITY);
+                    let item =
+                        grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?;
+                    (item, true)
+                }
+                None => {
+                    // A voice item carries no note or chips of its own; its chips
+                    // come from the item rules matching its name, and the user
+                    // annotates it further on the list.
+                    let rule_terms =
+                        item_rules::filter_terms_for(&mut *tx, &name, AddedVia::Voice).await?;
+                    let item = grocery_repository::insert_item(
+                        &mut tx,
+                        &name,
+                        quantity,
+                        GroceryItemSource::Voice,
+                        None,
+                        &rule_terms,
+                        user_id,
+                    )
+                    .await?;
+                    (item, false)
+                }
+            };
 
         let accepted =
             repository::mark_accepted(&mut tx, request.id, &name, quantity, grocery_item.id)
                 .await?;
         tx.commit().await?;
+        log::accepted(&accepted, &grocery_item, merged, user_id);
 
         self.publish_pending_count().await?;
         Ok((accepted, grocery_item))
@@ -190,6 +195,7 @@ impl<'a> VoiceService<'a> {
                 },
             );
         };
+        log::rejected(&request);
 
         self.publish_pending_count().await?;
         Ok(request)

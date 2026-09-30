@@ -10,6 +10,7 @@
 //! item already there.
 
 pub mod apply;
+mod log;
 pub mod matching;
 pub mod repository;
 pub mod triggers;
@@ -50,13 +51,7 @@ impl<'a> ItemRuleService<'a> {
 
         let rule =
             repository::insert_rule(self.pool, &triggers, &terms, payload.apply_to_manual).await?;
-        tracing::info!(
-            rule_id = %rule.id,
-            triggers = ?rule.triggers,
-            filter_terms = ?rule.filter_terms,
-            apply_to_manual = rule.apply_to_manual,
-            "item rule created"
-        );
+        log::saved(&rule, "created");
         Ok(rule)
     }
 
@@ -84,13 +79,7 @@ impl<'a> ItemRuleService<'a> {
         let rule = repository::update_rule(self.pool, rule_id, &triggers, &terms, apply_to_manual)
             .await?
             .ok_or_else(|| ApiError::NotFound(rule_id.to_string()))?;
-        tracing::info!(
-            rule_id = %rule.id,
-            triggers = ?rule.triggers,
-            filter_terms = ?rule.filter_terms,
-            apply_to_manual = rule.apply_to_manual,
-            "item rule updated"
-        );
+        log::saved(&rule, "updated");
         Ok(rule)
     }
 
@@ -99,7 +88,7 @@ impl<'a> ItemRuleService<'a> {
         if !repository::delete_rule(self.pool, rule_id).await? {
             return Err(ApiError::NotFound(rule_id.to_string()));
         }
-        tracing::info!(rule_id = %rule_id, "item rule deleted");
+        log::deleted(rule_id);
         Ok(())
     }
 }

@@ -12,6 +12,7 @@
 
 mod annotations;
 mod duplicates;
+mod log;
 pub mod repository;
 
 pub use duplicates::{duplicate_error, OnDuplicate};
@@ -68,11 +69,12 @@ impl<'a> GroceryService<'a> {
 
         let mut tx = self.pool.begin().await?;
         let clash = repository::lock_active_duplicate(&mut tx, name).await?;
-        let item = match (clash, on_duplicate) {
+        let (item, how) = match (clash, on_duplicate) {
             (Some(existing), OnDuplicate::Ask) => {
                 // Nothing has been written yet; the rollback only releases the
                 // lock before the 409 goes out.
                 tx.rollback().await?;
+                log::duplicate_asked(name, &existing);
                 return Err(duplicate_error(&existing));
             }
             (Some(existing), OnDuplicate::Merge) => {
@@ -80,7 +82,8 @@ impl<'a> GroceryService<'a> {
                     .quantity
                     .saturating_add(payload.quantity)
                     .min(MAX_QUANTITY);
-                repository::set_item_quantity(&mut tx, existing.id, merged).await?
+                let item = repository::set_item_quantity(&mut tx, existing.id, merged).await?;
+                (item, log::Added::Merged)
             }
             // No clash, or the user asked for both entries to exist. Only a
             // new entry picks up rule chips; a merge leaves the existing
@@ -88,7 +91,7 @@ impl<'a> GroceryService<'a> {
             (_, _) => {
                 let rule_terms =
                     item_rules::filter_terms_for(&mut *tx, name, AddedVia::Manual).await?;
-                repository::insert_item(
+                let item = repository::insert_item(
                     &mut tx,
                     name,
                     payload.quantity,
@@ -97,10 +100,12 @@ impl<'a> GroceryService<'a> {
                     &filter_terms::merge(&filter_terms, &rule_terms),
                     user_id,
                 )
-                .await?
+                .await?;
+                (item, log::Added::NewEntry)
             }
         };
         tx.commit().await?;
+        log::added(&item, how, user_id);
         Ok(item)
     }
 
@@ -145,15 +150,17 @@ impl<'a> GroceryService<'a> {
         )
         .await?;
         tx.commit().await?;
+        log::updated(&item);
         Ok(item)
     }
 
     /// Removes an item from the list. A committed item is locked, as for edits.
     pub async fn delete(&self, item_id: Uuid) -> Result<(), ApiError> {
         let mut tx = self.pool.begin().await?;
-        self.locked_editable_item(&mut tx, item_id).await?;
+        let item = self.locked_editable_item(&mut tx, item_id).await?;
         repository::delete_item(&mut tx, item_id).await?;
         tx.commit().await?;
+        log::removed(&item);
         Ok(())
     }
 
@@ -161,22 +168,25 @@ impl<'a> GroceryService<'a> {
     /// committed. Returns the items it changed, which is empty when there was
     /// nothing under review — pressing the button twice is harmless.
     pub async fn commit_list(&self) -> Result<Vec<GroceryItem>, ApiError> {
-        repository::move_all(
-            self.pool,
-            GroceryItemStatus::Active,
-            GroceryItemStatus::Committed,
-        )
-        .await
+        self.move_all(GroceryItemStatus::Active, GroceryItemStatus::Committed)
+            .await
     }
 
     /// Reopens a committed list for editing.
     pub async fn release_list(&self) -> Result<Vec<GroceryItem>, ApiError> {
-        repository::move_all(
-            self.pool,
-            GroceryItemStatus::Committed,
-            GroceryItemStatus::Active,
-        )
-        .await
+        self.move_all(GroceryItemStatus::Committed, GroceryItemStatus::Active)
+            .await
+    }
+
+    /// Moves every item in one status to another, and logs how many moved.
+    async fn move_all(
+        &self,
+        from: GroceryItemStatus,
+        to: GroceryItemStatus,
+    ) -> Result<Vec<GroceryItem>, ApiError> {
+        let items = repository::move_all(self.pool, from, to).await?;
+        log::list_moved(from, to, &items);
+        Ok(items)
     }
 
     /// Locks an item and refuses if it is not open to changes.
@@ -190,9 +200,12 @@ impl<'a> GroceryService<'a> {
     ) -> Result<GroceryItem, ApiError> {
         match repository::lock_item(tx, item_id).await? {
             Some(item) if item.status == GroceryItemStatus::Active => Ok(item),
-            Some(_) => Err(ApiError::Conflict(format!(
-                "{item_id} is committed for purchase — release the list to change it"
-            ))),
+            Some(item) => {
+                log::locked(&item);
+                Err(ApiError::Conflict(format!(
+                    "{item_id} is committed for purchase — release the list to change it"
+                )))
+            }
             None => Err(ApiError::NotFound(item_id.to_string())),
         }
     }

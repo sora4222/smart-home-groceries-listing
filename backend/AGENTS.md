@@ -27,6 +27,7 @@ src/
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
 │   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
 │   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
+│   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -36,14 +37,27 @@ src/
 │   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
 │   ├── db.rs            # row types + status/source enums
-│   └── schemas.rs       # request/response bodies with `validator` constraints
+│   └── schemas/         # request/response bodies with `validator` constraints,
+│                        #   one file per domain (+ common.rs limits), re-exported flat
 ├── services/            # Business logic — no HTTP types, no pool creation
 │   ├── grocery/
-│   │   ├── mod.rs       # GroceryService: list rules, duplicates, commit/release
+│   │   ├── mod.rs       # GroceryService: list rules, commit/release
+│   │   ├── duplicates.rs# OnDuplicate + the duplicate-item 409
+│   │   ├── annotations.rs# tidying an item's note
+│   │   ├── log.rs       # the list's log events
 │   │   └── repository.rs# every grocery_items statement, as literals
 │   ├── voice/
 │   │   ├── mod.rs       # VoiceService: the confirmation-queue rules
+│   │   ├── log.rs       # the queue's log events
 │   │   └── repository.rs# every voice_requests statement, as literals
+│   ├── item_rules/
+│   │   ├── mod.rs       # ItemRuleService: list, add, edit, delete
+│   │   ├── apply.rs     # filter_terms_for(): the chips a new item gets
+│   │   ├── matching.rs  # pure trigger ↔ item-name matcher
+│   │   ├── triggers.rs  # tidying trigger phrases
+│   │   ├── log.rs       # rule log events
+│   │   └── repository.rs# every item_rules statement, as literals
+│   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM
 └── db/mod.rs            # pool construction + MIGRATOR
@@ -140,6 +154,13 @@ in the domain's `repository.rs`.
 ## Migrations
 `sqlx` migrations in `migrations/`, embedded into the binary by
 `sqlx::migrate!` and applied at startup. See `skills/../../skills/migrations.md`.
+
+## Logging
+Each domain's events live in its own `log.rs` — one function per thing that
+happened (`log::added(&item, how, user_id)`), so a service reads as rules and
+every event carries the same field names. Log at `info` for a change,
+`warn` for a refused one, `debug` for a no-op. Log item names; never log
+notes, credentials or tokens.
 
 ## WebSocket (real-time push)
 `services/ws_hub.rs` holds a `tokio::sync::broadcast` channel. Publishers call

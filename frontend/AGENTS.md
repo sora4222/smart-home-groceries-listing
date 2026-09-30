@@ -36,7 +36,8 @@ src/
 │   ├── ui/              # Shadcn generated — do not edit directly
 │   └── <feature>/       # Compound components per feature area
 ├── lib/
-│   ├── api.ts           # Typed fetch wrappers for all backend endpoints
+│   ├── api.ts           # Gathers api/* into `api` and re-exports their types
+│   ├── api/             # client.ts (request, ApiError) + one module per domain
 │   └── ws.ts            # WebSocket client (pending request events)
 └── hooks/               # Custom hooks (useWebSocket, usePendingCount, etc.)
 ```

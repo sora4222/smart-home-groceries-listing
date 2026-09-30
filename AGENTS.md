@@ -38,13 +38,13 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ├── frontend/
 │   ├── src/routes/          # TanStack Router file-based routes
 │   ├── src/components/      # Shadcn + compound components
-│   ├── src/lib/             # api.ts, ws.ts
+│   ├── src/lib/             # api.ts + api/ (one module per domain), ws.ts
 │   ├── e2e/                 # Playwright e2e tests (frontend only)
 │   └── AGENTS.md            # Frontend-specific rules
 ├── backend/
 │   ├── src/routes/          # Axum routers (one module per domain)
 │   ├── src/auth/            # AuthProvider trait + Clerk impl + shared secrets
-│   ├── src/models/          # db.rs (rows) + schemas.rs (request/response)
+│   ├── src/models/          # db.rs (rows) + schemas/ (request/response)
 │   ├── src/services/        # Business logic (no HTTP types, no pool creation)
 │   ├── migrations/          # sqlx migrations, embedded in the binary
 │   ├── tests/               # Integration tests over the real router

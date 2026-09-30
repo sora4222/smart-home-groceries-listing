@@ -16,16 +16,20 @@ src/
 ├── db/mod.rs           # pool + embedded migrations
 ├── models/
 │   ├── db.rs           # row types
-│   └── schemas.rs      # request/response bodies, with validation limits
+│   └── schemas/        # request/response bodies per domain, with validation limits
 ├── routes/             # one module per domain, merged in routes/mod.rs
 │   ├── voice.rs        # /api/voice-requests — generic intake webhook + confirmation queue
 │   ├── alexa.rs        # /api/intake/alexa — from the Alexa bridge sidecar
 │   ├── grocery.rs      # /api/grocery-items
+│   ├── item_rules.rs   # /api/item-rules
 │   ├── ws.rs           # /ws
 │   ├── health.rs       # /api/health
 │   └── extract.rs      # validating body extractors
 └── services/
+    ├── grocery/        # the list: rules, duplicates, log events, SQL
     ├── voice/          # confirmation-queue rules (mod.rs) and SQL (repository.rs)
+    ├── item_rules/     # item rules: CRUD, matching, applying, SQL
+    ├── filter_terms.rs # tidying chip lists
     ├── ws_hub.rs       # broadcast fan-out to browser sessions
     └── encryption.rs   # AES-256-GCM for store credentials
 migrations/             # sqlx migrations, embedded into the binary

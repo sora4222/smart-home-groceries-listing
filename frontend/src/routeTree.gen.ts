@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PendingRouteImport } from './routes/pending'
+import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const PendingRoute = PendingRouteImport.update({
   path: '/pending',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
+  id: '/settings/item-rules',
+  path: '/settings/item-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/pending': typeof PendingRoute
+  '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/pending': typeof PendingRoute
+  '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/pending': typeof PendingRoute
+  '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/pending'
+  fullPaths: '/' | '/pending' | '/settings/item-rules'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/pending'
-  id: '__root__' | '/' | '/pending'
+  to: '/' | '/pending' | '/settings/item-rules'
+  id: '__root__' | '/' | '/pending' | '/settings/item-rules'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PendingRoute: typeof PendingRoute
+  SettingsItemRulesRoute: typeof SettingsItemRulesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/item-rules': {
+      id: '/settings/item-rules'
+      path: '/settings/item-rules'
+      fullPath: '/settings/item-rules'
+      preLoaderRoute: typeof SettingsItemRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PendingRoute: PendingRoute,
+  SettingsItemRulesRoute: SettingsItemRulesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

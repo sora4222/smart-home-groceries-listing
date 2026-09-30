@@ -8,13 +8,16 @@
  * `#/lib/api` without caring which file a type lives in.
  */
 import { groceryApi } from "#/lib/api/grocery";
+import { itemRulesApi } from "#/lib/api/item-rules";
 import { voiceApi } from "#/lib/api/voice";
 
 export { ApiError } from "#/lib/api/client";
 export * from "#/lib/api/grocery";
+export * from "#/lib/api/item-rules";
 export * from "#/lib/api/voice";
 
 export const api = {
 	voice: voiceApi,
 	grocery: groceryApi,
+	itemRules: itemRulesApi,
 };

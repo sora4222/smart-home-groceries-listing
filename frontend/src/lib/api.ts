@@ -1,17 +1,24 @@
 /**
- * Typed fetch wrappers for the FastAPI backend. Keep this the only place
+ * Typed fetch wrappers for the Rust/Axum backend. Keep this the only place
  * that knows the backend's URL shape — components call these, never
  * `fetch` directly.
+ *
+ * Paths, field names, status codes and the `{ detail }` error envelope are
+ * unchanged from the previous FastAPI backend, so nothing else in the app
+ * needed touching when it was rewritten.
  */
 import { API_BASE_URL } from "#/lib/config";
 import { getAuthToken } from "#/lib/auth";
 
 export type VoiceRequestStatus = "pending" | "accepted" | "rejected";
+/** Which intake channel delivered an item. */
+export type IntakeSource = "webhook" | "alexa";
 export type GroceryItemStatus = "pending" | "active" | "ordered";
 export type GroceryItemSource = "voice" | "manual";
 
 export interface VoiceRequest {
 	id: string;
+	source: IntakeSource;
 	raw_text: string;
 	parsed_name: string;
 	parsed_quantity: number;

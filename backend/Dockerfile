@@ -1,13 +1,44 @@
-FROM python:3.12-slim
-WORKDIR /app
+# Multi-stage build: compile with the full toolchain, ship a small runtime
+# image containing one statically-linked-ish binary and no build tools.
 
-RUN pip install --no-cache-dir uv -q
+FROM rust:1.95-slim-bookworm AS builder
+WORKDIR /build
 
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-install-project -q || uv sync -q
+RUN apt-get update -qq \
+ && apt-get install -y --no-install-recommends pkg-config \
+ && rm -rf /var/lib/apt/lists/*
 
-COPY . .
-RUN uv sync -q
+# Dependencies first, in their own layer, so editing source does not re-fetch
+# and rebuild 300 crates on every image build.
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir -p src \
+ && echo 'fn main() {}' > src/main.rs \
+ && echo '' > src/lib.rs \
+ && cargo build --release --locked \
+ && rm -rf src
 
+# `sqlx::migrate!` reads these at compile time, so they must be present
+# before the real build.
+COPY migrations ./migrations
+COPY src ./src
+
+# Touch the entrypoints so cargo rebuilds them rather than reusing the stubs.
+RUN touch src/main.rs src/lib.rs \
+ && cargo build --release --locked
+
+FROM debian:bookworm-slim AS runtime
+
+# ca-certificates: the process fetches Clerk's JWKS over HTTPS.
+RUN apt-get update -qq \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --create-home --shell /usr/sbin/nologin grocery
+
+COPY --from=builder /build/target/release/grocery-backend /usr/local/bin/grocery-backend
+
+USER grocery
 EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Migrations are embedded in the binary, so the container needs nothing on
+# disk and cannot run a schema its code was not built against.
+CMD ["grocery-backend"]

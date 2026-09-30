@@ -12,7 +12,20 @@ Before editing files for a substantial task:
 <!-- intent-skills:end -->
 
 ## Stack
-React 18 · TanStack Router (file-based) · Shadcn/ui · Radix UI · Tailwind CSS · TypeScript · pnpm
+React 19 · TanStack Start (SSR) · TanStack Router (file-based) · Shadcn/ui · Radix UI · Tailwind CSS v4 · TypeScript · pnpm
+
+## Backend contract
+The backend is **Rust + Axum** (see `backend/AGENTS.md`). It was rewritten from
+Python + FastAPI without changing the wire format: same paths, same field
+names, same status codes, and errors still arrive as `{ "detail": ... }` —
+a string for most failures, an object for the duplicate-item 409. Nothing in
+this directory changed because of the rewrite.
+
+`VoiceRequest` carries a `source` field (`"webhook" | "alexa"`) saying which
+intake channel delivered the item.
+
+Playwright is a **frontend-only** tool here. The backend's store automation
+uses `chromiumoxide`; do not add Playwright to anything outside `frontend/`.
 
 ## Structure
 ```

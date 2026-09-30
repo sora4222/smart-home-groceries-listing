@@ -1,0 +1,2 @@
+# Keep `too_many_arguments` honest without being noisy for repository helpers.
+too-many-arguments-threshold = 8

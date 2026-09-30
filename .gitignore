@@ -1,19 +1,27 @@
-# Python-generated files
+# Rust
+target/
+**/*.rs.bk
+
+# Python (sidecars only)
 __pycache__/
 *.py[oc]
+.venv/
+.pytest_cache/
+.ruff_cache/
 build/
 dist/
 wheels/
 *.egg-info
 
-# Virtual environments
-.venv
-
-# Env
+# Env — every variant except the committed template
 .env
+.env.*
+!.env.example
 
 # Node / pnpm
 node_modules/
 .pnpm-store/
-dist/
 .output/
+
+# OS
+.DS_Store

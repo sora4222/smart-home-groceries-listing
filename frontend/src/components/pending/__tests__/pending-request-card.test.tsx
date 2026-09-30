@@ -7,6 +7,7 @@ import type { VoiceRequest } from "#/lib/api";
 
 const request: VoiceRequest = {
 	id: "11111111-1111-1111-1111-111111111111",
+	source: "webhook",
 	raw_text: "milk",
 	parsed_name: "milk",
 	parsed_quantity: 2,

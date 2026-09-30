@@ -1,0 +1,51 @@
+[package]
+name = "grocery-backend"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Grocery list backend: voice intake, confirmation queue, and store ordering"
+publish = false
+
+[lib]
+name = "grocery_backend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "grocery-backend"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.8.9", features = ["ws", "macros"] }
+tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "signal"] }
+tower = "0.5.3"
+tower-http = { version = "0.7.1", features = ["cors", "trace", "timeout", "limit"] }
+sqlx = { version = "0.9.0", default-features = false, features = [
+  "runtime-tokio",
+  "tls-rustls-ring-webpki",
+  "postgres",
+  "uuid",
+  "chrono",
+  "migrate",
+  "macros",
+] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+uuid = { version = "1.26", features = ["v4", "serde"] }
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock", "serde"] }
+thiserror = "2.0.21"
+anyhow = "1.0.104"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+jsonwebtoken = "11.1.0"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "http2", "charset"] }
+aes-gcm = "0.11.1"
+base64 = "0.23.1"
+subtle = "2.6"
+validator = { version = "0.21.0", features = ["derive"] }
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tower = { version = "0.5.3", features = ["util"] }
+futures-util = "0.3.34"
+# Drives the real /ws endpoint over a real socket in tests/websocket.rs.
+tokio-tungstenite = "0.30.0"

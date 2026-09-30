@@ -1,116 +1,184 @@
 # Backend Agent Guide
 
 ## Stack
-Python 3.12 · FastAPI · SQLAlchemy (async) · Alembic · PydanticAI · PostgreSQL · Clerk JWT · Playwright · curl_cffi
+Rust 1.85+ (edition 2021) · Axum 0.8 (REST + WebSocket) · sqlx 0.9 (async,
+compile-time-safe queries, embedded migrations) · PostgreSQL · Clerk JWT via
+`jsonwebtoken` · `tower-http` middleware · `aes-gcm` · `tracing` ·
+`chromiumoxide` (store automation, not yet built)
+
+**There is no Python in this crate or anywhere else in `backend/`.** The one
+Python process in the repository is `sidecars/alexa-bridge`, which does
+nothing but verify Alexa's request signature and forward the item — see the
+"Sidecars" section below.
+
+## Toolchain
+`cargo` · `rustfmt` (`rustfmt.toml`, 100 columns) · `clippy` (warnings are
+errors in CI) · `cargo test` with `#[sqlx::test]`
 
 ## Structure
 ```
-app/
-├── main.py              # App factory, router registration, middleware
-├── config.py            # Settings via pydantic-settings (reads .env)
-├── routes/              # One router per domain — import in main.py
-│   ├── voice.py         # POST /api/voice-requests  (webhook — no JWT, uses shared secret)
-│   ├── grocery.py       # /api/grocery-items
-│   ├── orders.py        # /api/orders
-│   ├── analysis.py      # /api/analysis
-│   ├── settings.py      # /api/settings/*
-│   ├── logs.py          # /api/logs
-│   └── ws.py            # WebSocket /ws
+src/
+├── main.rs              # entrypoint: config, pool, migrate, serve, graceful shutdown
+├── lib.rs               # build_app() — state, router, middleware. Thin wiring only.
+├── config.rs            # Settings::from_env(); every value comes from the environment
+├── error.rs             # ApiError + IntoResponse. Keeps FastAPI's {"detail": ...} shape.
+├── state.rs             # AppState: pool, settings, ws hub, auth provider, encryptor
+├── routes/              # One module per domain — expose `router()`, merge in routes/mod.rs
+│   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
+│   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
+│   ├── grocery.rs       # /api/grocery-items
+│   ├── health.rs        # /api/health
+│   ├── ws.rs            # WebSocket /ws
+│   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
 ├── auth/
-│   ├── provider.py      # AuthProvider protocol — swap implementations here
-│   └── clerk.py         # Clerk JWT verification (current implementation)
+│   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
+│   ├── clerk.rs         # Clerk JWKS verification (current implementation)
+│   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
-│   ├── db.py            # SQLAlchemy ORM models
-│   └── schemas.py       # Pydantic request/response schemas
-├── services/            # Business logic — no HTTP, no direct DB sessions
-│   ├── optimiser.py     # Order cost optimisation algorithm
-│   ├── encryption.py    # AES-256 encrypt/decrypt
-│   └── stores/
-│       ├── base.py      # StoreClient protocol
-│       ├── woolworths.py
-│       └── coles.py
-└── db/
-    ├── session.py       # Async session factory + get_db dependency
-    └── base.py          # SQLAlchemy Base
+│   ├── db.rs            # row types + status/source enums
+│   └── schemas.rs       # request/response bodies with `validator` constraints
+├── services/            # Business logic — no HTTP types, no pool creation
+│   ├── voice/
+│   │   ├── mod.rs       # VoiceService: the confirmation-queue rules
+│   │   └── repository.rs# every SQL statement, as literals
+│   ├── ws_hub.rs        # broadcast fan-out
+│   └── encryption.rs    # AES-256-GCM
+└── db/mod.rs            # pool construction + MIGRATOR
+migrations/*.sql         # sqlx migrations, embedded via sqlx::migrate!
+tests/                   # integration tests through the real router
 ```
 
 ## Route pattern
-```python
-# app/routes/grocery.py
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.auth.provider import get_current_user, AuthUser
-from app.db.session import get_db
-from app.models.schemas import GroceryItemResponse, NewGroceryItem
-from app.services.grocery import GroceryService
+```rust
+// src/routes/grocery.rs
+use axum::extract::State;
+use axum::routing::get;
+use axum::{Json, Router};
 
-router = APIRouter(prefix="/api/grocery-items", tags=["grocery"])
+use crate::auth::AuthUser;
+use crate::error::ApiError;
+use crate::models::schemas::GroceryItemResponse;
+use crate::state::AppState;
 
-@router.get("/", response_model=list[GroceryItemResponse])
-async def list_items(
-    user: AuthUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> list[GroceryItemResponse]:
-    return await GroceryService(db).list_active()
+pub fn router() -> Router<AppState> {
+    Router::new().route("/api/grocery-items", get(list_active_items))
+}
 
-@router.post("/", response_model=GroceryItemResponse, status_code=201)
-async def add_item(
-    body: NewGroceryItem,
-    user: AuthUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> GroceryItemResponse:
-    return await GroceryService(db).add(body, added_by=user.id)
+async fn list_active_items(
+    State(state): State<AppState>,
+    _user: AuthUser,                       // ← the auth check; presence is the guard
+) -> Result<Json<Vec<GroceryItemResponse>>, ApiError> {
+    let items = repository::list_active_items(&state.pool).await?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
+}
 ```
+
+Axum 0.8 path parameters are `{id}`, **not** `:id`. Register the module in
+`routes/mod.rs::api_router`.
 
 ## Auth
-```python
-# All routes except /api/voice-requests use JWT
-user: AuthUser = Depends(get_current_user)
+```rust
+// Every route except the intake endpoints: take the extractor.
+async fn handler(user: AuthUser) -> ... {}     // 401 if the JWT does not verify
 
-# Voice webhook uses shared secret
-Depends(verify_webhook_secret)
+// Intake endpoints cannot carry a session, so they use a shared secret.
+verify_shared_secret(&state.settings.voice_webhook_secret, presented, "VOICE_WEBHOOK_SECRET")?;
 ```
 
-All auth logic goes through `app/auth/provider.py` — never call Clerk SDK directly in a route.
+All auth goes through `auth/mod.rs` — never call a provider SDK from a route.
+Swapping provider means implementing `AuthProvider` and changing
+`build_provider`; nothing else moves.
+
+`DEV_AUTH_BYPASS=true` turns the `AuthUser` extractor into a fixed dev user.
+It logs a warning at startup. Never set it on a host reachable through the
+Cloudflare Tunnel.
 
 ## Service pattern
-```python
-# app/services/grocery.py
-class GroceryService:
-    def __init__(self, db: AsyncSession) -> None:
-        self.db = db
+```rust
+pub struct VoiceService<'a> {
+    pool: &'a PgPool,
+    hub: &'a WsHub,
+}
 
-    async def list_active(self) -> list[GroceryItemResponse]:
-        result = await self.db.execute(
-            select(GroceryItem).where(GroceryItem.status == "active")
-        )
-        return [GroceryItemResponse.model_validate(row) for row in result.scalars()]
+impl<'a> VoiceService<'a> {
+    pub fn new(pool: &'a PgPool, hub: &'a WsHub) -> Self { Self { pool, hub } }
+
+    pub async fn list_pending(&self) -> Result<Vec<VoiceRequest>, ApiError> {
+        repository::list_pending(self.pool).await
+    }
+}
 ```
 
-Services receive a `db` session — they do not create one. No HTTP calls in services (that's `stores/`).
+A service **borrows** the pool a route hands it; it never creates one. No HTTP
+calls in a service (that is `services/stores/`), and no SQL either — SQL lives
+in the domain's `repository.rs`.
+
+## SQL rules
+- **Every query is a literal `&'static str` with bind parameters.** sqlx 0.9
+  refuses a runtime-built string unless it is wrapped in `AssertSqlSafe`;
+  never reach for that wrapper. Repeating a column list is the cheaper price.
+- Multi-row changes go in one transaction, and lock the row they decide on
+  (`SELECT ... FOR UPDATE`) before reading it — two browser tabs accepting the
+  same card must not both succeed.
+- Enums are `TEXT` with `CHECK` constraints, not PostgreSQL `ENUM` types:
+  adding a value is a constraint change rather than an `ALTER TYPE` that
+  cannot run in a transaction.
+- The duplicate-name expression
+  `lower(btrim(regexp_replace(name, '\s+', ' ', 'g')))` appears in
+  `repository::lock_active_duplicate`, in `ix_grocery_items_normalised_name`,
+  and as `repository::normalise` in Rust. Change one, change all three.
+
+## Migrations
+`sqlx` migrations in `migrations/`, embedded into the binary by
+`sqlx::migrate!` and applied at startup. See `skills/../../skills/migrations.md`.
 
 ## WebSocket (real-time push)
-```python
-# app/routes/ws.py
-# ConnectionManager tracks open sessions
-# Broadcasts: {"type": "voice_request_added", "count": n}
-# Fired by: voice route after inserting a new voice_request
-```
+`services/ws_hub.rs` holds a `tokio::sync::broadcast` channel. Publishers call
+`hub.broadcast(ServerEvent::VoiceRequestAdded { count })`; each socket task
+holds a receiver, so a slow client cannot block a publisher. Events are
+process-local — fronting several backend processes would need Postgres
+`LISTEN/NOTIFY`.
+
+## Validation
+Request bodies derive `validator::Validate` and are extracted with
+`ValidatedJson<T>` (or `OptionalValidatedJson<T>` where the body is optional).
+A body outside its limits is a 422 that never reaches a service, so a service
+may assume its inputs are in range. Keep the limits in step with the
+migration's `CHECK` constraints.
+
+## Errors
+Return `ApiError`. `Internal` and `Misconfigured` log their cause and answer
+with a generic message — a database error, a connection string or an upstream
+message must never reach a response body.
 
 ## File length
-Hard limit: 300 lines. Extract service logic to `services/` first. If service is still over, split by responsibility into submodules.
+Hard limit: **300 lines**. Extract to a service first; if the service is still
+over, split by responsibility (that is why `services/voice/` is a directory
+with `mod.rs` for rules and `repository.rs` for SQL).
 
-## Credentials (AES-256)
-```python
-from app.services.encryption import encrypt, decrypt
-
-# Store
-encrypted = encrypt(plaintext, key=settings.CREDENTIAL_ENCRYPTION_KEY)
-# Retrieve
-plaintext = decrypt(encrypted, key=settings.CREDENTIAL_ENCRYPTION_KEY)
+## Credentials (AES-256-GCM)
+```rust
+let encryptor = state.encryptor.as_ref().ok_or_else(|| {
+    ApiError::Misconfigured("CREDENTIAL_ENCRYPTION_KEY is not set".into())
+})?;
+let stored = encryptor.encrypt(plaintext)?;
+let plaintext = encryptor.decrypt(&stored)?;
 ```
 
-Key comes from env var — never hardcoded, never logged, never returned to frontend.
+The key is base64-encoded 32 bytes from `CREDENTIAL_ENCRYPTION_KEY`. Never
+hardcoded, never logged, never returned to the frontend. `Encryptor`'s `Debug`
+is redacted on purpose.
+
+## Sidecars
+`sidecars/alexa-bridge` (Python) verifies Alexa's request signature with
+Amazon's `ask-sdk` and forwards the item to `POST /api/intake/alexa` over the
+Compose network, authenticated by `ALEXA_BRIDGE_SECRET`. It holds no database
+credentials and no business logic.
+
+A Google Keep source would take the same shape — `gkeepapi` is Python-only and
+unofficial — but is unbuilt. Any new sidecar must: verify or authenticate at
+its own boundary, forward to a backend intake endpoint with its **own** shared
+secret, and contain no rules about the grocery list.
 
 ## Skills in this directory
-- `skills/store-integration.md` — store APIs, Playwright, Akamai mitigations
+- `skills/store-integration.md` — store APIs, `chromiumoxide`, Akamai mitigations

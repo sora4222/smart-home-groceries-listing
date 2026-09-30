@@ -3,11 +3,13 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { AddItemForm } from "#/components/grocery/add-item-form";
+import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { GroceryItemCard } from "#/components/grocery/grocery-item-card";
 import { GroceryList } from "#/components/grocery/grocery-list";
 import {
 	type DuplicateItemDetail,
+	type GroceryItem,
 	type GroceryItemEdit,
 	type NewGroceryItem,
 	type OnDuplicate,
@@ -29,7 +31,10 @@ interface HeldAddition {
 /**
  * The grocery list — the application's main page.
  *
- * Reading the list and adding to it are the two things this page exists for.
+ * Reading the list and adding to it are the two things this page exists for;
+ * reviewing, annotating and finally committing the list for purchase are what
+ * the rest of it is about.
+ *
  * Mutations go through `lib/api` and then `router.invalidate()`, so the loader
  * stays the single source of truth and two open tabs cannot drift apart.
  */
@@ -37,6 +42,9 @@ function GroceryListPage() {
 	const items = Route.useLoaderData();
 	const router = useRouter();
 	const [held, setHeld] = useState<HeldAddition | null>(null);
+
+	const underReview = items.filter((item) => item.status === "active");
+	const committed = items.filter((item) => item.status === "committed");
 
 	async function addItem(
 		item: NewGroceryItem,
@@ -79,6 +87,28 @@ function GroceryListPage() {
 		}
 	}
 
+	async function commitList() {
+		try {
+			const locked = await api.grocery.commit();
+			toast.success(
+				`${locked.length} ${locked.length === 1 ? "item" : "items"} locked in for purchase`,
+			);
+			await router.invalidate();
+		} catch {
+			toast.error("Could not commit the list — try again.");
+		}
+	}
+
+	async function releaseList() {
+		try {
+			await api.grocery.release();
+			toast.success("List reopened for editing");
+			await router.invalidate();
+		} catch {
+			toast.error("Could not release the list — try again.");
+		}
+	}
+
 	return (
 		<div className="flex flex-col gap-4">
 			<h1 className="text-lg font-semibold">Grocery List</h1>
@@ -94,24 +124,63 @@ function GroceryListPage() {
 				/>
 			)}
 
-			<GroceryList>
-				{items.length === 0 ? (
-					<GroceryList.Empty>
-						Nothing on the list yet. Add an item above, or say "Hey Google, add
-						milk to the shopping list" and accept it in Pending Requests.
-					</GroceryList.Empty>
-				) : (
-					items.map((item) => (
-						<GroceryList.Item key={item.id}>
-							<GroceryItemCard
-								item={item}
-								onSave={saveItem}
-								onRemove={removeItem}
-							/>
-						</GroceryList.Item>
-					))
-				)}
-			</GroceryList>
+			<Section
+				items={underReview}
+				onSave={saveItem}
+				onRemove={removeItem}
+				empty={
+					committed.length > 0
+						? "Nothing new since the list was committed."
+						: 'Nothing on the list yet. Add an item above, or say "Hey Google, add milk to the shopping list" and accept it in Pending Requests.'
+				}
+			/>
+
+			<CommitBar
+				activeCount={underReview.length}
+				committedCount={committed.length}
+				onCommit={commitList}
+				onRelease={releaseList}
+			/>
+
+			{committed.length > 0 && (
+				<>
+					<h2 className="text-sm font-semibold text-muted-foreground">
+						Committed for purchase
+					</h2>
+					<Section items={committed} onSave={saveItem} onRemove={removeItem} />
+				</>
+			)}
 		</div>
+	);
+}
+
+/** One group of list items, with the message to show when the group is empty. */
+function Section({
+	items,
+	empty,
+	onSave,
+	onRemove,
+}: {
+	items: GroceryItem[];
+	empty?: string;
+	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
+	onRemove: (id: string) => Promise<void>;
+}) {
+	if (items.length === 0) {
+		return empty ? (
+			<GroceryList>
+				<GroceryList.Empty>{empty}</GroceryList.Empty>
+			</GroceryList>
+		) : null;
+	}
+
+	return (
+		<GroceryList>
+			{items.map((item) => (
+				<GroceryList.Item key={item.id}>
+					<GroceryItemCard item={item} onSave={onSave} onRemove={onRemove} />
+				</GroceryList.Item>
+			))}
+		</GroceryList>
 	);
 }

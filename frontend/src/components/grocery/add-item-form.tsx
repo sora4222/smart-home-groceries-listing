@@ -8,8 +8,6 @@ import { MAX_QUANTITY, MIN_QUANTITY, clampQuantity } from "#/lib/quantity";
 interface AddItemFormProps {
 	/** Resolves once the item is on the list, or rejects to keep the draft. */
 	onAdd: (item: NewGroceryItem) => Promise<void>;
-	/** True while the list is committed, when nothing may be added. */
-	disabled?: boolean;
 }
 
 /**
@@ -19,7 +17,7 @@ interface AddItemFormProps {
  * Annotating an item (note, filter chips) happens on the item itself once it is
  * on the list, which keeps this path to two keystrokes and a return.
  */
-export function AddItemForm({ onAdd, disabled = false }: AddItemFormProps) {
+export function AddItemForm({ onAdd }: AddItemFormProps) {
 	const [name, setName] = useState("");
 	// Held as typed rather than as a number: coercing on every keystroke would
 	// snap an emptied field back to 1, so the next digit would append to it.
@@ -60,7 +58,6 @@ export function AddItemForm({ onAdd, disabled = false }: AddItemFormProps) {
 				<Input
 					id="new-item-name"
 					value={name}
-					disabled={disabled}
 					placeholder="Milk"
 					autoComplete="off"
 					onChange={(event) => setName(event.target.value)}
@@ -79,7 +76,6 @@ export function AddItemForm({ onAdd, disabled = false }: AddItemFormProps) {
 					min={MIN_QUANTITY}
 					max={MAX_QUANTITY}
 					value={quantity}
-					disabled={disabled}
 					onChange={(event) => setQuantity(event.target.value)}
 					onBlur={() => setQuantity(String(clampQuantity(quantity)))}
 				/>
@@ -87,7 +83,7 @@ export function AddItemForm({ onAdd, disabled = false }: AddItemFormProps) {
 			<Button
 				type="submit"
 				className="w-full sm:w-auto"
-				disabled={disabled || busy || trimmed.length === 0}
+				disabled={busy || trimmed.length === 0}
 			>
 				{busy ? "Adding…" : "Add item"}
 			</Button>

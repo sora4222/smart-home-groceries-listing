@@ -91,11 +91,4 @@ describe("AddItemForm", () => {
 
 		expect(screen.getByLabelText("Item")).toHaveValue("rice");
 	});
-
-	it("is closed while the list is committed", () => {
-		render(<AddItemForm onAdd={vi.fn()} disabled />);
-
-		expect(screen.getByLabelText("Item")).toBeDisabled();
-		expect(screen.getByRole("button", { name: "Add item" })).toBeDisabled();
-	});
 });

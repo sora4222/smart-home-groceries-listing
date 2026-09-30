@@ -193,6 +193,32 @@ pub async fn delete_item(
     Ok(result.rows_affected() > 0)
 }
 
+/// Moves every item from one status to another, returning the rows it changed.
+///
+/// Used for both directions of the commit decision: `active` → `committed`
+/// locks the list in for purchase, `committed` → `active` releases it for
+/// further editing. One statement means two tabs pressing the button together
+/// cannot half-commit the list.
+pub async fn move_all<'e, E>(
+    executor: E,
+    from: GroceryItemStatus,
+    to: GroceryItemStatus,
+) -> Result<Vec<GroceryItem>, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    Ok(sqlx::query_as::<_, GroceryItem>(
+        "UPDATE grocery_items SET status = $2
+         WHERE status = $1
+         RETURNING id, name, quantity, status, source, note, filter_terms,
+                   added_by_user_id, created_at",
+    )
+    .bind(from)
+    .bind(to)
+    .fetch_all(executor)
+    .await?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::normalise;

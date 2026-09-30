@@ -141,6 +141,28 @@ impl<'a> GroceryService<'a> {
         Ok(())
     }
 
+    /// Locks in the whole list for purchase: every active item becomes
+    /// committed. Returns the items it changed, which is empty when there was
+    /// nothing under review — pressing the button twice is harmless.
+    pub async fn commit_list(&self) -> Result<Vec<GroceryItem>, ApiError> {
+        repository::move_all(
+            self.pool,
+            GroceryItemStatus::Active,
+            GroceryItemStatus::Committed,
+        )
+        .await
+    }
+
+    /// Reopens a committed list for editing.
+    pub async fn release_list(&self) -> Result<Vec<GroceryItem>, ApiError> {
+        repository::move_all(
+            self.pool,
+            GroceryItemStatus::Committed,
+            GroceryItemStatus::Active,
+        )
+        .await
+    }
+
     /// Locks an item and refuses if it is not open to changes.
     ///
     /// Rolls the transaction back before returning the error so the lock is

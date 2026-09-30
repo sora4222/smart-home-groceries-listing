@@ -7,7 +7,7 @@
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{get, patch};
+use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use uuid::Uuid;
@@ -23,6 +23,8 @@ use crate::state::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/grocery-items", get(list_items).post(add_item))
+        .route("/api/grocery-items/commit", post(commit_list))
+        .route("/api/grocery-items/release", post(release_list))
         .route(
             "/api/grocery-items/{item_id}",
             patch(update_item).delete(delete_item),
@@ -88,4 +90,22 @@ async fn delete_item(
 ) -> Result<StatusCode, ApiError> {
     GroceryService::new(&state.pool).delete(item_id).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// `POST /api/grocery-items/commit` — lock the reviewed list in for purchase.
+async fn commit_list(
+    State(state): State<AppState>,
+    _user: AuthUser,
+) -> Result<Json<Vec<GroceryItemResponse>>, ApiError> {
+    let items = GroceryService::new(&state.pool).commit_list().await?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
+}
+
+/// `POST /api/grocery-items/release` — reopen a committed list for editing.
+async fn release_list(
+    State(state): State<AppState>,
+    _user: AuthUser,
+) -> Result<Json<Vec<GroceryItemResponse>>, ApiError> {
+    let items = GroceryService::new(&state.pool).release_list().await?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
 }

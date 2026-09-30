@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { PendingRequestCard } from "#/components/pending/pending-request-card";
 import { api, type VoiceRequest } from "#/lib/api";
+import { ruleTermsDescription } from "#/lib/rule-terms";
 
 export const Route = createFileRoute("/pending")({
 	loader: () => api.voice.pending(),
@@ -21,14 +22,17 @@ function PendingPage() {
 
 	async function handleAccept(id: string, name: string, quantity: number) {
 		try {
-			await api.voice.accept(id, { name, quantity });
+			const { grocery_item } = await api.voice.accept(id, { name, quantity });
 			setRequests((prev) => prev.filter((r) => r.id !== id));
 			setRejectedIds((prev) => {
 				const next = new Set(prev);
 				next.delete(id);
 				return next;
 			});
-			toast.success(`${name} added to the grocery list`);
+			// A voice item brings no chips of its own, so every one came from a rule.
+			toast.success(`${name} added to the grocery list`, {
+				description: ruleTermsDescription(grocery_item.filter_terms),
+			});
 			// Awaited inside the try: an invalidation still in flight when the
 			// user navigates away rejects, and unawaited that surfaced as an
 			// unhandled "Failed to fetch" in the console.

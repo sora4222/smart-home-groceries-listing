@@ -14,6 +14,7 @@ import {
 	api,
 	duplicateDetail,
 } from "#/lib/api";
+import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
 
 export const Route = createFileRoute("/")({
 	loader: () => api.grocery.list(),
@@ -51,7 +52,14 @@ function GroceryListPage() {
 		try {
 			const created = await api.grocery.add(item, onDuplicate);
 			setHeld(null);
-			toast.success(`${created.name} is on the list`);
+			// A merge returns the existing item, whose chips no rule just added.
+			const fromRules =
+				onDuplicate === "merge"
+					? []
+					: termsAddedByRules(item.filter_terms, created.filter_terms);
+			toast.success(`${created.name} is on the list`, {
+				description: ruleTermsDescription(fromRules),
+			});
 			await router.invalidate();
 		} catch (error) {
 			const detail = duplicateDetail(error);

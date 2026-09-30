@@ -26,7 +26,7 @@ src/
 ├── routes/              # One module per domain — expose `router()`, merge in routes/mod.rs
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
 │   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
-│   ├── grocery.rs       # /api/grocery-items
+│   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -38,9 +38,12 @@ src/
 │   ├── db.rs            # row types + status/source enums
 │   └── schemas.rs       # request/response bodies with `validator` constraints
 ├── services/            # Business logic — no HTTP types, no pool creation
+│   ├── grocery/
+│   │   ├── mod.rs       # GroceryService: list rules, duplicates, commit/release
+│   │   └── repository.rs# every grocery_items statement, as literals
 │   ├── voice/
 │   │   ├── mod.rs       # VoiceService: the confirmation-queue rules
-│   │   └── repository.rs# every SQL statement, as literals
+│   │   └── repository.rs# every voice_requests statement, as literals
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM
 └── db/mod.rs            # pool construction + MIGRATOR
@@ -125,8 +128,14 @@ in the domain's `repository.rs`.
   cannot run in a transaction.
 - The duplicate-name expression
   `lower(btrim(regexp_replace(name, '\s+', ' ', 'g')))` appears in
-  `repository::lock_active_duplicate`, in `ix_grocery_items_normalised_name`,
-  and as `repository::normalise` in Rust. Change one, change all three.
+  `services::grocery::repository::lock_active_duplicate`, in
+  `ix_grocery_items_normalised_name`, and as
+  `services::grocery::repository::normalise` in Rust. Change one, change all
+  three.
+- **A table has one repository.** Every `grocery_items` statement lives in
+  `services/grocery/repository.rs`, including the ones the intake queue uses
+  when it accepts a request — `services/voice/` calls into it rather than
+  writing item SQL of its own.
 
 ## Migrations
 `sqlx` migrations in `migrations/`, embedded into the binary by

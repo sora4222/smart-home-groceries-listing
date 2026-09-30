@@ -61,7 +61,8 @@ tests. It carries no `external_id`, so it is not de-duplicated.
 | Webhook + confirmation routes | `backend/src/routes/voice.rs` |
 | Alexa intake route | `backend/src/routes/alexa.rs` |
 | Business rules | `backend/src/services/voice/mod.rs` |
-| SQL | `backend/src/services/voice/repository.rs` |
+| SQL (`voice_requests`) | `backend/src/services/voice/repository.rs` |
+| SQL (`grocery_items`) | `backend/src/services/grocery/repository.rs` |
 | WebSocket push | `backend/src/services/ws_hub.rs`, `backend/src/routes/ws.rs` |
 | Row types | `backend/src/models/db.rs` (`VoiceRequest`, `GroceryItem`) |
 | Request/response bodies | `backend/src/models/schemas.rs` |
@@ -92,7 +93,8 @@ The table is still called `voice_requests` to limit churn; the concept is an
   `pending`, otherwise `409`. Unknown id is `404`.
 
 ### Duplicate handling
-`repository::lock_active_duplicate` compares normalised names (lowercased,
+`services::grocery::repository::lock_active_duplicate` compares normalised
+names (lowercased,
 whitespace-collapsed) against active `grocery_items`, using the expression
 index `ix_grocery_items_normalised_name`. If a match exists and the caller did
 not pass `merge=true`, accept returns `409` with a `DuplicateItemWarning` in
@@ -165,6 +167,8 @@ Cloudflare Tunnel.
 - Alexa uses a custom `AddItemIntent`. Amazon's household list events
   (`AlexaHouseholdListEvent.ItemsCreated`) would remove the custom invocation
   but need the List API and a permissions grant.
-- Item Rules (auto-filter chips) are not applied yet — `GroceryItem` has no
-  `filter_terms` column; that is the Item Rules feature.
+- Item Rules (auto-filter chips) are not applied yet. `GroceryItem` now has a
+  `filter_terms` column and the list view can edit chips by hand
+  (`FEATURE_GROCERY_LIST.md`); the rules that would fill them in on their own
+  are still the Item Rules feature.
 - Verify the intake brief's assumptions before building on them.

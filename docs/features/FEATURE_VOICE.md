@@ -61,11 +61,12 @@ tests. It carries no `external_id`, so it is not de-duplicated.
 | Webhook + confirmation routes | `backend/src/routes/voice.rs` |
 | Alexa intake route | `backend/src/routes/alexa.rs` |
 | Business rules | `backend/src/services/voice/mod.rs` |
+| Log events | `backend/src/services/voice/log.rs` |
 | SQL (`voice_requests`) | `backend/src/services/voice/repository.rs` |
 | SQL (`grocery_items`) | `backend/src/services/grocery/repository.rs` |
 | WebSocket push | `backend/src/services/ws_hub.rs`, `backend/src/routes/ws.rs` |
 | Row types | `backend/src/models/db.rs` (`VoiceRequest`, `GroceryItem`) |
-| Request/response bodies | `backend/src/models/schemas.rs` |
+| Request/response bodies | `backend/src/models/schemas/voice.rs` |
 | Migration | `backend/migrations/0001_initial.sql` |
 | Tests | `backend/tests/voice_requests.rs`, `alexa_intake.rs`, `websocket.rs` |
 
@@ -104,6 +105,11 @@ pending and the user still gets to choose.
 
 `merge=true` adds to the existing quantity, capped at 999 to stay inside the
 column's `CHECK` constraint.
+
+### Item rules
+An accepted request that becomes a new list entry gets the chips of every item
+rule whose trigger matches its name — the corrected name, when there is one.
+A merge leaves the existing item's chips alone. See `FEATURE_ITEM_RULES.md`.
 
 Accept runs in one transaction and takes `SELECT ... FOR UPDATE` on the
 request row and on any duplicate it finds, so two browser tabs racing to
@@ -167,8 +173,4 @@ Cloudflare Tunnel.
 - Alexa uses a custom `AddItemIntent`. Amazon's household list events
   (`AlexaHouseholdListEvent.ItemsCreated`) would remove the custom invocation
   but need the List API and a permissions grant.
-- Item Rules (auto-filter chips) are not applied yet. `GroceryItem` now has a
-  `filter_terms` column and the list view can edit chips by hand
-  (`FEATURE_GROCERY_LIST.md`); the rules that would fill them in on their own
-  are still the Item Rules feature.
 - Verify the intake brief's assumptions before building on them.

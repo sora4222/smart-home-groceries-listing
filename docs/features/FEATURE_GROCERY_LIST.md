@@ -79,8 +79,12 @@ ply "]` stores one chip.
 
 A chip is replaced wholesale: to remove one, send the ones that remain. That
 is what the × on a chip does, from the list itself — the spec requires a chip
-to be overridable here without editing the rule that put it there. The Item
-Rules feature, which will apply chips automatically, is not built.
+to be overridable here without editing the rule that put it there.
+
+Item rules (`FEATURE_ITEM_RULES.md`) add chips automatically: a new entry
+typed into the form gets the chips of every matching rule with "apply to
+manual additions" on, after the chips the user typed. A merge
+(`on_duplicate=merge`) leaves the existing item's chips alone.
 
 ## Commit and release
 `commit` and `release` each move every matching row in one statement, so two
@@ -97,15 +101,16 @@ button.
 | Piece | File |
 |---|---|
 | Routes | `backend/src/routes/grocery.rs` |
-| Rules | `backend/src/services/grocery/mod.rs` |
+| Rules | `backend/src/services/grocery/mod.rs` (+ `duplicates.rs`, `annotations.rs`) |
+| Log events | `backend/src/services/grocery/log.rs` |
 | SQL | `backend/src/services/grocery/repository.rs` |
 | Row type | `backend/src/models/db.rs` (`GroceryItem`) |
-| Bodies | `backend/src/models/schemas.rs` |
+| Bodies | `backend/src/models/schemas/grocery.rs` |
 | Migration | `backend/migrations/0002_grocery_item_notes_filters_and_commit.sql` |
 | Backend tests | `backend/tests/grocery_items.rs`, `grocery_item_edits.rs`, `grocery_commit.rs` |
 | Page | `frontend/src/routes/index.tsx` |
 | Components | `frontend/src/components/grocery/` |
-| API client | `frontend/src/lib/api.ts` |
+| API client | `frontend/src/lib/api/grocery.ts` |
 | E2e | `frontend/e2e/grocery-list.spec.ts`, `grocery-list-usability.spec.ts` |
 
 All `grocery_items` SQL lives in the grocery repository, including the
@@ -125,9 +130,6 @@ to it. `frontend/src/lib/quantity.ts` turns that string into a bounded number
 on blur and on submit.
 
 ## Known gaps / next steps
-- **Item Rules are not built.** Chips are added by hand; the rules that would
-  apply them on their own, and the `/settings/item-rules` page, are a feature
-  of their own.
 - Committing does not yet hand anything to an order — `/order` does not exist.
   `committed` is the state that screen will read.
 - No per-item ownership: any household member can change or remove any item,

@@ -34,6 +34,13 @@ async fn say_and_accept(app: &TestApp, item: &str) -> Value {
     body["grocery_item"].clone()
 }
 
+/// Adds an item through the web app's form endpoint.
+async fn type_in(app: &TestApp, uri: &str, body: Value) -> Value {
+    let (status, created) = app.post_json(uri, &body).await;
+    assert_eq!(status, StatusCode::CREATED, "add failed: {created}");
+    created
+}
+
 #[sqlx::test]
 async fn an_accepted_voice_item_gets_the_rules_chips(pool: PgPool) {
     let app = TestApp::new(pool);
@@ -135,6 +142,80 @@ async fn merging_into_an_item_does_not_bring_back_a_removed_chip(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn a_typed_item_ignores_rules_by_default(pool: PgPool) {
+    let app = TestApp::new(pool);
+    rule(&app, &["toilet paper"], &["3 ply"], false).await;
+
+    let item = type_in(
+        &app,
+        "/api/grocery-items",
+        json!({ "name": "toilet paper" }),
+    )
+    .await;
+
+    assert_eq!(item["filter_terms"], json!([]));
+}
+
+#[sqlx::test]
+async fn a_typed_item_gets_rules_that_opted_in_after_its_own_chips(pool: PgPool) {
+    let app = TestApp::new(pool);
+    rule(&app, &["toilet paper"], &["3 ply", "recycled"], true).await;
+    rule(&app, &["paper"], &["unscented"], false).await;
+
+    let item = type_in(
+        &app,
+        "/api/grocery-items",
+        json!({ "name": "toilet paper", "filter_terms": ["Recycled", "bulk"] }),
+    )
+    .await;
+
+    assert_eq!(item["filter_terms"], json!(["Recycled", "bulk", "3 ply"]));
+}
+
+#[sqlx::test]
+async fn a_separate_entry_gets_the_rules_and_a_merge_does_not(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let first = type_in(&app, "/api/grocery-items", json!({ "name": "milk" })).await;
+    rule(&app, &["milk"], &["a2"], true).await;
+
+    let separate = type_in(
+        &app,
+        "/api/grocery-items?on_duplicate=separate",
+        json!({ "name": "milk" }),
+    )
+    .await;
+    assert_eq!(separate["filter_terms"], json!(["a2"]));
+
+    // A merge folds into the oldest active "milk", which predates the rule.
+    let merged = type_in(
+        &app,
+        "/api/grocery-items?on_duplicate=merge",
+        json!({ "name": "milk" }),
+    )
+    .await;
+    assert_eq!(merged["id"], first["id"]);
+    assert_eq!(merged["filter_terms"], json!([]));
+}
+
+#[sqlx::test]
+async fn combined_chips_are_capped_at_the_item_limit(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let own: Vec<String> = (0..8).map(|n| format!("own {n}")).collect();
+    rule(&app, &["rice"], &["rule a", "rule b", "rule c"], true).await;
+
+    let item = type_in(
+        &app,
+        "/api/grocery-items",
+        json!({ "name": "rice", "filter_terms": own }),
+    )
+    .await;
+
+    let terms = item["filter_terms"].as_array().unwrap();
+    assert_eq!(terms.len(), 10);
+    assert_eq!(terms[9], "rule b", "the item's own chips come first");
+}
+
+#[sqlx::test]
 async fn removing_a_chip_from_an_item_leaves_the_rule_alone(pool: PgPool) {
     let app = TestApp::new(pool);
     rule(&app, &["toilet paper"], &["3 ply"], false).await;
@@ -148,4 +229,16 @@ async fn removing_a_chip_from_an_item_leaves_the_rule_alone(pool: PgPool) {
 
     let (_, rules) = app.get("/api/item-rules").await;
     assert_eq!(rules[0]["filter_terms"], json!(["3 ply"]));
+}
+
+#[sqlx::test]
+async fn deleting_a_rule_leaves_the_chips_it_already_applied(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let rule_id = rule(&app, &["milk"], &["a2"], true).await;
+    type_in(&app, "/api/grocery-items", json!({ "name": "milk" })).await;
+
+    app.delete(&format!("/api/item-rules/{rule_id}")).await;
+
+    let (_, items) = app.get("/api/grocery-items").await;
+    assert_eq!(items[0]["filter_terms"], json!(["a2"]));
 }

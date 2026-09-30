@@ -23,6 +23,7 @@ use crate::error::ApiError;
 use crate::models::db::{GroceryItem, GroceryItemSource, GroceryItemStatus};
 use crate::models::schemas::{GroceryItemCreate, GroceryItemUpdate, MAX_QUANTITY};
 use crate::services::filter_terms;
+use crate::services::item_rules::{self, AddedVia};
 use annotations::clean_note;
 
 /// Reads and writes the household list.
@@ -51,6 +52,10 @@ impl<'a> GroceryService<'a> {
     /// [`OnDuplicate::Merge`] adds to the existing quantity, capped at
     /// [`MAX_QUANTITY`] to stay inside the column's constraint; and
     /// [`OnDuplicate::Separate`] keeps both entries.
+    ///
+    /// A new entry also gets the chips of every item rule that matches its
+    /// name and has "apply to manual additions" switched on, after the chips
+    /// the user typed.
     pub async fn add(
         &self,
         payload: &GroceryItemCreate,
@@ -77,15 +82,19 @@ impl<'a> GroceryService<'a> {
                     .min(MAX_QUANTITY);
                 repository::set_item_quantity(&mut tx, existing.id, merged).await?
             }
-            // No clash, or the user asked for both entries to exist.
+            // No clash, or the user asked for both entries to exist. Only a
+            // new entry picks up rule chips; a merge leaves the existing
+            // item's chips as the household last left them.
             (_, _) => {
+                let rule_terms =
+                    item_rules::filter_terms_for(&mut *tx, name, AddedVia::Manual).await?;
                 repository::insert_item(
                     &mut tx,
                     name,
                     payload.quantity,
                     GroceryItemSource::Manual,
                     note.as_deref(),
-                    &filter_terms,
+                    &filter_terms::merge(&filter_terms, &rule_terms),
                     user_id,
                 )
                 .await?

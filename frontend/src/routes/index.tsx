@@ -5,11 +5,9 @@ import { toast } from "sonner";
 import { AddItemForm } from "#/components/grocery/add-item-form";
 import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
-import { GroceryItemCard } from "#/components/grocery/grocery-item-card";
-import { GroceryList } from "#/components/grocery/grocery-list";
+import { GroceryItemSection } from "#/components/grocery/grocery-item-section";
 import {
 	type DuplicateItemDetail,
-	type GroceryItem,
 	type GroceryItemEdit,
 	type NewGroceryItem,
 	type OnDuplicate,
@@ -124,7 +122,7 @@ function GroceryListPage() {
 				/>
 			)}
 
-			<Section
+			<GroceryItemSection
 				items={underReview}
 				onSave={saveItem}
 				onRemove={removeItem}
@@ -147,40 +145,13 @@ function GroceryListPage() {
 					<h2 className="text-sm font-semibold text-muted-foreground">
 						Committed for purchase
 					</h2>
-					<Section items={committed} onSave={saveItem} onRemove={removeItem} />
+					<GroceryItemSection
+						items={committed}
+						onSave={saveItem}
+						onRemove={removeItem}
+					/>
 				</>
 			)}
 		</div>
-	);
-}
-
-/** One group of list items, with the message to show when the group is empty. */
-function Section({
-	items,
-	empty,
-	onSave,
-	onRemove,
-}: {
-	items: GroceryItem[];
-	empty?: string;
-	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
-	onRemove: (id: string) => Promise<void>;
-}) {
-	if (items.length === 0) {
-		return empty ? (
-			<GroceryList>
-				<GroceryList.Empty>{empty}</GroceryList.Empty>
-			</GroceryList>
-		) : null;
-	}
-
-	return (
-		<GroceryList>
-			{items.map((item) => (
-				<GroceryList.Item key={item.id}>
-					<GroceryItemCard item={item} onSave={onSave} onRemove={onRemove} />
-				</GroceryList.Item>
-			))}
-		</GroceryList>
 	);
 }

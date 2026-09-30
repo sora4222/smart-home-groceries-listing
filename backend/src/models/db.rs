@@ -39,6 +39,9 @@ pub enum VoiceRequestStatus {
 pub enum GroceryItemStatus {
     Pending,
     Active,
+    /// Reviewed and locked in for purchase. A committed item is read-only
+    /// until the list is released back to `Active`.
+    Committed,
     Ordered,
 }
 
@@ -75,6 +78,10 @@ pub struct GroceryItem {
     pub quantity: i32,
     pub status: GroceryItemStatus,
     pub source: GroceryItemSource,
+    /// Free text a household member attached while reviewing the list.
+    pub note: Option<String>,
+    /// Terms narrowing the later product search, shown as removable chips.
+    pub filter_terms: Vec<String>,
     pub added_by_user_id: Option<String>,
     pub created_at: DateTime<Utc>,
 }

@@ -8,7 +8,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use validator::Validate;
+use validator::{Validate, ValidationError};
 
 use crate::models::db::{
     GroceryItem, GroceryItemSource, GroceryItemStatus, IntakeSource, VoiceRequest,
@@ -19,6 +19,12 @@ use crate::models::db::{
 pub const MAX_QUANTITY: i32 = 999;
 /// Upper bound on an item name, matching the `name` column's CHECK constraint.
 pub const MAX_NAME_LEN: u64 = 200;
+/// Upper bound on an item's free-text note, matching the `note` CHECK.
+pub const MAX_NOTE_LEN: u64 = 500;
+/// How many filter chips one item may carry, matching the `filter_terms` CHECK.
+pub const MAX_FILTER_TERMS: usize = 10;
+/// Longest single filter term, matching the `filter_terms` CHECK.
+pub const MAX_FILTER_TERM_LEN: usize = 60;
 
 fn default_quantity() -> i32 {
     1
@@ -95,6 +101,11 @@ pub struct GroceryItemResponse {
     pub quantity: i32,
     pub status: GroceryItemStatus,
     pub source: GroceryItemSource,
+    /// The free-text annotation, absent when the item has none.
+    pub note: Option<String>,
+    /// Filter chips, in the order they will be shown. Never null — an item
+    /// with no chips serialises as `[]`, so the web app needs no fallback.
+    pub filter_terms: Vec<String>,
     pub added_by_user_id: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -107,10 +118,66 @@ impl From<GroceryItem> for GroceryItemResponse {
             quantity: row.quantity,
             status: row.status,
             source: row.source,
+            note: row.note,
+            filter_terms: row.filter_terms,
             added_by_user_id: row.added_by_user_id,
             created_at: row.created_at,
         }
     }
+}
+
+/// A manually added grocery item.
+///
+/// The web app's add-item form. Voice items do not use this — they arrive as
+/// intake requests and reach the list only once a household member accepts
+/// one.
+#[derive(Debug, Deserialize, Validate)]
+pub struct GroceryItemCreate {
+    #[validate(length(min = 1, max = MAX_NAME_LEN))]
+    pub name: String,
+    #[serde(default = "default_quantity")]
+    #[validate(range(min = 1, max = MAX_QUANTITY))]
+    pub quantity: i32,
+    #[validate(length(max = MAX_NOTE_LEN))]
+    pub note: Option<String>,
+    #[serde(default)]
+    #[validate(custom(function = "validate_filter_terms"))]
+    pub filter_terms: Option<Vec<String>>,
+}
+
+/// Changes to an item already on the list: review, modify and annotate.
+///
+/// Every field is optional and an absent field is left as it was. A `note` of
+/// `""` (or only whitespace) clears the annotation; a `filter_terms` array
+/// replaces the chips wholesale, which is how removing one chip is expressed.
+#[derive(Debug, Default, Deserialize, Validate)]
+pub struct GroceryItemUpdate {
+    #[validate(length(min = 1, max = MAX_NAME_LEN))]
+    pub name: Option<String>,
+    #[validate(range(min = 1, max = MAX_QUANTITY))]
+    pub quantity: Option<i32>,
+    #[validate(length(max = MAX_NOTE_LEN))]
+    pub note: Option<String>,
+    #[serde(default)]
+    #[validate(custom(function = "validate_filter_terms"))]
+    pub filter_terms: Option<Vec<String>>,
+}
+
+/// Rejects a chip list the `filter_terms` CHECK constraint would also reject.
+///
+/// The service trims and de-duplicates terms before storing them, so this only
+/// has to catch what trimming cannot fix: too many chips, or one too long.
+fn validate_filter_terms(terms: &[String]) -> Result<(), ValidationError> {
+    if terms.len() > MAX_FILTER_TERMS {
+        return Err(ValidationError::new("too_many_filter_terms"));
+    }
+    if terms
+        .iter()
+        .any(|term| term.trim().chars().count() > MAX_FILTER_TERM_LEN)
+    {
+        return Err(ValidationError::new("filter_term_too_long"));
+    }
+    Ok(())
 }
 
 /// Response after an intake request is accepted: the resulting list item.

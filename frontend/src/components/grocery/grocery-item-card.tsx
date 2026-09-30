@@ -41,7 +41,7 @@ export function GroceryItemCard({
 
 	if (editing && !locked) {
 		return (
-			<Card data-testid="grocery-item">
+			<Card data-testid="grocery-item" data-item-name={item.name}>
 				<GroceryItemEditor
 					item={item}
 					onSave={save}
@@ -52,7 +52,7 @@ export function GroceryItemCard({
 	}
 
 	return (
-		<Card data-testid="grocery-item">
+		<Card data-testid="grocery-item" data-item-name={item.name}>
 			<CardHeader className="flex-row items-start justify-between gap-3 p-4 pb-2">
 				<span className="font-medium">{item.name}</span>
 				<div className="flex shrink-0 items-center gap-2">

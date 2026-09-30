@@ -21,7 +21,8 @@ interface CommitBarProps {
  *
  * Both states can be true at once: an item added after a commit starts the next
  * list, so the locked banner and the commit button are shown together rather
- * than one hiding the other.
+ * than one hiding the other. The button comes first, directly under the items
+ * it would commit; the banner sits above the committed section it describes.
  */
 export function CommitBar({
 	activeCount,
@@ -43,6 +44,19 @@ export function CommitBar({
 
 	return (
 		<div className="flex flex-col gap-3">
+			{activeCount > 0 && (
+				<div className="flex justify-end">
+					<Button
+						className="w-full sm:w-auto"
+						disabled={busy}
+						onClick={() => run(onCommit)}
+					>
+						{busy
+							? "Committing…"
+							: `Ready to order (${activeCount} ${activeCount === 1 ? "item" : "items"})`}
+					</Button>
+				</div>
+			)}
 			{committedCount > 0 && (
 				<Card className="border-primary">
 					<CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -64,20 +78,6 @@ export function CommitBar({
 						</Button>
 					</CardContent>
 				</Card>
-			)}
-
-			{activeCount > 0 && (
-				<div className="flex justify-end">
-					<Button
-						className="w-full sm:w-auto"
-						disabled={busy}
-						onClick={() => run(onCommit)}
-					>
-						{busy
-							? "Committing…"
-							: `Ready to order (${activeCount} ${activeCount === 1 ? "item" : "items"})`}
-					</Button>
-				</div>
 			)}
 		</div>
 	);

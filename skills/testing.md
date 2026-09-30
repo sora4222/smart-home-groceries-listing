@@ -106,14 +106,49 @@ test('shows item name and quantity', () => {
 
 ## Frontend e2e (Playwright)
 ```bash
-make up && cd frontend && pnpm e2e    # full stack required
+make up && make e2e                   # full stack required
+cd frontend && pnpm e2e               # the same thing
+cd frontend && pnpm e2e --project=desktop -g "commit"   # one project, by name
+cd frontend && pnpm e2e:report        # last HTML report
 ```
 
 Playwright is a **frontend-only** tool in this repo. The backend's store
 automation uses `chromiumoxide` — see `backend/skills/store-integration.md`.
 
 E2e tests live in `frontend/e2e/`. Cover the happy path plus the key error
-states per feature.
+states per feature. Two projects run every spec: `desktop` (1280px) and
+`mobile` (Pixel 7), which is how the spec's "must display correctly at all
+widths" gets checked.
+
+### The shared fixture does three things
+`frontend/e2e/fixtures.ts` replaces Playwright's `page`, and every spec should
+import `test` from there rather than from `@playwright/test`:
+
+1. **Resets state** — releases a committed list, deletes every item, rejects
+   every pending intake request. Tests then start from nothing without
+   touching the database directly.
+2. **Fails on browser trouble** — a `pageerror`, a console error, or any 5xx
+   from the backend fails the test. Chrome logs a console line for every 4xx
+   and this app provokes 4xx deliberately (the duplicate-item 409 is a
+   feature), so "Failed to load resource" lines are skipped and status codes
+   judged instead.
+3. **Waits for hydration** — `gotoList(page)` navigates and waits for
+   `#app[data-hydrated="true"]`. The app is server-rendered: markup is on
+   screen before React attaches a handler, and a click or keystroke in that
+   window is silently lost. This is the usual cause of a "locator timed out on
+   a button that is clearly there".
+
+### Locators
+Use exact labels. Playwright matches a label by substring, so `getByLabel
+("Item")` also matches the form's `aria-label="Add a grocery item"`, and
+`getByLabel("Quantity")` matches a `Quantity 2` badge. Address a list item by
+`itemCard(page, name)`, which uses `data-item-name`: with an editor open the
+name is an input's value, which text filtering cannot see.
+
+### No browser to download?
+`E2E_CHROMIUM_PATH=/path/to/chrome pnpm e2e` uses an already-installed
+Chromium instead of the one Playwright manages, for a machine where
+`npx playwright install` cannot reach the network.
 
 ## Never in CI
 Real Alexa requests, real store requests, a real Google account, a real LLM

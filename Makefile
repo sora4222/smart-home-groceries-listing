@@ -1,6 +1,6 @@
-.PHONY: up down restart test test-backend test-frontend test-alexa \
+.PHONY: up down restart test test-backend test-frontend test-alexa e2e \
         migrate migration-new lint lint-fix build alexa-up \
-        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa
+        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-e2e
 
 # Where the backend's tests create their throwaway databases. Overridable per
 # git worktree so concurrent agents do not collide.
@@ -29,6 +29,11 @@ test-frontend:
 
 test-alexa:
 	@cd sidecars/alexa-bridge && uv run pytest -q 2>&1 | tail -5
+
+# Not part of `make test`: this one drives a real browser against a running
+# stack, so `make up` has to have happened first.
+e2e:
+	@cd frontend && pnpm e2e --reporter=line 2>&1 | tail -8
 
 ## Database
 # Migrations are embedded in the binary and applied at startup, so the running
@@ -81,3 +86,6 @@ hm-test-frontend:
 
 hm-test-alexa:
 	cd sidecars/alexa-bridge && uv run pytest -v
+
+hm-e2e:
+	cd frontend && pnpm e2e

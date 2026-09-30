@@ -26,6 +26,20 @@ export const Route = createFileRoute('/pending')({
 })
 ```
 
+## Mutations
+A route's loader is the single source of truth. Mutate through `lib/api`, then
+`await router.invalidate()` — inside the same `try`, so an invalidation still
+in flight when the user navigates away cannot reject unobserved (that shows up
+as an unhandled "Failed to fetch"). Do not mirror loader data into `useState`
+and patch it by hand; local state is for drafts only.
+
+## Hydration
+`#app` carries `data-hydrated` once the root has mounted (`hooks/useHydrated`).
+SSR means the markup is interactive-looking before React attaches a handler,
+and anything typed or clicked in that window is lost. The e2e helper
+`gotoList()` waits on this attribute; in dev tools it tells you whether a dead
+click was a hydration race or a real bug.
+
 ## Navigation
 ```tsx
 import { Link, useNavigate } from '@tanstack/react-router'

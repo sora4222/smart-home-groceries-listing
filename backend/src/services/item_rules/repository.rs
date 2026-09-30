@@ -24,6 +24,22 @@ where
     .await?)
 }
 
+/// The rules that also apply to items typed into the web app, in the order
+/// they were made.
+pub async fn list_manual_rules<'e, E>(executor: E) -> Result<Vec<ItemRule>, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    Ok(sqlx::query_as::<_, ItemRule>(
+        "SELECT id, triggers, filter_terms, apply_to_manual, created_at, updated_at
+         FROM item_rules
+         WHERE apply_to_manual
+         ORDER BY created_at, id",
+    )
+    .fetch_all(executor)
+    .await?)
+}
+
 /// One rule by id.
 pub async fn find_rule<'e, E>(executor: E, rule_id: Uuid) -> Result<Option<ItemRule>, ApiError>
 where

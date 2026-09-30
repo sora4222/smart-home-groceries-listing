@@ -1,15 +1,20 @@
 //! Item rules: persistent filter chips attached to grocery item names.
 //!
-//! This module manages the rules themselves — the settings page's list, add,
-//! edit and delete. SQL lives in [`repository`]; tidying trigger phrases lives
-//! in [`triggers`].
+//! [`ItemRuleService`] manages the rules themselves — the settings page's
+//! list, add, edit and delete. [`apply`] works out the chips an item gets as it
+//! reaches the list, using [`matching`] to decide which rules fit its name.
+//! SQL lives in [`repository`]; tidying trigger phrases lives in [`triggers`].
 //!
 //! A rule is a template, not a link: its chips are copied onto an item when
 //! the item reaches the list, so changing or deleting a rule never touches an
 //! item already there.
 
+pub mod apply;
+pub mod matching;
 pub mod repository;
 pub mod triggers;
+
+pub use apply::{filter_terms_for, AddedVia};
 
 use sqlx::PgPool;
 use uuid::Uuid;

@@ -2,7 +2,8 @@
 //!
 //! Terms reach the backend from the web app's chip inputs and from item rules;
 //! both are stored in `TEXT[]` columns bounded by the same `CHECK`, so both go
-//! through [`clean`] first.
+//! through [`clean`] first. [`merge`] combines an item's own chips with the
+//! ones its rules add.
 
 use crate::models::schemas::MAX_FILTER_TERMS;
 
@@ -31,9 +32,39 @@ pub fn clean(terms: &[String]) -> Vec<String> {
     cleaned
 }
 
+/// Appends `extra` to `first` and tidies the result, so `first`'s terms keep
+/// their place and spelling and `extra` fills whatever room is left.
+pub fn merge(first: &[String], extra: &[String]) -> Vec<String> {
+    let combined: Vec<String> = first.iter().chain(extra).cloned().collect();
+    clean(&combined)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::clean;
+    use super::{clean, merge};
+
+    fn strings(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| value.to_string()).collect()
+    }
+
+    #[test]
+    fn merge_keeps_the_first_lists_spelling_and_order() {
+        assert_eq!(
+            merge(
+                &strings(&["Recycled", "bulk"]),
+                &strings(&["3 ply", "recycled"])
+            ),
+            vec!["Recycled", "bulk", "3 ply"]
+        );
+    }
+
+    #[test]
+    fn merge_fills_only_the_room_left() {
+        let first: Vec<String> = (0..9).map(|n| format!("own {n}")).collect();
+        let merged = merge(&first, &strings(&["a", "b"]));
+        assert_eq!(merged.len(), 10);
+        assert_eq!(merged[9], "a");
+    }
 
     #[test]
     fn terms_are_trimmed_and_blanks_dropped() {

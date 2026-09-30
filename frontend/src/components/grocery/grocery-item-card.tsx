@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { FilterChips } from "#/components/grocery/filter-chips";
 import { GroceryItemEditor } from "#/components/grocery/grocery-item-editor";
+import { TermChips } from "#/components/terms/term-chips";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader } from "#/components/ui/card";
@@ -66,7 +66,7 @@ export function GroceryItemCard({
 			<CardContent className="flex flex-col gap-2 p-4 pt-0">
 				{item.note && <p className="text-sm">{item.note}</p>}
 
-				<FilterChips
+				<TermChips
 					terms={item.filter_terms}
 					onRemove={
 						locked

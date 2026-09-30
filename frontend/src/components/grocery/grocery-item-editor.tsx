@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { FilterChips } from "#/components/grocery/filter-chips";
+import { TermListField } from "#/components/terms/term-list-field";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
@@ -27,21 +27,7 @@ export function GroceryItemEditor({
 	const [quantity, setQuantity] = useState(String(item.quantity));
 	const [note, setNote] = useState(item.note ?? "");
 	const [terms, setTerms] = useState(item.filter_terms);
-	const [draftTerm, setDraftTerm] = useState("");
 	const [busy, setBusy] = useState(false);
-
-	function addTerm() {
-		const term = draftTerm.trim();
-		const alreadyThere = terms.some(
-			(existing) => existing.toLowerCase() === term.toLowerCase(),
-		);
-		if (!term || alreadyThere || terms.length >= 10) {
-			setDraftTerm("");
-			return;
-		}
-		setTerms([...terms, term]);
-		setDraftTerm("");
-	}
 
 	async function save() {
 		const trimmed = name.trim();
@@ -113,42 +99,17 @@ export function GroceryItemEditor({
 				/>
 			</div>
 
-			<div className="flex flex-col gap-2">
-				<span className="text-xs font-medium text-muted-foreground">
-					Product filters
-				</span>
-				<FilterChips
-					terms={terms}
-					onRemove={(term) => setTerms(terms.filter((t) => t !== term))}
-				/>
-				<div className="flex gap-2">
-					<label className="sr-only" htmlFor={`filter-${item.id}`}>
-						Add a product filter
-					</label>
-					<Input
-						id={`filter-${item.id}`}
-						value={draftTerm}
-						maxLength={60}
-						placeholder="3 ply"
-						onChange={(event) => setDraftTerm(event.target.value)}
-						onKeyDown={(event) => {
-							if (event.key === "Enter") {
-								// Inside a form this would submit the page instead.
-								event.preventDefault();
-								addTerm();
-							}
-						}}
-					/>
-					<Button
-						type="button"
-						variant="outline"
-						onClick={addTerm}
-						disabled={draftTerm.trim().length === 0 || terms.length >= 10}
-					>
-						Add filter
-					</Button>
-				</div>
-			</div>
+			<TermListField
+				id={`filter-${item.id}`}
+				label="Product filters"
+				noun="filter"
+				inputLabel="Add a product filter"
+				addLabel="Add filter"
+				placeholder="3 ply"
+				maxLength={60}
+				terms={terms}
+				onChange={setTerms}
+			/>
 
 			<div className="flex gap-2">
 				<Button

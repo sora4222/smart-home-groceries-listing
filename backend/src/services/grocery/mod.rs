@@ -21,6 +21,22 @@ use crate::models::schemas::{
     DuplicateItemWarning, GroceryItemCreate, GroceryItemUpdate, MAX_FILTER_TERMS, MAX_QUANTITY,
 };
 
+/// What to do when a manual addition names an item already on the list.
+///
+/// The spec offers the user a choice, so the default is to ask rather than to
+/// pick for them: `Ask` answers 409 carrying the clashing item.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OnDuplicate {
+    /// Answer 409 with the existing item so the web app can put the question.
+    #[default]
+    Ask,
+    /// Add the new quantity to the existing item.
+    Merge,
+    /// Keep both: a second entry under the same name, annotated differently.
+    Separate,
+}
+
 /// Reads and writes the household list.
 pub struct GroceryService<'a> {
     pool: &'a PgPool,
@@ -40,38 +56,41 @@ impl<'a> GroceryService<'a> {
 
     /// Adds an item by hand.
     ///
-    /// Returns [`ApiError::DuplicateActiveItem`] when an active item already
-    /// covers the name and `merge` is false, so the web app can ask whether to
-    /// add another or update the existing quantity — the spec's duplicate
-    /// handling, applied inline for manual additions. `merge = true` adds to
-    /// the existing quantity instead, capped at [`MAX_QUANTITY`] to stay
-    /// inside the column's constraint.
+    /// When an active item already covers the name, `on_duplicate` decides:
+    /// [`OnDuplicate::Ask`] returns [`ApiError::DuplicateActiveItem`] so the
+    /// web app can ask whether to add another or update the existing quantity —
+    /// the spec's duplicate handling, applied inline for manual additions;
+    /// [`OnDuplicate::Merge`] adds to the existing quantity, capped at
+    /// [`MAX_QUANTITY`] to stay inside the column's constraint; and
+    /// [`OnDuplicate::Separate`] keeps both entries.
     pub async fn add(
         &self,
         payload: &GroceryItemCreate,
         user_id: &str,
-        merge: bool,
+        on_duplicate: OnDuplicate,
     ) -> Result<GroceryItem, ApiError> {
         let name = payload.name.trim();
         let note = clean_note(payload.note.as_deref());
         let filter_terms = clean_filter_terms(payload.filter_terms.as_deref().unwrap_or(&[]));
 
         let mut tx = self.pool.begin().await?;
-        let item = match repository::lock_active_duplicate(&mut tx, name).await? {
-            Some(existing) if !merge => {
+        let clash = repository::lock_active_duplicate(&mut tx, name).await?;
+        let item = match (clash, on_duplicate) {
+            (Some(existing), OnDuplicate::Ask) => {
                 // Nothing has been written yet; the rollback only releases the
                 // lock before the 409 goes out.
                 tx.rollback().await?;
                 return Err(duplicate_error(&existing));
             }
-            Some(existing) => {
+            (Some(existing), OnDuplicate::Merge) => {
                 let merged = existing
                     .quantity
                     .saturating_add(payload.quantity)
                     .min(MAX_QUANTITY);
                 repository::set_item_quantity(&mut tx, existing.id, merged).await?
             }
-            None => {
+            // No clash, or the user asked for both entries to exist.
+            (_, _) => {
                 repository::insert_item(
                     &mut tx,
                     name,

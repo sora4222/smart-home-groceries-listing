@@ -16,7 +16,7 @@ use crate::auth::AuthUser;
 use crate::error::ApiError;
 use crate::models::schemas::{GroceryItemCreate, GroceryItemResponse, GroceryItemUpdate};
 use crate::routes::extract::ValidatedJson;
-use crate::services::grocery::GroceryService;
+use crate::services::grocery::{GroceryService, OnDuplicate};
 use crate::state::AppState;
 
 /// Routes under `/api/grocery-items`.
@@ -31,12 +31,12 @@ pub fn router() -> Router<AppState> {
         )
 }
 
-/// `?merge=true` folds the quantity into the existing active item instead of
-/// answering 409.
-#[derive(Debug, Deserialize)]
+/// `?on_duplicate=merge` folds the quantity into the existing active item and
+/// `?on_duplicate=separate` keeps both entries, instead of answering 409.
+#[derive(Debug, Default, Deserialize)]
 pub struct AddQuery {
     #[serde(default)]
-    pub merge: bool,
+    pub on_duplicate: OnDuplicate,
 }
 
 /// `GET /api/grocery-items` — the list, newest first.
@@ -54,7 +54,7 @@ async fn list_items(
 /// `POST /api/grocery-items` — add an item by hand.
 ///
 /// 409 with the clashing item when the name is already on the active list,
-/// unless `?merge=true` asks for the quantities to be combined.
+/// unless `on_duplicate` says what to do about it.
 async fn add_item(
     State(state): State<AppState>,
     user: AuthUser,
@@ -62,7 +62,7 @@ async fn add_item(
     ValidatedJson(body): ValidatedJson<GroceryItemCreate>,
 ) -> Result<(StatusCode, Json<GroceryItemResponse>), ApiError> {
     let item = GroceryService::new(&state.pool)
-        .add(&body, &user.id, query.merge)
+        .add(&body, &user.id, query.on_duplicate)
         .await?;
     Ok((StatusCode::CREATED, Json(item.into())))
 }

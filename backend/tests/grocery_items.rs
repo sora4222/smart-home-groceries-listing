@@ -166,7 +166,7 @@ async fn merge_combines_the_quantities_instead_of_adding_a_second_entry(pool: Pg
 
     let (status, body) = app
         .post_json(
-            "/api/grocery-items?merge=true",
+            "/api/grocery-items?on_duplicate=merge",
             &json!({ "name": "milk", "quantity": 2 }),
         )
         .await;
@@ -186,12 +186,46 @@ async fn merging_stops_at_the_column_maximum(pool: PgPool) {
 
     let (_, body) = app
         .post_json(
-            "/api/grocery-items?merge=true",
+            "/api/grocery-items?on_duplicate=merge",
             &json!({ "name": "rice", "quantity": 5 }),
         )
         .await;
 
     assert_eq!(body["quantity"], 999);
+}
+
+#[sqlx::test]
+async fn a_duplicate_can_be_kept_as_a_separate_entry(pool: PgPool) {
+    let app = TestApp::new(pool);
+    app.add_item(&json!({ "name": "milk", "note": "full cream" }))
+        .await;
+
+    let (status, body) = app
+        .post_json(
+            "/api/grocery-items?on_duplicate=separate",
+            &json!({ "name": "milk", "note": "oat, for Sam" }),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(body["note"], "oat, for Sam");
+
+    let (_, listed) = app.get("/api/grocery-items").await;
+    assert_eq!(listed.as_array().expect("an array").len(), 2);
+}
+
+#[sqlx::test]
+async fn an_unknown_duplicate_instruction_is_refused(pool: PgPool) {
+    let app = TestApp::new(pool);
+
+    let (status, _) = app
+        .post_json(
+            "/api/grocery-items?on_duplicate=whatever",
+            &json!({ "name": "milk" }),
+        )
+        .await;
+
+    assert_ne!(status, StatusCode::CREATED);
 }
 
 #[sqlx::test]

@@ -11,13 +11,14 @@ pub mod repository;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-pub use repository::normalise;
-
 use crate::error::ApiError;
-use crate::models::db::{GroceryItem, IntakeSource, VoiceRequest, VoiceRequestStatus};
-use crate::models::schemas::{
-    AlexaIntakeCreate, DuplicateItemWarning, VoiceRequestCreate, VoiceRequestDecision, MAX_QUANTITY,
+use crate::models::db::{
+    GroceryItem, GroceryItemSource, IntakeSource, VoiceRequest, VoiceRequestStatus,
 };
+use crate::models::schemas::{
+    AlexaIntakeCreate, VoiceRequestCreate, VoiceRequestDecision, MAX_QUANTITY,
+};
+use crate::services::grocery::{duplicate_error, repository as grocery_repository};
 use crate::services::ws_hub::{ServerEvent, WsHub};
 
 /// Whether an intake delivery produced a new request or matched one already
@@ -133,7 +134,7 @@ impl<'a> VoiceService<'a> {
         let name = corrected_name(decision, &request);
         let quantity = decision.quantity.unwrap_or(request.parsed_quantity);
 
-        let grocery_item = match repository::lock_active_duplicate(&mut tx, &name).await? {
+        let grocery_item = match grocery_repository::lock_active_duplicate(&mut tx, &name).await? {
             Some(existing) if !merge => {
                 // Nothing has been written yet; rolling back just releases
                 // the locks before the 409 goes out.
@@ -142,9 +143,22 @@ impl<'a> VoiceService<'a> {
             }
             Some(existing) => {
                 let merged = existing.quantity.saturating_add(quantity).min(MAX_QUANTITY);
-                repository::set_item_quantity(&mut tx, existing.id, merged).await?
+                grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?
             }
-            None => repository::insert_grocery_item(&mut tx, &name, quantity, user_id).await?,
+            None => {
+                // A voice item carries no note or chips of its own; the user
+                // annotates it on the list once it is there.
+                grocery_repository::insert_item(
+                    &mut tx,
+                    &name,
+                    quantity,
+                    GroceryItemSource::Voice,
+                    None,
+                    &[],
+                    user_id,
+                )
+                .await?
+            }
         };
 
         let accepted =
@@ -199,12 +213,4 @@ fn corrected_name(decision: &VoiceRequestDecision, request: &VoiceRequest) -> St
         .filter(|name| !name.is_empty())
         .unwrap_or(&request.parsed_name)
         .to_string()
-}
-
-/// Builds the 409 that lets the web app offer a merge.
-fn duplicate_error(existing: &GroceryItem) -> ApiError {
-    match serde_json::to_value(DuplicateItemWarning::for_item(existing)) {
-        Ok(detail) => ApiError::DuplicateActiveItem { detail },
-        Err(err) => ApiError::Internal(err.into()),
-    }
 }

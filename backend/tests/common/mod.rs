@@ -34,6 +34,21 @@ pub struct TestApp {
 }
 
 impl TestApp {
+    /// Builds the real application with Clerk verification left switched on,
+    /// so a request with no credential is answered the way a browser without a
+    /// session would be.
+    pub fn with_auth(pool: PgPool) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    dev_auth_bypass: false,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
     /// Builds the real application over a test database.
     ///
     /// `dev_auth_bypass` is on, matching how the previous Python suite ran:
@@ -113,6 +128,41 @@ impl TestApp {
     /// `POST <uri>` with a JSON body, as a signed-in household member.
     pub async fn post_json(&self, uri: &str, body: &Value) -> (StatusCode, Value) {
         self.send(json_request(uri, body, &[])).await
+    }
+
+    /// `PATCH <uri>` with a JSON body, as a signed-in household member.
+    pub async fn patch_json(&self, uri: &str, body: &Value) -> (StatusCode, Value) {
+        self.send(
+            Request::builder()
+                .method(Method::PATCH)
+                .uri(uri)
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+    }
+
+    /// `DELETE <uri>` as a signed-in household member.
+    pub async fn delete(&self, uri: &str) -> (StatusCode, Value) {
+        self.send(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(uri)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+    }
+
+    /// Adds an item through the web app's own endpoint and returns its id.
+    pub async fn add_item(&self, body: &Value) -> String {
+        let (status, created) = self.post_json("/api/grocery-items", body).await;
+        assert_eq!(status, StatusCode::CREATED, "setup failed: {created}");
+        created["id"]
+            .as_str()
+            .expect("id should be a string")
+            .to_string()
     }
 
     /// `POST /api/voice-requests` carrying the webhook secret.

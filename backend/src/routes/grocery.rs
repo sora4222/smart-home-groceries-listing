@@ -1,28 +1,91 @@
-//! The active grocery list.
+//! The household grocery list: review, modify, annotate, commit.
 //!
-//! Read access is needed by the Pending Requests flow (duplicate detection
-//! surfaces the existing active item) and by the grocery list view itself.
+//! Every route here needs a signed-in household member. Items arrive either
+//! from `POST /api/grocery-items` (the web app's add-item form) or by
+//! accepting an intake request in `routes/voice.rs`; from then on they are
+//! edited and committed through this module.
 
-use axum::extract::State;
-use axum::routing::get;
+use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
+use axum::routing::{get, patch};
 use axum::{Json, Router};
+use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::auth::AuthUser;
 use crate::error::ApiError;
-use crate::models::schemas::GroceryItemResponse;
-use crate::services::voice::repository;
+use crate::models::schemas::{GroceryItemCreate, GroceryItemResponse, GroceryItemUpdate};
+use crate::routes::extract::ValidatedJson;
+use crate::services::grocery::GroceryService;
 use crate::state::AppState;
 
 /// Routes under `/api/grocery-items`.
 pub fn router() -> Router<AppState> {
-    Router::new().route("/api/grocery-items", get(list_active_items))
+    Router::new()
+        .route("/api/grocery-items", get(list_items).post(add_item))
+        .route(
+            "/api/grocery-items/{item_id}",
+            patch(update_item).delete(delete_item),
+        )
 }
 
-/// `GET /api/grocery-items` — items on the list, newest first.
-async fn list_active_items(
+/// `?merge=true` folds the quantity into the existing active item instead of
+/// answering 409.
+#[derive(Debug, Deserialize)]
+pub struct AddQuery {
+    #[serde(default)]
+    pub merge: bool,
+}
+
+/// `GET /api/grocery-items` — the list, newest first.
+///
+/// Carries both items under review and items already committed for purchase;
+/// the web app groups them by `status`.
+async fn list_items(
     State(state): State<AppState>,
     _user: AuthUser,
 ) -> Result<Json<Vec<GroceryItemResponse>>, ApiError> {
-    let items = repository::list_active_items(&state.pool).await?;
+    let items = GroceryService::new(&state.pool).list().await?;
     Ok(Json(items.into_iter().map(Into::into).collect()))
+}
+
+/// `POST /api/grocery-items` — add an item by hand.
+///
+/// 409 with the clashing item when the name is already on the active list,
+/// unless `?merge=true` asks for the quantities to be combined.
+async fn add_item(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Query(query): Query<AddQuery>,
+    ValidatedJson(body): ValidatedJson<GroceryItemCreate>,
+) -> Result<(StatusCode, Json<GroceryItemResponse>), ApiError> {
+    let item = GroceryService::new(&state.pool)
+        .add(&body, &user.id, query.merge)
+        .await?;
+    Ok((StatusCode::CREATED, Json(item.into())))
+}
+
+/// `PATCH /api/grocery-items/{id}` — rename, re-quantify, annotate, re-chip.
+///
+/// Absent fields are left alone. 409 if the item is committed for purchase.
+async fn update_item(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(item_id): Path<Uuid>,
+    ValidatedJson(body): ValidatedJson<GroceryItemUpdate>,
+) -> Result<Json<GroceryItemResponse>, ApiError> {
+    let item = GroceryService::new(&state.pool)
+        .update(item_id, &body)
+        .await?;
+    Ok(Json(item.into()))
+}
+
+/// `DELETE /api/grocery-items/{id}` — take an item off the list.
+async fn delete_item(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(item_id): Path<Uuid>,
+) -> Result<StatusCode, ApiError> {
+    GroceryService::new(&state.pool).delete(item_id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

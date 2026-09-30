@@ -4,6 +4,11 @@
 //! policy and this file reads as storage. Functions here take an executor or
 //! transaction and make no decisions beyond mapping a missing row to `Option`.
 //!
+//! Only `voice_requests` is written here. The list itself belongs to
+//! [`crate::services::grocery::repository`], which the accept path calls for
+//! the item side of the decision — duplicate detection and the normalising
+//! expression it depends on then have a single home.
+//!
 //! Every statement is a literal `&'static str` with bind parameters. sqlx
 //! requires that (a runtime-built query string has to be wrapped in
 //! `AssertSqlSafe`), and it is worth keeping even where it means repeating a
@@ -14,22 +19,7 @@ use sqlx::{PgExecutor, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::error::ApiError;
-use crate::models::db::{
-    GroceryItem, GroceryItemSource, GroceryItemStatus, IntakeSource, VoiceRequest,
-};
-
-/// Collapses whitespace runs and lowercases a name for duplicate comparison.
-///
-/// This computes the value bound to [`lock_active_duplicate`]; PostgreSQL
-/// computes the same form for stored rows, both in that query and in the
-/// `ix_grocery_items_normalised_name` index. Keep the three in step — a
-/// mismatch silently stops duplicate detection working.
-pub fn normalise(name: &str) -> String {
-    name.split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .to_lowercase()
-}
+use crate::models::db::{IntakeSource, VoiceRequest};
 
 /// Requests still awaiting a decision, newest first.
 pub async fn list_pending<'e, E>(executor: E) -> Result<Vec<VoiceRequest>, ApiError>
@@ -157,69 +147,6 @@ pub async fn lock_request(
     .await?)
 }
 
-/// Finds an active item whose normalised name matches, locking it so a
-/// concurrent merge cannot lose an increment.
-///
-/// The normalising expression is repeated verbatim in
-/// `ix_grocery_items_normalised_name`; that is what lets this use the index
-/// instead of scanning every active row.
-pub async fn lock_active_duplicate(
-    tx: &mut Transaction<'_, Postgres>,
-    name: &str,
-) -> Result<Option<GroceryItem>, ApiError> {
-    Ok(sqlx::query_as::<_, GroceryItem>(
-        r"SELECT id, name, quantity, status, source, added_by_user_id, created_at
-          FROM grocery_items
-          WHERE status = 'active'
-            AND lower(btrim(regexp_replace(name, '\s+', ' ', 'g'))) = $1
-          ORDER BY created_at
-          LIMIT 1
-          FOR UPDATE",
-    )
-    .bind(normalise(name))
-    .fetch_optional(&mut **tx)
-    .await?)
-}
-
-/// Adds a voice-sourced item to the active list.
-pub async fn insert_grocery_item(
-    tx: &mut Transaction<'_, Postgres>,
-    name: &str,
-    quantity: i32,
-    user_id: &str,
-) -> Result<GroceryItem, ApiError> {
-    Ok(sqlx::query_as::<_, GroceryItem>(
-        "INSERT INTO grocery_items (id, name, quantity, status, source, added_by_user_id)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, name, quantity, status, source, added_by_user_id, created_at",
-    )
-    .bind(Uuid::new_v4())
-    .bind(name)
-    .bind(quantity)
-    .bind(GroceryItemStatus::Active)
-    .bind(GroceryItemSource::Voice)
-    .bind(user_id)
-    .fetch_one(&mut **tx)
-    .await?)
-}
-
-/// Replaces an item's quantity.
-pub async fn set_item_quantity(
-    tx: &mut Transaction<'_, Postgres>,
-    item_id: Uuid,
-    quantity: i32,
-) -> Result<GroceryItem, ApiError> {
-    Ok(sqlx::query_as::<_, GroceryItem>(
-        "UPDATE grocery_items SET quantity = $2
-         WHERE id = $1
-         RETURNING id, name, quantity, status, source, added_by_user_id, created_at",
-    )
-    .bind(item_id)
-    .bind(quantity)
-    .fetch_one(&mut **tx)
-    .await?)
-}
-
 /// Records the accepted decision and the item it produced.
 pub async fn mark_accepted(
     tx: &mut Transaction<'_, Postgres>,
@@ -241,44 +168,4 @@ pub async fn mark_accepted(
     .bind(grocery_item_id)
     .fetch_one(&mut **tx)
     .await?)
-}
-
-/// Active list items, newest first.
-pub async fn list_active_items<'e, E>(executor: E) -> Result<Vec<GroceryItem>, ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    Ok(sqlx::query_as::<_, GroceryItem>(
-        "SELECT id, name, quantity, status, source, added_by_user_id, created_at
-         FROM grocery_items
-         WHERE status = 'active'
-         ORDER BY created_at DESC",
-    )
-    .fetch_all(executor)
-    .await?)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::normalise;
-
-    #[test]
-    fn normalise_lowercases_and_trims() {
-        assert_eq!(normalise("  Toilet Paper  "), "toilet paper");
-    }
-
-    #[test]
-    fn normalise_collapses_internal_whitespace() {
-        assert_eq!(normalise("full   cream   milk"), "full cream milk");
-    }
-
-    #[test]
-    fn normalise_is_case_and_space_insensitive_for_matching() {
-        assert_eq!(normalise("Milk"), normalise("  milk "));
-    }
-
-    #[test]
-    fn normalise_collapses_tabs_and_newlines() {
-        assert_eq!(normalise("full\tcream\nmilk"), "full cream milk");
-    }
 }

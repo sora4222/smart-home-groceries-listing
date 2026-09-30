@@ -11,7 +11,8 @@ interface GroceryFixtures {
 /**
  * The shared test setup.
  *
- * Every test starts from an empty list and an empty confirmation queue, and
+ * Every test starts from an empty list, an empty confirmation queue and no
+ * item rules, and
  * every test fails if the browser threw, logged an error, or got a 5xx from the
  * backend — a feature that "works" while React complains in the console is not
  * working.
@@ -34,6 +35,11 @@ export const test = base.extend<GroceryFixtures>({
 		const pending = await request.get(`${API_BASE_URL}/api/voice-requests`);
 		for (const item of (await pending.json()) as Array<{ id: string }>) {
 			await request.post(`${API_BASE_URL}/api/voice-requests/${item.id}/reject`);
+		}
+		// Rules would otherwise put chips on items other tests add.
+		const rules = await request.get(`${API_BASE_URL}/api/item-rules`);
+		for (const rule of (await rules.json()) as Array<{ id: string }>) {
+			await request.delete(`${API_BASE_URL}/api/item-rules/${rule.id}`);
 		}
 
 		const problems: string[] = [];
@@ -109,4 +115,13 @@ export async function addItem(page: Page, name: string, quantity?: number) {
 	}
 	await form.submit.click();
 	await expect(itemCard(page, name)).toBeVisible();
+}
+
+/**
+ * The card for one rule on the Item Rules page, addressed by its first item
+ * name (`data-rule-name`) — with the editor open the names are chips in a form,
+ * not text in the card.
+ */
+export function ruleCard(page: Page, name: string) {
+	return page.locator(`[data-testid="item-rule"][data-rule-name="${name}"]`);
 }

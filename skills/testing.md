@@ -59,6 +59,8 @@ splitting into a pure part and a storage part — that is why
 - Every route: happy path + auth failure + invalid input (integration)
 - Every intake channel: authentication, validation, **and re-delivery** — a
   channel that retries must not create a second card
+- Anything that adds to the list: whether item rules apply (voice always,
+  manual only when opted in, merges never) — `tests/item_rules_applied.rs`
 - WebSocket events: one session, several sessions, a dropped session
 - Errors: an internal failure must not leak its cause into the body
 - Store integration: mocked HTTP (`wiremock`), never a real store
@@ -125,7 +127,8 @@ widths" gets checked.
 import `test` from there rather than from `@playwright/test`:
 
 1. **Resets state** — releases a committed list, deletes every item, rejects
-   every pending intake request. Tests then start from nothing without
+   every pending intake request, and deletes every item rule (a leftover rule
+   would put chips on another test's items). Tests then start from nothing without
    touching the database directly.
 2. **Fails on browser trouble** — a `pageerror`, a console error, or any 5xx
    from the backend fails the test. Chrome logs a console line for every 4xx

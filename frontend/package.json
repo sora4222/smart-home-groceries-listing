@@ -1,82 +1,84 @@
 {
-  "name": "frontend",
-  "private": true,
-  "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
-  "scripts": {
-    "dev": "vite dev --port 3000",
-    "generate-routes": "tsr generate",
-    "build": "vite build",
-    "preview": "vite preview",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check",
-    "start": "node .output/server/index.mjs",
-    "test": "vitest",
-    "test:run": "vitest run"
-  },
-  "dependencies": {
-    "@radix-ui/react-slot": "^1.3.3",
-    "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-devtools": "latest",
-    "@tanstack/react-router": "latest",
-    "@tanstack/react-router-devtools": "latest",
-    "@tanstack/react-start": "^1.168.58",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.48.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "sonner": "^2.0.8",
-    "tailwind-merge": "^3.7.0",
-    "tailwindcss": "^4.1.18"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.4.5",
-    "@playwright/test": "^1.63.0",
-    "@tanstack/devtools-vite": "latest",
-    "@tanstack/router-cli": "^1.132.0",
-    "@tanstack/router-plugin": "latest",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.7",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^6.0.1",
-    "jsdom": "^30.1.1",
-    "nitro": "3.0.260903-beta",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.0",
-    "vitest": "^5.0.2"
-  },
-  "intent": {
-    "skills": [
-      "*"
-    ],
-    "exclude": [
-      "@tanstack/devtools#devtools-app-setup",
-      "@tanstack/devtools#devtools-marketplace",
-      "@tanstack/devtools#devtools-plugin-panel",
-      "@tanstack/devtools#devtools-production",
-      "@tanstack/devtools-event-client#devtools-bidirectional",
-      "@tanstack/devtools-event-client#devtools-event-client",
-      "@tanstack/devtools-event-client#devtools-instrumentation",
-      "@tanstack/devtools-vite#devtools-vite-plugin",
-      "@tanstack/router-core#router-core",
-      "@tanstack/router-core#router-core/auth-and-guards",
-      "@tanstack/router-core#router-core/code-splitting",
-      "@tanstack/router-core#router-core/data-loading",
-      "@tanstack/router-core#router-core/navigation",
-      "@tanstack/router-core#router-core/not-found-and-errors",
-      "@tanstack/router-core#router-core/path-params",
-      "@tanstack/router-core#router-core/search-params",
-      "@tanstack/router-core#router-core/ssr",
-      "@tanstack/router-core#router-core/type-safety",
-      "@tanstack/router-plugin#router-plugin",
-      "@tanstack/virtual-file-routes#virtual-file-routes"
-    ]
-  }
+	"name": "frontend",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"scripts": {
+		"dev": "vite dev --port 3000",
+		"generate-routes": "tsr generate",
+		"build": "vite build",
+		"preview": "vite preview",
+		"format": "biome format",
+		"lint": "biome lint",
+		"check": "biome check",
+		"start": "node .output/server/index.mjs",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"e2e": "playwright test",
+		"e2e:report": "playwright show-report"
+	},
+	"dependencies": {
+		"@radix-ui/react-slot": "^1.3.3",
+		"@tailwindcss/vite": "^4.1.18",
+		"@tanstack/react-devtools": "latest",
+		"@tanstack/react-router": "latest",
+		"@tanstack/react-router-devtools": "latest",
+		"@tanstack/react-start": "^1.168.58",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"lucide-react": "^1.48.0",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"sonner": "^2.0.8",
+		"tailwind-merge": "^3.7.0",
+		"tailwindcss": "^4.1.18"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.5",
+		"@playwright/test": "^1.63.0",
+		"@tanstack/devtools-vite": "latest",
+		"@tanstack/router-cli": "^1.132.0",
+		"@tanstack/router-plugin": "latest",
+		"@testing-library/jest-dom": "^7.0.1",
+		"@testing-library/react": "^16.3.3",
+		"@testing-library/user-event": "^14.6.7",
+		"@types/node": "^22.10.2",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^6.0.1",
+		"jsdom": "^30.1.1",
+		"nitro": "3.0.260903-beta",
+		"typescript": "^6.0.2",
+		"vite": "^8.0.0",
+		"vitest": "^5.0.2"
+	},
+	"intent": {
+		"skills": [
+			"*"
+		],
+		"exclude": [
+			"@tanstack/devtools#devtools-app-setup",
+			"@tanstack/devtools#devtools-marketplace",
+			"@tanstack/devtools#devtools-plugin-panel",
+			"@tanstack/devtools#devtools-production",
+			"@tanstack/devtools-event-client#devtools-bidirectional",
+			"@tanstack/devtools-event-client#devtools-event-client",
+			"@tanstack/devtools-event-client#devtools-instrumentation",
+			"@tanstack/devtools-vite#devtools-vite-plugin",
+			"@tanstack/router-core#router-core",
+			"@tanstack/router-core#router-core/auth-and-guards",
+			"@tanstack/router-core#router-core/code-splitting",
+			"@tanstack/router-core#router-core/data-loading",
+			"@tanstack/router-core#router-core/navigation",
+			"@tanstack/router-core#router-core/not-found-and-errors",
+			"@tanstack/router-core#router-core/path-params",
+			"@tanstack/router-core#router-core/search-params",
+			"@tanstack/router-core#router-core/ssr",
+			"@tanstack/router-core#router-core/type-safety",
+			"@tanstack/router-plugin#router-plugin",
+			"@tanstack/virtual-file-routes#virtual-file-routes"
+		]
+	}
 }

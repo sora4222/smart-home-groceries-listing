@@ -19,6 +19,7 @@ use crate::models::schemas::{
     AlexaIntakeCreate, VoiceRequestCreate, VoiceRequestDecision, MAX_QUANTITY,
 };
 use crate::services::grocery::{duplicate_error, repository as grocery_repository};
+use crate::services::item_rules::{self, AddedVia};
 use crate::services::ws_hub::{ServerEvent, WsHub};
 
 /// Whether an intake delivery produced a new request or matched one already
@@ -110,7 +111,9 @@ impl<'a> VoiceService<'a> {
     /// same normalised name exists and `merge` is false, so the caller can ask
     /// the user whether to add another or update the existing quantity.
     /// `merge = true` adds to the existing item's quantity instead, capped at
-    /// [`MAX_QUANTITY`] to stay inside the column's constraint.
+    /// [`MAX_QUANTITY`] to stay inside the column's constraint. A new list
+    /// entry gets the chips of every item rule matching its (corrected) name;
+    /// a merge leaves the existing item's chips alone.
     ///
     /// Accepting is allowed from `pending` *and* `rejected` — the latter backs
     /// the web app's "dulled, undo-on-hover" reject. Only an already-accepted
@@ -146,15 +149,18 @@ impl<'a> VoiceService<'a> {
                 grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?
             }
             None => {
-                // A voice item carries no note or chips of its own; the user
-                // annotates it on the list once it is there.
+                // A voice item carries no note or chips of its own; its chips
+                // come from the item rules matching its name, and the user
+                // annotates it further on the list.
+                let rule_terms =
+                    item_rules::filter_terms_for(&mut *tx, &name, AddedVia::Voice).await?;
                 grocery_repository::insert_item(
                     &mut tx,
                     &name,
                     quantity,
                     GroceryItemSource::Voice,
                     None,
-                    &[],
+                    &rule_terms,
                     user_id,
                 )
                 .await?

@@ -29,7 +29,10 @@ function PendingPage() {
 				return next;
 			});
 			toast.success(`${name} added to the grocery list`);
-			router.invalidate();
+			// Awaited inside the try: an invalidation still in flight when the
+			// user navigates away rejects, and unawaited that surfaced as an
+			// unhandled "Failed to fetch" in the console.
+			await router.invalidate();
 		} catch {
 			toast.error("Could not accept that request — try again.");
 		}

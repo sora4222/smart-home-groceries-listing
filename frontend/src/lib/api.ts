@@ -1,149 +1,20 @@
 /**
- * Typed fetch wrappers for the Rust/Axum backend. Keep this the only place
- * that knows the backend's URL shape — components call these, never
+ * Typed fetch wrappers for the Rust/Axum backend. Keep `lib/api/` the only
+ * place that knows the backend's URL shape — components call these, never
  * `fetch` directly.
  *
- * Paths, field names, status codes and the `{ detail }` error envelope are
- * unchanged from the previous FastAPI backend, so nothing else in the app
- * needed touching when it was rewritten.
+ * One module per API domain under `lib/api/`; this file gathers them into the
+ * `api` object and re-exports their types, so callers import from
+ * `#/lib/api` without caring which file a type lives in.
  */
-import { API_BASE_URL } from "#/lib/config";
-import { getAuthToken } from "#/lib/auth";
+import { groceryApi } from "#/lib/api/grocery";
+import { voiceApi } from "#/lib/api/voice";
 
-export type VoiceRequestStatus = "pending" | "accepted" | "rejected";
-/** Which intake channel delivered an item. */
-export type IntakeSource = "webhook" | "alexa";
-export type GroceryItemStatus = "pending" | "active" | "committed" | "ordered";
-export type GroceryItemSource = "voice" | "manual";
-
-export interface VoiceRequest {
-	id: string;
-	source: IntakeSource;
-	raw_text: string;
-	parsed_name: string;
-	parsed_quantity: number;
-	status: VoiceRequestStatus;
-	created_at: string;
-}
-
-export interface GroceryItem {
-	id: string;
-	name: string;
-	quantity: number;
-	status: GroceryItemStatus;
-	source: GroceryItemSource;
-	/** Free-text annotation, `null` when the item has none. */
-	note: string | null;
-	/** Filter chips narrowing the later product search. Never `null`. */
-	filter_terms: string[];
-	added_by_user_id: string | null;
-	created_at: string;
-}
-
-/** A new item typed into the add-item form. */
-export interface NewGroceryItem {
-	name: string;
-	quantity?: number;
-	note?: string;
-	filter_terms?: string[];
-}
-
-/**
- * Fields an edit may change. Anything left out is kept as it was; a `note` of
- * `""` clears the annotation and a `filter_terms` array replaces the chips,
- * which is how removing one chip is expressed.
- */
-export interface GroceryItemEdit {
-	name?: string;
-	quantity?: number;
-	note?: string;
-	filter_terms?: string[];
-}
-
-/**
- * What to do when an added name is already on the list. `ask` — the default —
- * makes the backend answer 409 with the clashing item so the user can choose.
- */
-export type OnDuplicate = "ask" | "merge" | "separate";
-
-export interface DuplicateItemDetail {
-	existing_item: { id: string; name: string; quantity: number };
-	message: string;
-}
-
-export class ApiError extends Error {
-	constructor(
-		public status: number,
-		public body: unknown,
-	) {
-		super(typeof body === "string" ? body : JSON.stringify(body));
-	}
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-	const token = await getAuthToken();
-	const headers = new Headers(init?.headers);
-	headers.set("Content-Type", "application/json");
-	if (token) headers.set("Authorization", `Bearer ${token}`);
-
-	const res = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
-	if (!res.ok) {
-		let body: unknown;
-		try {
-			body = await res.json();
-		} catch {
-			body = await res.text();
-		}
-		throw new ApiError(res.status, body);
-	}
-	if (res.status === 204) return undefined as T;
-	return res.json() as Promise<T>;
-}
+export { ApiError } from "#/lib/api/client";
+export * from "#/lib/api/grocery";
+export * from "#/lib/api/voice";
 
 export const api = {
-	voice: {
-		pending: () => request<VoiceRequest[]>("/api/voice-requests"),
-		accept: (
-			id: string,
-			body?: { name?: string; quantity?: number },
-			merge = false,
-		) =>
-			request<{ voice_request: VoiceRequest; grocery_item: GroceryItem }>(
-				`/api/voice-requests/${id}/accept${merge ? "?merge=true" : ""}`,
-				{ method: "POST", body: JSON.stringify(body ?? {}) },
-			),
-		reject: (id: string) =>
-			request<VoiceRequest>(`/api/voice-requests/${id}/reject`, {
-				method: "POST",
-			}),
-	},
-	grocery: {
-		/** Everything on the list: items under review and items committed. */
-		list: () => request<GroceryItem[]>("/api/grocery-items"),
-		add: (item: NewGroceryItem, onDuplicate: OnDuplicate = "ask") =>
-			request<GroceryItem>(`/api/grocery-items?on_duplicate=${onDuplicate}`, {
-				method: "POST",
-				body: JSON.stringify(item),
-			}),
-		update: (id: string, edit: GroceryItemEdit) =>
-			request<GroceryItem>(`/api/grocery-items/${id}`, {
-				method: "PATCH",
-				body: JSON.stringify(edit),
-			}),
-		remove: (id: string) =>
-			request<void>(`/api/grocery-items/${id}`, { method: "DELETE" }),
-		/** Locks the reviewed list in for purchase. */
-		commit: () =>
-			request<GroceryItem[]>("/api/grocery-items/commit", { method: "POST" }),
-		/** Reopens a committed list for editing. */
-		release: () =>
-			request<GroceryItem[]>("/api/grocery-items/release", { method: "POST" }),
-	},
+	voice: voiceApi,
+	grocery: groceryApi,
 };
-
-/** Narrows an {@link ApiError} to the duplicate-item 409 the add form handles. */
-export function duplicateDetail(error: unknown): DuplicateItemDetail | null {
-	if (!(error instanceof ApiError) || error.status !== 409) return null;
-	const body = error.body as { detail?: DuplicateItemDetail } | undefined;
-	return body?.detail?.existing_item ? body.detail : null;
-}

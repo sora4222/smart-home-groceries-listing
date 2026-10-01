@@ -4,8 +4,10 @@
 FROM rust:1.95-slim-bookworm AS builder
 WORKDIR /build
 
+# cmake, clang, libclang and g++ build BoringSSL, which `wreq` uses to
+# present the same TLS handshake as Chrome to the stores' bot protection.
 RUN apt-get update -qq \
- && apt-get install -y --no-install-recommends pkg-config \
+ && apt-get install -y --no-install-recommends pkg-config cmake clang libclang-dev g++ perl make \
  && rm -rf /var/lib/apt/lists/*
 
 # Dependencies first, in their own layer, so editing source does not re-fetch
@@ -28,7 +30,8 @@ RUN touch src/main.rs src/lib.rs \
 
 FROM debian:bookworm-slim AS runtime
 
-# ca-certificates: the process fetches Clerk's JWKS over HTTPS.
+# ca-certificates: the process fetches Clerk's JWKS over HTTPS. (The store
+# client carries its own root store and needs nothing extra.)
 RUN apt-get update -qq \
  && apt-get install -y --no-install-recommends ca-certificates \
  && rm -rf /var/lib/apt/lists/* \

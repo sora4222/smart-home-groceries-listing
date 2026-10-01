@@ -1,17 +1,20 @@
-.PHONY: up down restart test test-backend test-frontend test-alexa e2e \
+.PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
         migrate migration-new lint lint-fix build alexa-up \
-        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-e2e
+        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
 # Where the backend's tests create their throwaway databases. Overridable per
-# git worktree so concurrent agents do not collide.
-TEST_DATABASE_URL ?= postgres://grocery:$(POSTGRES_PASSWORD)@localhost:5432/postgres
+# git worktree so concurrent agents do not collide. The default is built from
+# POSTGRES_* in the environment or .env, aimed at the port Compose publishes:
+# .env's own DATABASE_URL names the host `db`, which only resolves in Docker.
+TEST_DATABASE_URL ?= $(shell sh scripts/test-database-url.sh)
 
 ## Lifecycle
 up:
 	@docker compose up -d 2>&1 | grep -E "error|Error|started|healthy" || true
 
+# `docker compose down` has no quiet flag, so only errors are shown.
 down:
-	@docker compose down -q
+	@docker compose down 2>&1 | grep -E "error|Error" || true
 
 restart: down up
 
@@ -19,10 +22,14 @@ alexa-up:
 	@docker compose up -d alexa-bridge 2>&1 | grep -E "error|Error|started" || true
 
 ## Tests (compact — for agent use)
-test: test-backend test-frontend test-alexa
+test: up test-backend test-frontend test-alexa test-tooling
 
 test-backend:
-	@cd backend && cargo test --quiet 2>&1 | grep -E "error|warning: unused|test result|FAILED|panicked" || true
+	@cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test --quiet 2>&1 | grep -E "error|warning: unused|test result|FAILED|panicked" || true
+
+# Tests for the scripts the Makefile itself relies on.
+test-tooling:
+	@sh scripts/test-database-url.test.sh | grep -E "FAIL|expected|actual" || echo "tooling: ok"
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5
@@ -76,10 +83,13 @@ check:
 hm-up:
 	docker compose up
 
-hm-test: hm-test-backend hm-test-frontend hm-test-alexa
+hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling
 
 hm-test-backend:
-	cd backend && cargo test
+	cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test
+
+hm-test-tooling:
+	sh scripts/test-database-url.test.sh
 
 hm-test-frontend:
 	cd frontend && pnpm test:run

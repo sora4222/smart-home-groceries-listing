@@ -1,8 +1,10 @@
 # Feature: Store Integration
 
 Status: **product search implemented** — compare a list item's products at
-Woolworths and Coles, and choose one per item (`FEATURE_PRODUCT_CHOICE.md`). Delivery windows, the cart and checkout are not built;
-they belong to Order Optimisation and Checkout.
+Woolworths and Coles, and choose one per item (`FEATURE_PRODUCT_CHOICE.md`).
+Chosen Woolworths products can be sent to the household's own Woolworths
+trolley (`FEATURE_TROLLEY_HANDOFF.md`). Delivery windows and checkout are not
+built; they belong to Order Optimisation and Checkout.
 
 ## What this feature does
 A household member opens **Compare prices** on any list item. The backend

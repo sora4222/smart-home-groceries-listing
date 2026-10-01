@@ -15,7 +15,12 @@ docs.
   automatically (`FEATURE_ITEM_RULES.md`).
 - **Price comparison** — each item's products at Woolworths and Coles,
   cheapest per unit first, with unit prices, specials and multibuys
-  (`FEATURE_STORE_INTEGRATION.md`).
+  (`FEATURE_STORE_INTEGRATION.md`), and choosing one product per item
+  (`FEATURE_PRODUCT_CHOICE.md`).
+- **Send to Woolworths** — puts every chosen Woolworths product into your own
+  Woolworths trolley through a bookmark you press on woolworths.com.au; you
+  pay on Woolworths (`FEATURE_TROLLEY_HANDOFF.md`,
+  `docs/FEAT_WOOLWORTHS_ACCESS.md`).
 
 Ordering, checkout and spending analysis are not built yet; their
 `FEATURE_*.md` files are placeholders.

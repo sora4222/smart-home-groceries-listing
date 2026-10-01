@@ -31,6 +31,7 @@ src/
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
 │   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
+│   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -67,6 +68,8 @@ src/
 │   ├── selections/      # choosing one product per item: offer.rs checks it
 │   │                    #   against the store's answer, staleness.rs drops it
 │   │                    #   on rename/re-chip, repository.rs owns the table
+│   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),
+│   │                    #   summary.rs (by store + totals, pure), log.rs
 │   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM

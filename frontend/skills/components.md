@@ -67,6 +67,17 @@ prop. The card shows the choice with `components/selections/ChosenProduct`;
 the page's handlers live in `hooks/useProductChoices.ts`. Prices arrive as decimal strings — format them with `lib/money.ts`,
 never parse them for arithmetic.
 
+`components/order/` is the compound-with-optional-parts shape. `OrderReview`
+takes the whole review and provides it through a context scoped to its tree;
+`OrderReview.Empty`, `.Unchosen`, `.Store store="…"` and `.Total` each
+render **only when they have something to show**, so the page simply lists
+every part in reading order. Store actions (Send to Woolworths) and links
+back to the list arrive as `children`, which keeps these parts free of the
+router — their unit tests render them without one. `StoreOrderCard` →
+`OrderLineRow` → `PriceChangeBadge` each render one thing; the wording rule
+is `lib/price-change.ts`. A store card is a `Card` with `role="region"` and
+`aria-label` = the store's name, which is how tests and e2e address it.
+
 ## Shared chip lists
 `components/terms/` is used by more than one feature. `TermChips` renders a
 list of removable chips; pass `label` for the list's accessible name and

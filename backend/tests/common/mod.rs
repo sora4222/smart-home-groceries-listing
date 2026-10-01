@@ -27,6 +27,7 @@ use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
 /// The shared secrets the tests authenticate with. Test-only values.
 pub const TEST_WEBHOOK_SECRET: &str = "test-webhook-secret";
 pub const TEST_BRIDGE_SECRET: &str = "test-bridge-secret";
+pub const TEST_STORE_TAB_SECRET: &str = "test-store-tab-secret";
 
 /// The application under test.
 pub struct TestApp {
@@ -263,6 +264,7 @@ fn test_settings() -> Settings {
         clerk_jwks_url: String::new(),
         voice_webhook_secret: TEST_WEBHOOK_SECRET.to_string(),
         alexa_bridge_secret: TEST_BRIDGE_SECRET.to_string(),
+        store_tab_secret: TEST_STORE_TAB_SECRET.to_string(),
         credential_encryption_key: String::new(),
         cors_origins: vec!["http://localhost:3000".to_string()],
         dev_auth_bypass: true,

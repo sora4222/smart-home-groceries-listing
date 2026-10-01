@@ -9,15 +9,18 @@
  */
 import { groceryApi } from "#/lib/api/grocery";
 import { itemRulesApi } from "#/lib/api/item-rules";
+import { productsApi } from "#/lib/api/products";
 import { voiceApi } from "#/lib/api/voice";
 
 export { ApiError } from "#/lib/api/client";
 export * from "#/lib/api/grocery";
 export * from "#/lib/api/item-rules";
+export * from "#/lib/api/products";
 export * from "#/lib/api/voice";
 
 export const api = {
 	voice: voiceApi,
 	grocery: groceryApi,
 	itemRules: itemRulesApi,
+	products: productsApi,
 };

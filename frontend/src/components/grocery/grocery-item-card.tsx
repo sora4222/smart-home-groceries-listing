@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { GroceryItemEditor } from "#/components/grocery/grocery-item-editor";
+import { PriceComparison } from "#/components/products/price-comparison";
 import { TermChips } from "#/components/terms/term-chips";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -23,7 +24,8 @@ interface GroceryItemCardProps {
  * Editing: the whole item at once, via [`GroceryItemEditor`].
  *
  * A committed item is shown but not editable: the household has locked the list
- * in for purchase and has to release it to change anything.
+ * in for purchase and has to release it to change anything. Either way its
+ * prices can be compared at both stores.
  */
 export function GroceryItemCard({
 	item,
@@ -85,9 +87,13 @@ export function GroceryItemCard({
 						Added via {item.source === "voice" ? "voice" : "the web app"}
 					</span>
 
-					{!locked && (
-						<div className="flex gap-2">
-							{confirmingRemoval ? (
+					<div className="flex flex-wrap gap-2">
+						<PriceComparison item={item}>
+							<PriceComparison.Trigger />
+							<PriceComparison.Content />
+						</PriceComparison>
+						{!locked &&
+							(confirmingRemoval ? (
 								<>
 									<Button
 										size="sm"
@@ -124,9 +130,8 @@ export function GroceryItemCard({
 										Remove
 									</Button>
 								</>
-							)}
-						</div>
-					)}
+							))}
+					</div>
 				</div>
 			</CardContent>
 		</Card>

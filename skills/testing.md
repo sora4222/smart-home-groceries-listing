@@ -63,7 +63,12 @@ splitting into a pure part and a storage part — that is why
   manual only when opted in, merges never) — `tests/item_rules_applied.rs`
 - WebSocket events: one session, several sessions, a dropped session
 - Errors: an internal failure must not leak its cause into the body
-- Store integration: mocked HTTP (`wiremock`), never a real store
+- Store integration: never a real store. Mappings are unit-tested against
+  `backend/tests/fixtures/<store>/` (trimmed real responses); the clients run
+  against `wiremock` in `tests/<store>_client.rs`; routes use the fake
+  catalogue — `TestApp` sets `STORE_CLIENTS=fake` via
+  `common::fake_store_settings()`. A query containing `outage` makes the fake
+  Coles fail, for the one-store-down path.
 
 ## Alexa bridge sidecar (Python)
 ```bash

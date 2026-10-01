@@ -116,10 +116,13 @@ contains no business logic and holds no database credentials. See "Sidecars".
   was. Reducing marketing-driven buying is a project goal: no part of this
   system suggests, recommends or upsells an item.
 - **Store integration priority:** official API → internal XHR/JSON endpoints →
-  headless-browser HTML scrape. Both stores are behind **Akamai**. Strategy:
-  human logs in via browser → `chromiumoxide` reuses the session cookie until
-  expiry. TLS-fingerprint fallback: `wreq`. Never use plain `reqwest` against
-  a store URL.
+  headless-browser HTML scrape. Both stores are behind bot protection.
+  Product search uses each website's own JSON call through `wreq` emulating
+  Chrome (built — `docs/features/FEATURE_STORE_INTEGRATION.md`). If that is
+  refused: human logs in via browser → `chromiumoxide` reuses the session
+  cookie until expiry. Never use plain `reqwest` against a store URL, and
+  never retry a refused store request in a loop. `STORE_CLIENTS=fake` for
+  development and tests.
 - **Checkout:** automated to the payment page only. Never stores or enters
   card details.
 - **Credentials:** AES-256-GCM encrypted in PostgreSQL

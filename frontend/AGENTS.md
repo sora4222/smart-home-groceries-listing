@@ -21,6 +21,9 @@ names, same status codes, and errors still arrive as `{ "detail": ... }` —
 a string for most failures, an object for the duplicate-item 409. Nothing in
 this directory changed because of the rewrite.
 
+Prices from `GET /api/grocery-items/{id}/products` are decimal **strings**
+(`"4.95"`); format them with `lib/money.ts`.
+
 `VoiceRequest` carries a `source` field (`"webhook" | "alexa"`) saying which
 intake channel delivered the item.
 

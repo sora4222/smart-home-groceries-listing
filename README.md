@@ -7,10 +7,18 @@ single home server, Docker Compose + Cloudflare Tunnel. Full product spec: the
 "Google Home Grocery List — Application Specification" doc in the project's
 docs.
 
-**Currently implemented: voice intake** — the generic webhook, the Alexa
-channel, the confirmation queue, and the Pending Requests web UI. See
-`docs/features/FEATURE_VOICE.md` for what exists and what is still a stub.
-Other `FEATURE_*.md` files are placeholders for the goals that come after.
+**Currently implemented:**
+- **Voice intake** — the generic webhook, the Alexa channel, the confirmation
+  queue and Pending Requests (`docs/features/FEATURE_VOICE.md`).
+- **The grocery list** — add, edit, annotate, chip and commit items
+  (`FEATURE_GROCERY_LIST.md`), with **item rules** that chip items
+  automatically (`FEATURE_ITEM_RULES.md`).
+- **Price comparison** — each item's products at Woolworths and Coles,
+  cheapest per unit first, with unit prices, specials and multibuys
+  (`FEATURE_STORE_INTEGRATION.md`).
+
+Ordering, checkout and spending analysis are not built yet; their
+`FEATURE_*.md` files are placeholders.
 
 > Despite the repository name, Google Home cannot be integrated directly — the
 > Smart Home Action / OAuth account-linking route was dropped. Alexa is the
@@ -30,7 +38,7 @@ only part of this that a human has to do — everything else is `make up`.
 | Database | PostgreSQL + `sqlx` (migrations embedded in the binary) |
 | Auth | Clerk (JWT), abstracted behind `backend/src/auth/mod.rs` |
 | Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python here |
-| Automation | `chromiumoxide` (store checkout — not yet built) |
+| Stores | `wreq` (Chrome TLS emulation) for search · `chromiumoxide` for checkout (not yet built) |
 | Infra | Docker Compose (Postgres, backend, Alexa bridge, Cloudflare Tunnel) |
 
 The backend is a single compiled binary with its migrations embedded: no
@@ -53,6 +61,10 @@ To run the backend on the host instead of in its container:
 make up                                   # Postgres only is enough
 cd backend && cargo run                   # reads .env via the environment
 ```
+
+Set `STORE_CLIENTS=fake` to use a small built-in catalogue instead of the
+real Woolworths and Coles websites (development, tests, or a machine that
+should not reach the stores).
 
 Without Clerk configured yet, set `DEV_AUTH_BYPASS=true` in `.env` so the
 backend accepts requests without a JWT. It logs a warning at startup — see

@@ -22,7 +22,8 @@ github.com/shadcn-ui/ui, and its dependencies are in that folder's
 `_registry.ts`. The CLI also fetches `r/colors/neutral.json`, which can be
 empty colour maps since this repo uses CSS variables.
 
-`button`, `badge`, `card`, `input` and `textarea` predate `components.json` and
+`sheet` was added the same way (registry served locally). `button`, `badge`,
+`card`, `input` and `textarea` predate `components.json` and
 were written by hand in shadcn's shape; replace them through the CLI when they
 next need changing.
 
@@ -49,6 +50,16 @@ need the same value; prefer prop drilling one or two levels first.
 compound container, `ItemRuleCard` is display-or-editor like
 `GroceryItemCard`, and `ItemRuleForm` serves both the add form (no `initial`,
 clears itself after saving) and the in-place edit (`initial` + `onCancel`).
+
+`components/products/` shows the compound-with-context shape:
+`PriceComparison` takes the item and provides it to `PriceComparison.Trigger`
+and `PriceComparison.Content` through a context scoped to that one tree, so
+the card composes the parts without passing the item twice. The content is a
+Shadcn `Sheet`; its body mounts only while open, which is what makes
+`useItemProducts` search the stores on open and not before.
+`StoreResults` → `ProductRow` → `ProductPrice` / `UnitPriceLine` each render
+one thing. Prices arrive as decimal strings — format them with `lib/money.ts`,
+never parse them for arithmetic.
 
 ## Shared chip lists
 `components/terms/` is used by more than one feature. `TermChips` renders a

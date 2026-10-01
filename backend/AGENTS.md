@@ -4,7 +4,8 @@
 Rust 1.85+ (edition 2021) · Axum 0.8 (REST + WebSocket) · sqlx 0.9 (async,
 compile-time-safe queries, embedded migrations) · PostgreSQL · Clerk JWT via
 `jsonwebtoken` · `tower-http` middleware · `aes-gcm` · `tracing` ·
-`chromiumoxide` (store automation, not yet built)
+`wreq` (store search, Chrome TLS emulation) · `rust_decimal` (money) ·
+`chromiumoxide` (checkout automation, not yet built)
 
 **There is no Python in this crate or anywhere else in `backend/`.** The one
 Python process in the repository is `sidecars/alexa-bridge`, which does
@@ -28,6 +29,7 @@ src/
 │   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
 │   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
+│   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -57,6 +59,10 @@ src/
 │   │   ├── triggers.rs  # tidying trigger phrases
 │   │   ├── log.rs       # rule log events
 │   │   └── repository.rs# every item_rules statement, as literals
+│   ├── stores/          # Woolworths + Coles clients, Product, unit prices, deals,
+│   │                    #   fake catalogue, cache — see skills/store-integration.md
+│   ├── product_search/  # one item across every store: query, chip filter,
+│   │                    #   pricing at quantity, comparability notes, ordering
 │   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM
@@ -129,6 +135,13 @@ impl<'a> VoiceService<'a> {
 A service **borrows** the pool a route hands it; it never creates one. No HTTP
 calls in a service (that is `services/stores/`), and no SQL either — SQL lives
 in the domain's `repository.rs`.
+
+## Store clients
+`AppState.stores` holds every `StoreClient`, built once by
+`services::stores::registry::build` from `STORE_CLIENTS` (`live` | `fake`).
+Only `services/stores/` talks to a store, only through `wreq` (never
+`reqwest`), and a store failure is a `StoreError` reported inside a 200 —
+never an `ApiError`. Money is `rust_decimal::Decimal`, sent as a string.
 
 ## SQL rules
 - **Every query is a literal `&'static str` with bind parameters.** sqlx 0.9
@@ -211,4 +224,5 @@ its own boundary, forward to a backend intake endpoint with its **own** shared
 secret, and contain no rules about the grocery list.
 
 ## Skills in this directory
-- `skills/store-integration.md` — store APIs, `chromiumoxide`, Akamai mitigations
+- `skills/store-integration.md` — store endpoints, `wreq`, bot-protection rules,
+  unit prices and deals

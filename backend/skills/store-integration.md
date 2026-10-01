@@ -78,9 +78,14 @@ trim it into `tests/fixtures/<store>/`.
   `{"items":[{"stockcode":N,"quantity":Q,"source":"ProductDetail","diagnostics":"0",
   "searchTerm":null,"evaluateRewardPoints":false,"offerId":null,"profileId":null,"priceLevel":null}]}`.
   `quantity` is the new total, `0` removes. Unknown stockcode → `UpdatedItems: []`.
-- With no delivery time picked, a logged-in trolley answers `IsAvailable:
-  false` and `$0` for products it did add — judge success by
-  `QuantityInTrolley`, never by `IsAvailable`.
+- `IsAvailable: false` with `$0` means the product is unavailable at the
+  account's store — the trolley still takes it, so judge "added" by
+  `QuantityInTrolley`, then put an unavailable product back and report it.
+- Delivery times: `GET /apis/ui/Delivery/DeliveryInfo` (address, AreaId,
+  reserved window), `GET /api/v3/ui/fulfilment/windows?areaId&fulfilmentMethod=Courier&addressId`,
+  reserve with `POST /apis/ui/Fulfilment {addressId, fulfilmentMethod,
+  timeslotId, windowDate}`. Times are store-local with no offset. Reserved
+  before products are added (`reserve-woolworths-delivery-window.ts`).
 - Called from the store's own page (`fill-woolworths-trolley.ts`), so no
   fingerprinting is needed there. Full record: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 
@@ -205,6 +210,11 @@ async fn checkout(page: &Page, items: &[OrderLine], window_id: &str)
     Ok(CheckoutResult { url: page.url().await?, has_saved_card })
 }
 ```
+
+## Delivery windows for the optimiser (not built)
+The windows call needs the household's login, so it only runs in the store
+tab today. The optimiser can get windows the same way: have the store tab
+report `Days[]` back, rather than a server-side login.
 
 ## Unit price normalisation (built: `measure.rs`, `unit_price.rs`)
 - Weight: per 100 g · Volume: per 100 mL · Sheets/each/pack: per unit

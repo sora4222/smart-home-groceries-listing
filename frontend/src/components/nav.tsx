@@ -4,12 +4,13 @@ import { Badge } from "#/components/ui/badge";
 import { usePendingCount } from "#/hooks/usePendingCount";
 
 const links: ReadonlyArray<{
-	to: "/" | "/pending" | "/settings/item-rules";
+	to: "/" | "/pending" | "/order" | "/settings/item-rules";
 	label: string;
 	badge?: true;
 }> = [
 	{ to: "/", label: "Grocery List" },
 	{ to: "/pending", label: "Pending Requests", badge: true },
+	{ to: "/order", label: "Order" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
 ];
 

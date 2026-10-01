@@ -9,6 +9,7 @@ pub mod extract;
 pub mod grocery;
 pub mod health;
 pub mod item_rules;
+pub mod order_review;
 pub mod products;
 pub mod selections;
 pub mod store_tab;
@@ -31,6 +32,7 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(alexa::router())
         .merge(grocery::router())
         .merge(item_rules::router())
+        .merge(order_review::router())
         .merge(products::router())
         .merge(selections::router())
         .merge(trolley_handoffs::router())

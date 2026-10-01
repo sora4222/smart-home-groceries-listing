@@ -27,7 +27,7 @@ use uuid::Uuid;
 use crate::error::ApiError;
 use crate::models::db::GroceryItem;
 use crate::services::grocery::repository;
-use crate::services::stores::{Product, StoreClient, StoreClients, StoreError};
+use crate::services::stores::{Product, Store, StoreClient, StoreClients, StoreError};
 
 /// Searches the stores for list items.
 pub struct ProductSearchService<'a> {
@@ -74,6 +74,18 @@ impl<'a> ProductSearchService<'a> {
             query,
             stores,
         })
+    }
+
+    /// Searches only `store` for `item`, priced at the item's quantity.
+    ///
+    /// For re-pricing a product already chosen there, where the other
+    /// store's answer is not needed. `None` when no client is set up for
+    /// `store`. Results are not annotated for comparison across stores.
+    pub async fn search_at(&self, item: &GroceryItem, store: Store) -> Option<StoreOutcome> {
+        let client = self.stores.iter().find(|client| client.store() == store)?;
+        let query = query::for_item(&item.name, &item.filter_terms);
+        let result = client.search(&query).await;
+        Some(outcome_for(item, &query, client.as_ref(), result))
     }
 }
 

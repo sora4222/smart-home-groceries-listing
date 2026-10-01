@@ -5,6 +5,7 @@ pub mod encryption;
 pub mod filter_terms;
 pub mod grocery;
 pub mod item_rules;
+pub mod order_review;
 pub mod product_search;
 pub mod selections;
 pub mod stores;

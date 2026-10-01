@@ -1,8 +1,8 @@
 # Feature: Product Choice (one product per item)
 
 Status: **implemented** — the household picks one product for each list item
-from the item's price comparison. The order screen (`/order`, not built yet)
-reads these choices to know what to buy.
+from the item's price comparison. The order review (`/order`,
+`FEATURE_ORDER_OPTIMISATION.md`) reads these choices to know what to buy.
 
 ## What this feature does
 On any list item, **Compare prices** opens the Woolworths and Coles results
@@ -90,8 +90,8 @@ priced_quantity, url, selected_by, selected_at. Prices are unscaled `NUMERIC`.
   together.
 
 ## Not built yet
-- The order screen itself: re-pricing every choice, delivery windows,
-  split-store totals (`FEATURE_ORDER_OPTIMISATION.md`).
+- Delivery windows and split-store totals on the order screen
+  (`FEATURE_ORDER_OPTIMISATION.md`). Re-pricing is built.
 - Purchase history and dislike badges in the comparison (spec "Purchase
   History and Preferences").
 - Live update of choices between open tabs (the list does not sync live yet

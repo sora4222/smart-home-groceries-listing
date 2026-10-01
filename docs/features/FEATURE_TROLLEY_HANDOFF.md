@@ -5,9 +5,10 @@ into the household's own online trolley. Payment stays on woolworths.com.au.
 Why it works this way: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 
 ## What this feature does
-1. On the grocery list, **Send to Woolworths (N items)** opens a sheet.
+1. On the grocery list, or in the Woolworths card on `/order`,
+   **Send to Woolworths (N items)** opens a sheet.
    N = items still to buy (active or committed) whose chosen product is at
-   Woolworths. Disabled when N is 0.
+   Woolworths (`lib/chosen-at-store.ts`). Disabled when N is 0.
 2. Once only: drag **Fill Woolworths trolley** to the bookmarks bar.
 3. Pick a **delivery day** (default **Tomorrow**, then the next 6 days) and a
    **time of day** (Any · Morning < 12pm · Afternoon 12–5pm · Evening ≥ 5pm).

@@ -132,8 +132,8 @@ to it. `frontend/src/lib/quantity.ts` turns that string into a bounded number
 on blur and on submit.
 
 ## Known gaps / next steps
-- Committing does not yet hand anything to an order — `/order` does not exist.
-  `committed` is the state that screen will read.
+- Committing hands the items to the order review (`/order`, see
+  `FEATURE_ORDER_OPTIMISATION.md`), which reads only `committed` items.
 - No per-item ownership: any household member can change or remove any item,
   which matches the spec's "no admin roles in this POC".
 - The list does not update live between tabs. Intake events already have a

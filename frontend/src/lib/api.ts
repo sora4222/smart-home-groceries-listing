@@ -11,6 +11,7 @@ import { groceryApi } from "#/lib/api/grocery";
 import { itemRulesApi } from "#/lib/api/item-rules";
 import { productsApi } from "#/lib/api/products";
 import { selectionsApi } from "#/lib/api/selections";
+import { trolleyHandoffsApi } from "#/lib/api/trolley-handoffs";
 import { voiceApi } from "#/lib/api/voice";
 
 export { ApiError } from "#/lib/api/client";
@@ -18,6 +19,7 @@ export * from "#/lib/api/grocery";
 export * from "#/lib/api/item-rules";
 export * from "#/lib/api/products";
 export * from "#/lib/api/selections";
+export * from "#/lib/api/trolley-handoffs";
 export * from "#/lib/api/voice";
 
 export const api = {
@@ -26,4 +28,5 @@ export const api = {
 	itemRules: itemRulesApi,
 	products: productsApi,
 	selections: selectionsApi,
+	trolleyHandoffs: trolleyHandoffsApi,
 };

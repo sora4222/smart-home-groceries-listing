@@ -1,0 +1,134 @@
+{
+  "pageProps": {
+    "isMobile": false,
+    "searchResults": {
+      "didYouMean": null,
+      "noOfResults": 6,
+      "start": 0,
+      "pageSize": 48,
+      "keyword": "soft drink",
+      "results": [
+        {
+          "_type": "SINGLE_TILE",
+          "adId": "banner-1",
+          "heading": "Cold drinks for summer"
+        },
+        {
+          "_type": "PRODUCT",
+          "id": 123011,
+          "adId": null,
+          "adSource": null,
+          "featured": false,
+          "name": "Classic Soft Drink Bottle",
+          "brand": "Coca-Cola",
+          "description": "COCA-COLA CLASSIC SOFT DRINK BOTTLE 1.25L",
+          "size": "1.25L",
+          "availability": true,
+          "availabilityType": "SHIPPING",
+          "imageUris": [{ "uri": "/1/123011.jpg", "type": "default" }],
+          "onlineHeirs": [
+            {
+              "aisle": "Soft Drink Bottles",
+              "category": "Soft Drinks",
+              "subCategory": "Drinks"
+            }
+          ],
+          "pricing": {
+            "comparable": "$3.60/ 1L",
+            "multiBuyPromotion": {
+              "id": "730915457",
+              "minQuantity": 2,
+              "reward": 2.9,
+              "type": "MultibuyMultiSku",
+              "unitPriceDisplay": "$2.32/ 1L"
+            },
+            "now": 4.5,
+            "offerDescription": "Pick any 2 for $5.80",
+            "onlineSpecial": false,
+            "promotionType": "SPECIAL",
+            "rawPriceNow": 4.5,
+            "specialType": "MULTI_SAVE",
+            "unit": {
+              "isIncremental": false,
+              "isWeighted": false,
+              "ofMeasureQuantity": 1,
+              "ofMeasureType": "l",
+              "ofMeasureUnits": "l",
+              "price": 3.6,
+              "quantity": 1
+            },
+            "was": 0
+          }
+        },
+        {
+          "_type": "PRODUCT",
+          "id": 409499,
+          "adId": null,
+          "name": "Bananas",
+          "brand": "Coles",
+          "size": "approx. 170g",
+          "availability": true,
+          "onlineHeirs": [{ "aisle": "Bananas", "category": "Fruit", "subCategory": "Fruit & Vegetables" }],
+          "pricing": {
+            "comparable": "$4.90/ 1kg",
+            "now": 0.83,
+            "onlineSpecial": false,
+            "rawPriceNow": 0.833,
+            "unit": {
+              "isIncremental": false,
+              "isWeighted": true,
+              "ofMeasureQuantity": 1,
+              "ofMeasureType": "g",
+              "ofMeasureUnits": "g",
+              "price": 4.9,
+              "quantity": 170
+            },
+            "was": 0
+          }
+        },
+        {
+          "_type": "PRODUCT",
+          "id": 5556581,
+          "adId": null,
+          "name": "Bananas",
+          "brand": "Life Savers",
+          "size": "160g",
+          "availability": true,
+          "onlineHeirs": [{ "aisle": "Lollies", "category": "Lollies & Licorice" }],
+          "pricing": {
+            "comparable": "$2.19/ 100g",
+            "now": 3.5,
+            "onlineSpecial": false,
+            "promotionType": "SPECIAL",
+            "saveAmount": 1.5,
+            "saveStatement": "save $1.50",
+            "was": 5
+          }
+        },
+        {
+          "_type": "PRODUCT",
+          "id": 888,
+          "adId": "a1b2c3",
+          "adSource": "CITRUS",
+          "name": "Sponsored Cola",
+          "brand": "Sponsored",
+          "size": "10 Pack",
+          "availability": true,
+          "pricing": { "comparable": "$3.20/ 1L", "now": 12, "was": 0 }
+        },
+        {
+          "_type": "PRODUCT",
+          "id": 777,
+          "adId": null,
+          "name": "Discontinued Lemonade",
+          "brand": "Old Brand",
+          "size": "2L",
+          "availability": false,
+          "onlineHeirs": [],
+          "pricing": null
+        }
+      ]
+    }
+  },
+  "__N_SSP": true
+}

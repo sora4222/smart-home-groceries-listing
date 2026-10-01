@@ -42,7 +42,7 @@ aes-gcm = "0.11.1"
 base64 = "0.23.1"
 subtle = "2.6"
 validator = { version = "0.21.0", features = ["derive"] }
-wreq = { version = "0.15.3", features = ["json", "cookies"] }
+wreq = { version = "0.15.3", features = ["json", "cookies", "gzip", "brotli", "zstd", "deflate"] }
 wreq-util = "0.1.0"
 rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"

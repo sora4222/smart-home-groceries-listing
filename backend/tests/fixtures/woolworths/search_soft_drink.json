@@ -1,0 +1,136 @@
+{
+  "Products": [
+    {
+      "Name": "Pepsi Max Cola No Sugar Soft Drink Bottle 1.25L",
+      "DisplayName": "Pepsi Max Cola No Sugar Soft Drink Bottle 1.25L",
+      "Products": [
+        {
+          "TileID": 1,
+          "Stockcode": 7985,
+          "Name": "Pepsi Max Cola No Sugar Soft Drink Bottle",
+          "DisplayName": "Pepsi Max Cola No Sugar Soft Drink Bottle 1.25L",
+          "UrlFriendlyName": "pepsi-max-cola-no-sugar-soft-drink-bottle",
+          "Brand": "Pepsi",
+          "PackageSize": "1.25L",
+          "Price": 4,
+          "WasPrice": 4,
+          "InstorePrice": 4,
+          "CupPrice": 3.2,
+          "CupMeasure": "1L",
+          "CupString": "$3.20 / 1L",
+          "HasCupPrice": true,
+          "IsOnSpecial": false,
+          "IsHalfPrice": false,
+          "SavingsAmount": 0,
+          "IsAvailable": true,
+          "IsInStock": true,
+          "IsSponsoredAd": false,
+          "Unit": "Each",
+          "SmallImageFile": "https://cdn0.woolworths.media/content/wowproductimages/small/007985.jpg",
+          "CentreTag": {
+            "MemberPriceData": null,
+            "MultibuyData": { "CupTag": "$2.60/1L", "Price": 6.5, "Quantity": 2 },
+            "PromotionType": "NOT_SET",
+            "TagContent": "<a title=\"2 for $6.50\" href=\"/Shop/OfferGroup/24787902\"><span>2 for $6.50 - $2.60/1L</span></a> ",
+            "TagContentText": "2 for $6.50 - $2.60/1L ",
+            "TagType": "Html"
+          },
+          "HeaderTag": null,
+          "AdditionalAttributes": {
+            "piescategorynamesjson": "[\"Drinks\",\"Soft Drinks\"]",
+            "sapcategoryname": "SOFT DRINKS",
+            "sapdepartmentname": "DRINKS"
+          }
+        }
+      ]
+    },
+    {
+      "Name": "Fever-Tree Premium Ginger Beer Cans 250mL x 4 pack",
+      "DisplayName": "Fever-Tree Premium Ginger Beer Cans 250mL x 4 pack",
+      "Products": [
+        {
+          "Stockcode": 691996,
+          "Name": "Fever-Tree Premium Ginger Beer Cans",
+          "DisplayName": "Fever-Tree Premium Ginger Beer Cans 250mL x 4 pack",
+          "UrlFriendlyName": "fever-tree-premium-ginger-beer-cans",
+          "Brand": "Fever-Tree",
+          "PackageSize": "250mL x 4 pack",
+          "Price": 6.95,
+          "WasPrice": 9.95,
+          "CupPrice": 6.95,
+          "CupMeasure": "1L",
+          "CupString": "$6.95 / 1L",
+          "HasCupPrice": true,
+          "IsOnSpecial": true,
+          "SavingsAmount": 3,
+          "IsAvailable": true,
+          "Unit": "Each",
+          "CentreTag": {
+            "MemberPriceData": null,
+            "MultibuyData": null,
+            "PromotionType": "NOT_SET",
+            "TagContent": null,
+            "TagContentText": null,
+            "TagType": "None"
+          },
+          "HeaderTag": { "Promotion": "Special" },
+          "AdditionalAttributes": {
+            "piescategorynamesjson": "[\"Drinks\",\"Soft Drinks\"]",
+            "sapcategoryname": "SOFT DRINKS"
+          }
+        }
+      ]
+    },
+    {
+      "Name": "Peters Maxibon Barney Banana Dessert Bars 560mL 4 pack",
+      "DisplayName": "Peters Maxibon Barney Banana Dessert Bars 560mL 4 pack",
+      "Products": [
+        {
+          "Stockcode": 6088658,
+          "Name": "Peters Maxibon Barney Banana Dessert Bars",
+          "UrlFriendlyName": "peters-maxibon-barney-banana-dessert-bars",
+          "Brand": "Peters",
+          "PackageSize": "560mL 4 pack",
+          "Price": null,
+          "WasPrice": 11.5,
+          "CupPrice": null,
+          "CupMeasure": "100ML",
+          "CupString": "",
+          "HasCupPrice": false,
+          "IsOnSpecial": false,
+          "SavingsAmount": null,
+          "IsAvailable": false,
+          "Unit": "Each",
+          "CentreTag": null,
+          "AdditionalAttributes": null
+        }
+      ]
+    },
+    {
+      "Name": "Sponsored Cola 10 pack",
+      "DisplayName": "Sponsored Cola 10 pack",
+      "Products": [
+        {
+          "Stockcode": 999001,
+          "Name": "Sponsored Cola",
+          "UrlFriendlyName": "sponsored-cola",
+          "Brand": "Sponsored",
+          "PackageSize": "10 pack",
+          "Price": 12,
+          "WasPrice": 12,
+          "CupPrice": 3.2,
+          "CupMeasure": "1L",
+          "IsOnSpecial": false,
+          "IsAvailable": true,
+          "IsSponsoredAd": true,
+          "AdID": "ad-1",
+          "CentreTag": null,
+          "AdditionalAttributes": null
+        }
+      ]
+    }
+  ],
+  "Corrections": null,
+  "SearchResultsCount": 4,
+  "SuggestedTerm": null
+}

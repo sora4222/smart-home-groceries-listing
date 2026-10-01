@@ -10,13 +10,16 @@
 //! `backend/skills/store-integration.md` for the anti-bot rules it follows.
 
 pub mod client;
+pub mod coles;
 pub mod deal;
 pub mod error;
+pub mod http;
 pub mod measure;
 pub mod money;
 pub mod product;
 pub mod store;
 pub mod unit_price;
+pub mod woolworths;
 
 pub use client::{BoxFuture, StoreClient};
 pub use deal::Deal;

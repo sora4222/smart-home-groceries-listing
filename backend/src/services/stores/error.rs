@@ -36,15 +36,15 @@ impl StoreError {
     /// A sentence the household can act on. Never includes upstream detail.
     pub fn user_message(&self, store_name: &str) -> String {
         match self {
-            StoreError::Blocked { .. } => format!(
-                "{store_name} refused the search (bot protection). Try again later."
-            ),
+            StoreError::Blocked { .. } => {
+                format!("{store_name} refused the search (bot protection). Try again later.")
+            }
             StoreError::Unreachable(_) => {
                 format!("{store_name} could not be reached. Try again later.")
             }
-            StoreError::UnexpectedResponse(_) => format!(
-                "{store_name}'s website changed and its results could not be read."
-            ),
+            StoreError::UnexpectedResponse(_) => {
+                format!("{store_name}'s website changed and its results could not be read.")
+            }
         }
     }
 }

@@ -76,7 +76,10 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(6),
         };
-        assert_eq!(total_price(dec!(5), &[worse.clone()], 2), dec!(10));
+        assert_eq!(
+            total_price(dec!(5), std::slice::from_ref(&worse), 2),
+            dec!(10)
+        );
         assert_eq!(total_price(dec!(5), &[worse, two_for_six()], 4), dec!(12));
     }
 

@@ -5,3 +5,4 @@
 
 pub mod db;
 pub mod schemas;
+pub mod trolley_handoff_rows;

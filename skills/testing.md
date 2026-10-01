@@ -47,6 +47,11 @@ extractors and all. Use `TestApp::serve()` when a test needs a real socket
 Never share a database between tests, and never point `DATABASE_URL` at the
 development database while running them.
 
+`TestApp::send_with_headers` returns the response headers too — used by
+`tests/cors.rs`. `oneshot` sends no `Origin`, so the router tests cannot see a
+CORS mistake on their own; a route with a new HTTP method needs the preflight
+test to cover it.
+
 ### Unit tests
 Pure logic is tested in a `#[cfg(test)] mod tests` beside the code:
 `normalise`, `parse_csv`, the shared-secret comparison, the encryptor, the

@@ -36,7 +36,9 @@ a value outside its range is `422` and never touches a row.
   `{"name": str, "quantity": int = 1, "note": str?, "filter_terms": [str]?}`.
   `201` with the item. Source is `manual`; items added by accepting an intake
   request are `voice` (see `FEATURE_VOICE.md`).
-- `PATCH /api/grocery-items/{id}` — every field optional; an absent field is
+- `PATCH /api/grocery-items/{id}` — renaming the item or changing its chips
+  also drops the product chosen for it (`FEATURE_PRODUCT_CHOICE.md`).
+  Every field optional; an absent field is
   left as it was. `409` if the item is committed, `404` if it does not exist.
 - `DELETE /api/grocery-items/{id}` — `204`. `409` if committed.
 - `POST /api/grocery-items/commit` — every `active` item becomes `committed`.

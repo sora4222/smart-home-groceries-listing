@@ -1,7 +1,7 @@
 # Feature: Store Integration
 
 Status: **product search implemented** — compare a list item's products at
-Woolworths and Coles. Delivery windows, the cart and checkout are not built;
+Woolworths and Coles, and choose one per item (`FEATURE_PRODUCT_CHOICE.md`). Delivery windows, the cart and checkout are not built;
 they belong to Order Optimisation and Checkout.
 
 ## What this feature does
@@ -117,8 +117,7 @@ never reorders.
   sandbox cannot reach either site, so the first real search happens on the
   home server. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
-- Saving a product choice for an item (`item_selections`), delivery windows,
-  cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
+- Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
   "Pick any N" multibuys across different products (treated per product).
 - Storing products and categories for Spending Analysis.
 

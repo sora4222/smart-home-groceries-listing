@@ -30,6 +30,7 @@ src/
 │   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
+│   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -63,6 +64,9 @@ src/
 │   │                    #   fake catalogue, cache — see skills/store-integration.md
 │   ├── product_search/  # one item across every store: query, chip filter,
 │   │                    #   pricing at quantity, comparability notes, ordering
+│   ├── selections/      # choosing one product per item: offer.rs checks it
+│   │                    #   against the store's answer, staleness.rs drops it
+│   │                    #   on rename/re-chip, repository.rs owns the table
 │   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM
@@ -98,6 +102,12 @@ async fn list_active_items(
 
 Axum 0.8 path parameters are `{id}`, **not** `:id`. Register the module in
 `routes/mod.rs::api_router`.
+
+## CORS
+`lib.rs::cors_layer` lists every HTTP method the routes serve. A new method
+(`PUT` arrived with product choice) must be added there, or every browser
+blocks it while `curl` and the router tests still pass — `tests/cors.rs`
+checks the preflight.
 
 ## Auth
 ```rust

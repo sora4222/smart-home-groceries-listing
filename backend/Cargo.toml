@@ -42,6 +42,11 @@ aes-gcm = "0.11.1"
 base64 = "0.23.1"
 subtle = "2.6"
 validator = { version = "0.21.0", features = ["derive"] }
+wreq = { version = "0.15.3", features = ["json", "cookies"] }
+wreq-util = "0.1.0"
+rust_decimal = { version = "1.43", features = ["serde"] }
+rust_decimal_macros = "1.40"
+futures-util = "0.3.34"
 
 [dev-dependencies]
 http-body-util = "0.1.5"
@@ -49,3 +54,4 @@ tower = { version = "0.5.3", features = ["util"] }
 futures-util = "0.3.34"
 # Drives the real /ws endpoint over a real socket in tests/websocket.rs.
 tokio-tungstenite = "0.30.0"
+wiremock = "0.6.5"

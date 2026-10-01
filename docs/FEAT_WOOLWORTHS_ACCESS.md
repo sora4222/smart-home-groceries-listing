@@ -36,7 +36,7 @@ household's **own** Woolworths trolley. Stop before payment.
 | 6 | Woolworths' trolley call from inside **your logged-in tab** | your browser | ✅ Added 1 milk to your real trolley and removed it. |
 | 7 | Approach 2 again after `*.woolworths.media` was allowed; pressed "Add to cart" | cloud | ✅ Full page. The site itself called `POST /api/v3/ui/trolley/update` with the same body as #3. |
 | 8 | The app's own Rust client (`wreq`) against the live site | cloud | ⚠️ Not testable here: this workspace only reaches the internet through a proxy, and the client does not use it ("Connect" error). Not a Woolworths refusal. Search worked the same way in #1. |
-| 9 | The **built** bookmark script in your logged-in tab (app calls faked) | your browser | ✅ after a fix. Found that a logged-in trolley says `IsAvailable: false` and $0 for products it **did** add (no delivery time picked yet). Now "added" means the trolley quantity went up; the warning is kept as a note. |
+| 9 | The **built** bookmark script in your logged-in tab (app calls faked) | your browser | ✅ after a fix. The trolley answered `IsAvailable: false` and $0 for a product it **did** add. Now "added" means the trolley quantity went up. (Cause found later: see "Delivery times".) |
 
 Nothing was bought. Your trolley was left as it was (one existing item).
 
@@ -50,6 +50,28 @@ Nothing was bought. Your trolley was left as it was (one existing item).
 | `POST /api/v3/ui/trolley/update` | set quantity | Body `{"items":[{"stockcode":88436,"quantity":2,"source":"ProductDetail","diagnostics":"0","searchTerm":null,"evaluateRewardPoints":false,"offerId":null,"profileId":null,"priceLevel":null}]}`. Sets the quantity (not adds). `0` removes. Unknown stockcode → `UpdatedItems: []` |
 | `GET /apis/ui/Trolley` | old trolley read | Did not show items in the logged-in trolley. Do not use |
 | `GET /auth/heartbeat` | session keep-alive | Seen in the page; not used |
+| `GET /apis/ui/Delivery/DeliveryInfo` | address + reserved time | `Address.AddressId`, `Address.AreaId`, `DeliveryMethod` (`Courier` = delivery), `CurrentDateAtFulfilmentStore`, `FulfilmentStoreId`, `ReservedTime` (`Id` 0 = none) |
+| `GET /api/v3/ui/fulfilment/windows?areaId=&fulfilmentMethod=Courier&addressId=` | delivery times | `Days[]` (about 7) → `Times[]`: `Id`, `TimeWindow`, `StartDateTime`, `EndDateTime` (store-local, no offset), `SalePrice`, `Available`, `IsExpress`, `IsCrowdSourced` ("Partner Driver") |
+| `POST /apis/ui/Fulfilment` | reserve a time | Body `{"addressId":N,"fulfilmentMethod":"Courier","timeslotId":N,"windowDate":"YYYY-MM-DD"}` → `{"IsSuccessful":true}`. Changeable on the website later |
+
+## Delivery times (added later on 2026-10-02)
+
+- Found from the site's own scripts (`*.woolworths.media`), then read live in
+  your logged-in tab. Calls are in the table above.
+- Reserving tomorrow 7–10am on your account worked first time. **That
+  reservation is still on your account** — change it on Woolworths any time.
+- **Correction:** `IsAvailable: false` / $0 is **not** caused by having no
+  delivery time. Those products are really unavailable at your store (store
+  3800). Woolworths' own product page says so, and other products (e.g.
+  tortillas, garlic bread) show prices and are available. The bookmark now
+  takes such a product back out and reports "Not available at your
+  Woolworths store right now".
+- Search on the server runs as a guest at a default store, so a product can
+  look available in "Compare prices" and still be unavailable at your store.
+- A live run of the finished bookmark program on your account was **blocked
+  by Claude's safety check** (it would add a real, priced product and could
+  change your reservation). Each call it makes was checked live on its own
+  first. The first real run is when you press the bookmark.
 
 ## What was built
 
@@ -60,7 +82,9 @@ Nothing was bought. Your trolley was left as it was (one existing item).
    woolworths.com.au, adds each product *on top of* what is in the trolley,
    reports back.
 3. **"Send to Woolworths" sheet** on the grocery list: drag the bookmark once,
-   press "Send and open Woolworths", press the bookmark.
+   pick a delivery day and time of day (default: tomorrow, any time), press
+   "Send and open Woolworths", press the bookmark. The bookmark reserves the
+   time first, then adds the products.
 4. **Setting:** `STORE_TAB_SECRET` in `.env`.
 
 ## Things to know

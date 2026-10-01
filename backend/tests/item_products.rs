@@ -52,7 +52,7 @@ async fn searches_both_stores_cheapest_per_unit_first(pool: PgPool) {
     assert_eq!(first["price"], "3.10");
     assert_eq!(first["unit_price"]["amount"], "0.155");
     assert_eq!(first["unit_price"]["per"], "100mL");
-    assert_eq!(first["unit_price_note"], "unit price calculated from 1l");
+    assert_eq!(first["unit_price_note"], "unit price calculated from 1L");
     assert_eq!(store(&body, "coles")["status"], "ok");
 }
 

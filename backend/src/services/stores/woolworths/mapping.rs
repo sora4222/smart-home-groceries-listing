@@ -121,7 +121,7 @@ mod tests {
         let unit = pepsi.unit_price.as_ref().unwrap();
         assert_eq!(unit.amount, dec!(0.32));
         assert_eq!(unit.per, Basis::Per100Millilitres);
-        assert_eq!(unit.converted_from.as_deref(), Some("1l"));
+        assert_eq!(unit.converted_from.as_deref(), Some("1L"));
     }
 
     #[test]

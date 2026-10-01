@@ -78,9 +78,14 @@ fn unit_factor(unit: &str) -> Option<(Dimension, Decimal)> {
     }
 }
 
-/// `100` + `sheets` → `100 sheets`; `1` + `kg` → `1kg`.
+/// `100` + `sheets` → `100 sheets`; `1` + `kg` → `1kg`; `1` + `l` → `1L`.
 fn tidy(number: &str, unit: &str) -> String {
     let number = if number.is_empty() { "1" } else { number };
+    let unit = match unit {
+        "l" => "L",
+        "ml" => "mL",
+        other => other,
+    };
     if unit.len() > 2 {
         format!("{number} {unit}")
     } else {
@@ -100,7 +105,10 @@ mod tests {
         assert_eq!(kg.dimension, Dimension::Mass);
         assert_eq!(kg.original, "1kg");
 
-        assert_eq!(parse("100ML").unwrap().dimension, Dimension::Volume);
+        let ml = parse("100ML").unwrap();
+        assert_eq!(ml.dimension, Dimension::Volume);
+        assert_eq!(ml.original, "100mL");
+        assert_eq!(parse("1L").unwrap().original, "1L");
         assert_eq!(parse("1.25L").unwrap().base_amount, dec!(1250));
 
         let sheets = parse("100 sheets").unwrap();

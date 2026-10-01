@@ -70,7 +70,7 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
 
     let cors = cors_layer(&state.settings);
 
-    routes::api_router()
+    routes::api_router(&state)
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())

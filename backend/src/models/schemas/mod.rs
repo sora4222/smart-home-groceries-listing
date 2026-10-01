@@ -14,6 +14,7 @@ mod grocery;
 mod item_rules;
 mod products;
 mod selections;
+mod trolley_handoffs;
 mod voice;
 
 pub use common::*;
@@ -21,4 +22,5 @@ pub use grocery::*;
 pub use item_rules::*;
 pub use products::*;
 pub use selections::*;
+pub use trolley_handoffs::*;
 pub use voice::*;

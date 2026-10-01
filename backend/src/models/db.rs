@@ -1,7 +1,7 @@
 //! Row types for the tables in `migrations/`.
 //!
 //! One type per table (`voice_requests`, `grocery_items`, `item_rules`,
-//! `item_selections`) plus
+//! `item_selections`, `trolley_handoffs`, `trolley_handoff_lines`) plus
 //! the enumerations their TEXT + CHECK columns hold. Later features (purchase
 //! history, ...) add their own types alongside these without changing these.
 
@@ -133,4 +133,63 @@ pub struct ItemSelection {
     /// The household member who chose it.
     pub selected_by: String,
     pub selected_at: DateTime<Utc>,
+}
+
+/// Where a trolley handoff is in its life (`trolley_handoffs.status`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "text", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TrolleyHandoffStatus {
+    /// Created by the web app; the store tab has not claimed it yet.
+    WaitingForStoreTab,
+    /// The bookmarklet in the store's tab took it and is filling the trolley.
+    ClaimedByStoreTab,
+    /// Every line went into the store's trolley.
+    Filled,
+    /// The report came back with at least one line the store refused.
+    FilledWithProblems,
+    /// A newer handoff for the same store was created before this was claimed.
+    Replaced,
+}
+
+/// Chosen products waiting for the household's own browser tab to put them in
+/// a store's online trolley (`trolley_handoffs`).
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct TrolleyHandoff {
+    pub id: Uuid,
+    pub store: Store,
+    pub status: TrolleyHandoffStatus,
+    /// The household member who pressed "Send to the store".
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    /// After this a waiting handoff can no longer be claimed.
+    pub expires_at: DateTime<Utc>,
+    pub claimed_at: Option<DateTime<Utc>>,
+    pub reported_at: Option<DateTime<Utc>>,
+}
+
+/// What the store tab reported for one line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum TrolleyLineOutcome {
+    Added,
+    Failed,
+}
+
+/// One list item's product and quantity inside a handoff
+/// (`trolley_handoff_lines`).
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct TrolleyHandoffLine {
+    pub handoff_id: Uuid,
+    pub grocery_item_id: Uuid,
+    /// The store's own id for the product (a Woolworths stockcode).
+    pub product_id: String,
+    pub product_name: String,
+    /// How many to put in the trolley: the list item's quantity.
+    pub quantity: i32,
+    /// `None` until the store tab reports back.
+    pub outcome: Option<TrolleyLineOutcome>,
+    /// Why the store refused the line, in the store's words when it gave any.
+    pub problem: Option<String>,
 }

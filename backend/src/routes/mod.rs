@@ -11,6 +11,8 @@ pub mod health;
 pub mod item_rules;
 pub mod products;
 pub mod selections;
+pub mod store_tab;
+pub mod trolley_handoffs;
 pub mod voice;
 pub mod ws;
 
@@ -18,8 +20,11 @@ use axum::Router;
 
 use crate::state::AppState;
 
-/// Every route the backend serves, without middleware.
-pub fn api_router() -> Router<AppState> {
+/// Every route the backend serves, without the app-wide middleware.
+///
+/// Takes the state because the store-tab routes carry a layer of their own
+/// that reads the stores' configured websites.
+pub fn api_router(state: &AppState) -> Router<AppState> {
     Router::new()
         .merge(health::router())
         .merge(voice::router())
@@ -28,5 +33,7 @@ pub fn api_router() -> Router<AppState> {
         .merge(item_rules::router())
         .merge(products::router())
         .merge(selections::router())
+        .merge(trolley_handoffs::router())
+        .merge(store_tab::router(state.clone()))
         .merge(ws::router())
 }

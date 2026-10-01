@@ -29,6 +29,10 @@ pub struct Settings {
     pub voice_webhook_secret: String,
     /// Shared secret authenticating the Alexa bridge sidecar on loopback.
     pub alexa_bridge_secret: String,
+    /// Shared secret the "Fill trolley" bookmarklet sends from the store's
+    /// website (`STORE_TAB_SECRET`). It can only claim and report trolley
+    /// handoffs. The web app reads it to build the bookmarklet.
+    pub store_tab_secret: String,
 
     /// Base64-encoded 32-byte key for AES-256-GCM credential encryption.
     pub credential_encryption_key: String,
@@ -111,6 +115,7 @@ impl Settings {
 
             voice_webhook_secret: optional("VOICE_WEBHOOK_SECRET").unwrap_or_default(),
             alexa_bridge_secret: optional("ALEXA_BRIDGE_SECRET").unwrap_or_default(),
+            store_tab_secret: optional("STORE_TAB_SECRET").unwrap_or_default(),
 
             credential_encryption_key: optional("CREDENTIAL_ENCRYPTION_KEY").unwrap_or_default(),
 

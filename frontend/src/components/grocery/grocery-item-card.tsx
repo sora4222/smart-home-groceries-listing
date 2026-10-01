@@ -2,16 +2,28 @@ import { useState } from "react";
 
 import { GroceryItemEditor } from "#/components/grocery/grocery-item-editor";
 import { PriceComparison } from "#/components/products/price-comparison";
+import { ChosenProduct } from "#/components/selections/chosen-product";
 import { TermChips } from "#/components/terms/term-chips";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader } from "#/components/ui/card";
-import type { GroceryItem, GroceryItemEdit } from "#/lib/api";
+import type {
+	GroceryItem,
+	GroceryItemEdit,
+	ItemSelection,
+	ProductChoice,
+} from "#/lib/api";
 
 interface GroceryItemCardProps {
 	item: GroceryItem;
 	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
+	/** The product chosen for this item, if any. */
+	selection?: ItemSelection | null;
+	/** Chooses the item's product; leave out to only compare prices. */
+	onChoose?: (id: string, choice: ProductChoice) => Promise<void>;
+	/** Forgets the item's chosen product; leave out to hide "Clear". */
+	onClearChoice?: (id: string) => Promise<void>;
 }
 
 /**
@@ -25,12 +37,16 @@ interface GroceryItemCardProps {
  *
  * A committed item is shown but not editable: the household has locked the list
  * in for purchase and has to release it to change anything. Either way its
- * prices can be compared at both stores.
+ * prices can be compared at both stores and its product chosen — choosing is
+ * what the order screen needs, so it stays open on a committed list.
  */
 export function GroceryItemCard({
 	item,
 	onSave,
 	onRemove,
+	selection = null,
+	onChoose,
+	onClearChoice,
 }: GroceryItemCardProps) {
 	const [editing, setEditing] = useState(false);
 	const [confirmingRemoval, setConfirmingRemoval] = useState(false);
@@ -82,13 +98,23 @@ export function GroceryItemCard({
 					}
 				/>
 
+				<ChosenProduct
+					itemName={item.name}
+					selection={selection}
+					onClear={onClearChoice && (() => onClearChoice(item.id))}
+				/>
+
 				<div className="flex flex-wrap items-center justify-between gap-2">
 					<span className="text-xs text-muted-foreground">
 						Added via {item.source === "voice" ? "voice" : "the web app"}
 					</span>
 
 					<div className="flex flex-wrap gap-2">
-						<PriceComparison item={item}>
+						<PriceComparison
+							item={item}
+							chosen={selection}
+							onChoose={onChoose && ((choice) => onChoose(item.id, choice))}
+						>
 							<PriceComparison.Trigger />
 							<PriceComparison.Content />
 						</PriceComparison>

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { itemFixture } from "#/components/grocery/__tests__/fixtures";
 import { GroceryItemCard } from "#/components/grocery/grocery-item-card";
+import { selectionFixture } from "#/components/selections/__tests__/fixtures";
 import type { GroceryItem } from "#/lib/api";
 
 function renderCard(item: GroceryItem) {
@@ -93,5 +94,34 @@ describe("GroceryItemCard", () => {
 		expect(
 			screen.queryByLabelText("Remove filter 3 ply"),
 		).not.toBeInTheDocument();
+	});
+
+	it("shows the product chosen for it and clears it", async () => {
+		const onClearChoice = vi.fn().mockResolvedValue(undefined);
+		render(
+			<GroceryItemCard
+				item={itemFixture()}
+				onSave={vi.fn()}
+				onRemove={vi.fn()}
+				selection={selectionFixture()}
+				onChoose={vi.fn()}
+				onClearChoice={onClearChoice}
+			/>,
+		);
+
+		expect(screen.getByLabelText("Chosen product for milk")).toHaveTextContent(
+			"Coles Full Cream Milk",
+		);
+		await userEvent.click(
+			screen.getByRole("button", { name: "Clear the chosen product for milk" }),
+		);
+
+		expect(onClearChoice).toHaveBeenCalledWith(itemFixture().id);
+	});
+
+	it("says when no product has been chosen", () => {
+		renderCard(itemFixture());
+
+		expect(screen.getByText("No product chosen yet")).toBeInTheDocument();
 	});
 });

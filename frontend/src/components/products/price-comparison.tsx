@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
 
+import { ProductChoiceProvider } from "#/components/products/product-choice";
 import { SpecialsOnlySwitch } from "#/components/products/specials-only-switch";
 import { StoreResults } from "#/components/products/store-results";
 import { TermChips } from "#/components/terms/term-chips";
@@ -13,7 +14,7 @@ import {
 	SheetTrigger,
 } from "#/components/ui/sheet";
 import { useItemProducts } from "#/hooks/useItemProducts";
-import type { GroceryItem } from "#/lib/api";
+import type { GroceryItem, ProductChoice } from "#/lib/api";
 
 /** The item being compared, shared by the parts of one comparison only. */
 const ItemContext = createContext<GroceryItem | null>(null);
@@ -35,18 +36,31 @@ function useComparedItem(): GroceryItem {
  * </PriceComparison>
  * ```
  *
- * The stores are searched only once the sheet opens.
+ * The stores are searched only once the sheet opens. Pass `onChoose` to let
+ * the household choose the item's product from the sheet; `chosen` marks the
+ * product chosen already. Without `onChoose` the sheet only compares.
  */
 function PriceComparisonRoot({
 	item,
+	chosen = null,
+	onChoose,
 	children,
 }: {
 	item: GroceryItem;
+	chosen?: ProductChoice | null;
+	onChoose?: (choice: ProductChoice) => Promise<void>;
 	children: ReactNode;
 }) {
+	const sheet = <Sheet>{children}</Sheet>;
 	return (
 		<ItemContext.Provider value={item}>
-			<Sheet>{children}</Sheet>
+			{onChoose ? (
+				<ProductChoiceProvider value={{ chosen, onChoose }}>
+					{sheet}
+				</ProductChoiceProvider>
+			) : (
+				sheet
+			)}
 		</ItemContext.Provider>
 	);
 }
@@ -77,7 +91,8 @@ function Content() {
 					Prices for {item.name} ×{item.quantity}
 				</SheetTitle>
 				<SheetDescription>
-					Cheapest per unit first, at Woolworths and Coles.
+					Cheapest per unit first, at Woolworths and Coles. Choose one product
+					to buy for this item.
 				</SheetDescription>
 				<TermChips terms={item.filter_terms} />
 			</SheetHeader>

@@ -1,10 +1,12 @@
+import { ChooseProductButton } from "#/components/products/choose-product-button";
 import { ProductRow } from "#/components/products/product-row";
 import type { StoreProducts } from "#/lib/api";
 import { visibleProducts } from "#/lib/specials";
 
 /**
  * One store's part of the price comparison: its products cheapest per unit
- * first, or why there are none — the store failed, nothing matched the
+ * first, each with a button to choose it when the comparison can choose, or
+ * why there are none — the store failed, nothing matched the
  * item's filters, or nothing is on special.
  */
 export function StoreResults({
@@ -45,7 +47,13 @@ export function StoreResults({
 							product={product}
 							quantity={quantity}
 							storeName={results.store_name}
-						/>
+						>
+							<ChooseProductButton
+								store={results.store}
+								storeName={results.store_name}
+								product={product}
+							/>
+						</ProductRow>
 					))}
 				</div>
 			)}

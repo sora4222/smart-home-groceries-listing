@@ -1,23 +1,33 @@
-import { useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { AddItemForm } from "#/components/grocery/add-item-form";
 import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { GroceryItemSection } from "#/components/grocery/grocery-item-section";
+import { useProductChoices } from "#/hooks/useProductChoices";
 import {
+	api,
 	type DuplicateItemDetail,
+	duplicateDetail,
 	type GroceryItemEdit,
 	type NewGroceryItem,
 	type OnDuplicate,
-	api,
-	duplicateDetail,
+	selectionsByItem,
 } from "#/lib/api";
 import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
 
 export const Route = createFileRoute("/")({
-	loader: () => api.grocery.list(),
+	// The list and every item's chosen product, read together so a card never
+	// shows an item without knowing its choice.
+	loader: async () => {
+		const [items, selections] = await Promise.all([
+			api.grocery.list(),
+			api.selections.list(),
+		]);
+		return { items, selections: selectionsByItem(selections) };
+	},
 	component: GroceryListPage,
 });
 
@@ -31,15 +41,16 @@ interface HeldAddition {
  * The grocery list — the application's main page.
  *
  * Reading the list and adding to it are the two things this page exists for;
- * reviewing, annotating and finally committing the list for purchase are what
- * the rest of it is about.
+ * reviewing, annotating, choosing each item's product and finally committing
+ * the list for purchase are what the rest of it is about.
  *
  * Mutations go through `lib/api` and then `router.invalidate()`, so the loader
  * stays the single source of truth and two open tabs cannot drift apart.
  */
 function GroceryListPage() {
-	const items = Route.useLoaderData();
+	const { items, selections } = Route.useLoaderData();
 	const router = useRouter();
+	const choices = useProductChoices();
 	const [held, setHeld] = useState<HeldAddition | null>(null);
 
 	const underReview = items.filter((item) => item.status === "active");
@@ -132,8 +143,11 @@ function GroceryListPage() {
 
 			<GroceryItemSection
 				items={underReview}
+				selections={selections}
 				onSave={saveItem}
 				onRemove={removeItem}
+				onChoose={choices.choose}
+				onClearChoice={choices.clear}
 				empty={
 					committed.length > 0
 						? "Nothing new since the list was committed."
@@ -155,8 +169,11 @@ function GroceryListPage() {
 					</h2>
 					<GroceryItemSection
 						items={committed}
+						selections={selections}
 						onSave={saveItem}
 						onRemove={removeItem}
+						onChoose={choices.choose}
+						onClearChoice={choices.clear}
 					/>
 				</>
 			)}

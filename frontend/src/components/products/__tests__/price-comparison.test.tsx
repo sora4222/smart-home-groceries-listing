@@ -123,4 +123,56 @@ describe("PriceComparison", () => {
 		).toBeInTheDocument();
 		expect(search).toHaveBeenCalledTimes(2);
 	});
+
+	it("chooses a product and shows which one is chosen", async () => {
+		vi.spyOn(api.products, "forItem").mockResolvedValue(
+			searchFixture([
+				storeFixture({
+					products: [
+						productFixture({ product_id: "a", name: "Plain" }),
+						productFixture({ product_id: "b", name: "Cheap" }),
+					],
+				}),
+			]),
+		);
+		const onChoose = vi.fn().mockResolvedValue(undefined);
+		render(
+			<PriceComparison
+				item={itemFixture()}
+				chosen={{ store: "coles", product_id: "a" }}
+				onChoose={onChoose}
+			>
+				<PriceComparison.Trigger />
+				<PriceComparison.Content />
+			</PriceComparison>,
+		);
+		const dialog = await open();
+		await within(dialog).findByRole("region", { name: "Coles" });
+
+		expect(
+			within(dialog).getByRole("button", {
+				name: "Coles Plain at Coles is chosen",
+			}),
+		).toHaveAttribute("aria-pressed", "true");
+		await userEvent.click(
+			within(dialog).getByRole("button", {
+				name: "Choose Coles Cheap at Coles",
+			}),
+		);
+
+		expect(onChoose).toHaveBeenCalledWith({ store: "coles", product_id: "b" });
+	});
+
+	it("only compares when nothing can be chosen", async () => {
+		vi.spyOn(api.products, "forItem").mockResolvedValue(
+			searchFixture([storeFixture()]),
+		);
+		renderComparison();
+		const dialog = await open();
+		await within(dialog).findByRole("region", { name: "Coles" });
+
+		expect(
+			within(dialog).queryByRole("button", { name: /^Choose / }),
+		).toBeNull();
+	});
 });

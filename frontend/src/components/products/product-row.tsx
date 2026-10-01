@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { ProductPrice } from "#/components/products/product-price";
 import { UnitPriceLine } from "#/components/products/unit-price-line";
@@ -11,16 +12,19 @@ import { cn } from "#/lib/utils";
  * any deal, and a link to the product on the store's website.
  *
  * Deliberately plain — no images or marketing copy — so products are
- * compared on price, size and name.
+ * compared on price, size and name. `children` are actions on the product
+ * (choosing it), shown beside the store link.
  */
 export function ProductRow({
 	product,
 	quantity,
 	storeName,
+	children,
 }: {
 	product: StoreProduct;
 	quantity: number;
 	storeName: string;
+	children?: ReactNode;
 }) {
 	const title = [product.brand, product.name].filter(Boolean).join(" ");
 
@@ -66,6 +70,7 @@ export function ProductRow({
 					View at {storeName}
 					<ExternalLink aria-hidden className="size-3" />
 				</a>
+				{children}
 			</div>
 		</article>
 	);

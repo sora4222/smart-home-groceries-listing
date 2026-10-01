@@ -3,14 +3,17 @@
  * household drags to the bookmarks bar once, then presses on
  * woolworths.com.au after "Send to Woolworths" in the app.
  *
- * The link carries the source of {@link fillWoolworthsTrolley} plus the
- * backend URL and the store-tab secret, and shows the result in an alert.
+ * The link carries the source of {@link fillWoolworthsTrolley} and its
+ * helpers (choosing and reserving the delivery window) plus the backend URL
+ * and the store-tab secret, and shows the result in an alert.
  * Rebuild it (drag it again) if the backend URL or `STORE_TAB_SECRET` changes.
  */
+import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import {
 	type FillTrolleyConfig,
 	fillWoolworthsTrolley,
 } from "#/lib/store-tab/fill-woolworths-trolley";
+import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 
 /** The bookmarklet's `href`. */
 export function buildFillWoolworthsTrolleyBookmarklet(
@@ -20,8 +23,13 @@ export function buildFillWoolworthsTrolleyBookmarklet(
 		apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ""),
 		secret: config.secret,
 	});
+	// Each function is self-contained; the helpers are handed in as an
+	// argument, so a minifier renaming them cannot break the link.
+	const helpers =
+		`{chooseWindow:${chooseWoolworthsWindow.toString()},` +
+		`reserveDeliveryWindow:${reserveWoolworthsDeliveryWindow.toString()}}`;
 	const program =
-		`(${fillWoolworthsTrolley.toString()})(${settings})` +
+		`(${fillWoolworthsTrolley.toString()})(${settings},${helpers})` +
 		".then(function(r){alert(r.message)}," +
 		"function(e){alert('Fill trolley failed: '+e.message)});void 0";
 	return `javascript:${encodeURIComponent(program)}`;

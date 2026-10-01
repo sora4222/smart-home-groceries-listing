@@ -6,6 +6,7 @@ import { AddItemForm } from "#/components/grocery/add-item-form";
 import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { GroceryItemSection } from "#/components/grocery/grocery-item-section";
+import { SendToWoolworths } from "#/components/trolley/send-to-woolworths";
 import { useProductChoices } from "#/hooks/useProductChoices";
 import {
 	api,
@@ -55,6 +56,9 @@ function GroceryListPage() {
 
 	const underReview = items.filter((item) => item.status === "active");
 	const committed = items.filter((item) => item.status === "committed");
+	const chosenAtWoolworths = [...underReview, ...committed].filter(
+		(item) => selections.get(item.id)?.store === "woolworths",
+	).length;
 
 	async function addItem(
 		item: NewGroceryItem,
@@ -161,6 +165,13 @@ function GroceryListPage() {
 				onCommit={commitList}
 				onRelease={releaseList}
 			/>
+
+			<div className="flex justify-end">
+				<SendToWoolworths chosenCount={chosenAtWoolworths}>
+					<SendToWoolworths.Trigger />
+					<SendToWoolworths.Content />
+				</SendToWoolworths>
+			</div>
 
 			{committed.length > 0 && (
 				<>

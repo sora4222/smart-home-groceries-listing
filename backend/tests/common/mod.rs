@@ -11,6 +11,8 @@
 
 #![allow(dead_code)]
 
+pub mod trolley;
+
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
 use axum::Router;

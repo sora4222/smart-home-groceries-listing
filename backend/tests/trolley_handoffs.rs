@@ -7,62 +7,11 @@
 mod common;
 
 use axum::body::Body;
-use axum::http::{HeaderMap, Method, Request, StatusCode};
+use axum::http::{Method, Request, StatusCode};
+use common::trolley::{chosen_item, claim, create, store_tab_post, WOOLWORTHS_ORIGIN};
 use common::{TestApp, TEST_STORE_TAB_SECRET};
-use serde_json::{json, Value};
+use serde_json::json;
 use sqlx::PgPool;
-
-/// The Woolworths "website" in the test settings (`fake_store_settings`).
-const WOOLWORTHS_ORIGIN: &str = "http://127.0.0.1:9";
-
-/// Adds an item and chooses a product for it.
-async fn chosen_item(
-    app: &TestApp,
-    name: &str,
-    quantity: i64,
-    store: &str,
-    product_id: &str,
-) -> String {
-    let id = app
-        .add_item(&json!({ "name": name, "quantity": quantity }))
-        .await;
-    let (status, body) = app
-        .put_json(
-            &format!("/api/grocery-items/{id}/selection"),
-            &json!({ "store": store, "product_id": product_id }),
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "{body}");
-    id
-}
-
-/// A store-tab request: JSON sent as `text/plain` from the store's origin.
-async fn store_tab_post(app: &TestApp, uri: &str, body: &Value) -> (StatusCode, Value, HeaderMap) {
-    app.send_with_headers(
-        Request::builder()
-            .method(Method::POST)
-            .uri(uri)
-            .header("origin", WOOLWORTHS_ORIGIN)
-            .header("content-type", "text/plain;charset=UTF-8")
-            .body(Body::from(body.to_string()))
-            .unwrap(),
-    )
-    .await
-}
-
-async fn claim(app: &TestApp) -> (StatusCode, Value, HeaderMap) {
-    store_tab_post(
-        app,
-        "/api/store-tab/trolley-handoffs/claim",
-        &json!({ "secret": TEST_STORE_TAB_SECRET, "store": "woolworths" }),
-    )
-    .await
-}
-
-async fn create(app: &TestApp, store: &str) -> (StatusCode, Value) {
-    app.post_json("/api/trolley-handoffs", &json!({ "store": store }))
-        .await
-}
 
 #[sqlx::test]
 async fn a_handoff_holds_every_item_chosen_at_that_store(pool: PgPool) {

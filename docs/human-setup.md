@@ -30,6 +30,10 @@ openssl rand -hex 32
 # grant the other.
 openssl rand -hex 32
 
+# STORE_TAB_SECRET — lets the "Fill Woolworths trolley" bookmark claim the
+# products to add. Use a value of its own.
+openssl rand -hex 32
+
 # CREDENTIAL_ENCRYPTION_KEY — encrypts store account credentials at rest
 # (base64-encoded 32 bytes; the backend rejects any other length)
 openssl rand -base64 32

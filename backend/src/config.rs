@@ -5,6 +5,7 @@
 //! secret in this struct is ever logged or returned to the frontend.
 
 use std::env;
+use std::time::Duration;
 
 use crate::error::ConfigError;
 
@@ -38,6 +39,57 @@ pub struct Settings {
     /// When true, auth is bypassed and a fixed development user is injected.
     /// Never enable this on a host reachable from the internet.
     pub dev_auth_bypass: bool,
+
+    /// How the backend reaches Woolworths and Coles.
+    pub stores: StoreSettings,
+}
+
+/// Which store clients the backend uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreMode {
+    /// The real websites.
+    Live,
+    /// A small built-in catalogue; nothing leaves the machine.
+    Fake,
+}
+
+/// Settings for the store integrations.
+#[derive(Debug, Clone)]
+pub struct StoreSettings {
+    /// `STORE_CLIENTS=live|fake`. Defaults to `live`.
+    pub mode: StoreMode,
+    /// Overridable so tests can point a client at a mock server.
+    pub woolworths_base_url: String,
+    pub coles_base_url: String,
+    /// How long one store may take to answer a search.
+    pub timeout: Duration,
+    /// How long a store's answer to a query is reused.
+    pub cache_ttl: Duration,
+}
+
+impl StoreSettings {
+    /// Reads the store settings from the environment.
+    fn from_env() -> Result<Self, ConfigError> {
+        let mode = match optional("STORE_CLIENTS").map(|v| v.trim().to_ascii_lowercase()) {
+            None => StoreMode::Live,
+            Some(value) if value == "live" => StoreMode::Live,
+            Some(value) if value == "fake" => StoreMode::Fake,
+            Some(_) => {
+                return Err(ConfigError::Invalid {
+                    key: "STORE_CLIENTS".to_string(),
+                })
+            }
+        };
+        Ok(Self {
+            mode,
+            woolworths_base_url: optional("WOOLWORTHS_BASE_URL")
+                .unwrap_or_else(|| "https://www.woolworths.com.au".to_string()),
+            coles_base_url: optional("COLES_BASE_URL")
+                .unwrap_or_else(|| "https://www.coles.com.au".to_string()),
+            timeout: Duration::from_secs(parse_or("STORE_TIMEOUT_SECONDS", 12)?),
+            cache_ttl: Duration::from_secs(parse_or("STORE_SEARCH_CACHE_SECONDS", 600)?),
+        })
+    }
 }
 
 impl Settings {
@@ -67,6 +119,8 @@ impl Settings {
             ),
 
             dev_auth_bypass: parse_bool("DEV_AUTH_BYPASS"),
+
+            stores: StoreSettings::from_env()?,
         })
     }
 }

@@ -20,7 +20,7 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 use grocery_backend::build_app;
-use grocery_backend::config::Settings;
+use grocery_backend::config::{Settings, StoreMode, StoreSettings};
 use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
 
@@ -229,7 +229,8 @@ fn json_request(uri: &str, body: &Value, headers: &[(&str, &str)]) -> Request<Bo
     builder.body(Body::from(body.to_string())).unwrap()
 }
 
-/// Settings for a test run: auth bypassed, known secrets, no external calls.
+/// Settings for a test run: auth bypassed, known secrets, fake stores, no
+/// external calls.
 fn test_settings() -> Settings {
     Settings {
         // The pool is supplied directly, so this is never dialled.
@@ -242,5 +243,17 @@ fn test_settings() -> Settings {
         credential_encryption_key: String::new(),
         cors_origins: vec!["http://localhost:3000".to_string()],
         dev_auth_bypass: true,
+        stores: fake_store_settings(),
+    }
+}
+
+/// The fake catalogue: an integration test must never reach a real store.
+pub fn fake_store_settings() -> StoreSettings {
+    StoreSettings {
+        mode: StoreMode::Fake,
+        woolworths_base_url: "http://127.0.0.1:9".to_string(),
+        coles_base_url: "http://127.0.0.1:9".to_string(),
+        timeout: std::time::Duration::from_secs(2),
+        cache_ttl: std::time::Duration::from_secs(60),
     }
 }

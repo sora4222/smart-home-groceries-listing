@@ -1,5 +1,5 @@
-//! Grocery list backend: voice intake, the confirmation queue, and (later)
-//! store ordering.
+//! Grocery list backend: voice intake, the confirmation queue, the list, and
+//! store product search (ordering to come).
 //!
 //! [`build_app`] assembles the router and middleware; `main.rs` only reads
 //! configuration, opens the pool and serves it. Keeping assembly in the
@@ -62,6 +62,7 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
     let state = AppState {
         pool,
         auth: auth::build_provider(&settings),
+        stores: services::stores::registry::build(&settings.stores),
         settings: Arc::new(settings),
         hub: WsHub::new(),
         encryptor,

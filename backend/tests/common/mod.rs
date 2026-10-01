@@ -79,6 +79,15 @@ impl TestApp {
 
     /// Sends a request and returns the status and parsed JSON body.
     pub async fn send(&self, request: Request<Body>) -> (StatusCode, Value) {
+        let (status, body, _) = self.send_with_headers(request).await;
+        (status, body)
+    }
+
+    /// Sends a request and returns the status, parsed JSON body and headers.
+    pub async fn send_with_headers(
+        &self,
+        request: Request<Body>,
+    ) -> (StatusCode, Value, axum::http::HeaderMap) {
         let response = self
             .router
             .clone()
@@ -86,6 +95,7 @@ impl TestApp {
             .await
             .expect("the router should not fail to respond");
         let status = response.status();
+        let headers = response.headers().clone();
         let bytes = response
             .into_body()
             .collect()
@@ -98,7 +108,7 @@ impl TestApp {
             serde_json::from_slice(&bytes)
                 .unwrap_or(Value::String(String::from_utf8_lossy(&bytes).into_owned()))
         };
-        (status, body)
+        (status, body, headers)
     }
 
     /// `GET <uri>` as a signed-in household member.

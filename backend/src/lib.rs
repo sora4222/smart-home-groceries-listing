@@ -88,7 +88,9 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
 ///
 /// Never `Any`: credentials are allowed, and a wildcard origin with
 /// credentials would let any site on the internet drive the household's API
-/// using the user's own session.
+/// using the user's own session. Every method a route serves must be listed,
+/// or browsers block it while `curl` and the tests still work
+/// (`tests/cors.rs` checks).
 fn cors_layer(settings: &Settings) -> CorsLayer {
     let origins: Vec<HeaderValue> = settings
         .cors_origins
@@ -105,6 +107,12 @@ fn cors_layer(settings: &Settings) -> CorsLayer {
     CorsLayer::new()
         .allow_origin(origins)
         .allow_credentials(true)
-        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+        ])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
 }

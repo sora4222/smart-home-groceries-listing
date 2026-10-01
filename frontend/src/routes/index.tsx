@@ -17,6 +17,7 @@ import {
 	type OnDuplicate,
 	selectionsByItem,
 } from "#/lib/api";
+import { chosenAtStore } from "#/lib/chosen-at-store";
 import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
 
 export const Route = createFileRoute("/")({
@@ -56,9 +57,7 @@ function GroceryListPage() {
 
 	const underReview = items.filter((item) => item.status === "active");
 	const committed = items.filter((item) => item.status === "committed");
-	const chosenAtWoolworths = [...underReview, ...committed].filter(
-		(item) => selections.get(item.id)?.store === "woolworths",
-	).length;
+	const chosenAtWoolworths = chosenAtStore(items, selections, "woolworths");
 
 	async function addItem(
 		item: NewGroceryItem,

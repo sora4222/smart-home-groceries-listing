@@ -1,6 +1,25 @@
 import { Badge } from "#/components/ui/badge";
 import { isExpired } from "#/hooks/useTrolleyHandoff";
-import type { TrolleyHandoff } from "#/lib/api";
+import type { TrolleyHandoff, TrolleyHandoffDelivery } from "#/lib/api";
+import { storeDayLabel } from "#/lib/delivery-days";
+import { formatMoney } from "#/lib/money";
+
+/** One sentence about the delivery time, once the store tab has reported. */
+export function deliverySummary(
+	delivery: TrolleyHandoffDelivery,
+): string | null {
+	if (delivery.outcome === null) return null;
+	if (delivery.outcome === "failed") {
+		return `No delivery time reserved: ${delivery.problem ?? "unknown reason"}. Pick one on Woolworths.`;
+	}
+	const when = delivery.window_start
+		? `${storeDayLabel(delivery.window_start)}, ${delivery.window_label}`
+		: delivery.window_label;
+	const fee = delivery.fee ? ` (${formatMoney(delivery.fee)})` : "";
+	const kept =
+		delivery.outcome === "kept" ? " — kept the time you already had" : "";
+	return `Delivery: ${when}${fee}${kept}. You can change it on Woolworths.`;
+}
 
 /** One short sentence for where the handoff is. */
 export function handoffSummary(handoff: TrolleyHandoff): string {
@@ -24,6 +43,14 @@ export function HandoffStatus({ handoff }: { handoff: TrolleyHandoff }) {
 	return (
 		<section aria-label="Trolley progress" className="flex flex-col gap-2">
 			<output className="text-sm font-medium">{handoffSummary(handoff)}</output>
+			{deliverySummary(handoff.delivery) && (
+				<p className="text-sm">{deliverySummary(handoff.delivery)}</p>
+			)}
+			{handoff.delivery.problem && handoff.delivery.outcome !== "failed" && (
+				<p className="text-xs text-muted-foreground">
+					{handoff.delivery.problem}
+				</p>
+			)}
 			<ul className="flex flex-col gap-1">
 				{handoff.lines.map((line) => (
 					<li

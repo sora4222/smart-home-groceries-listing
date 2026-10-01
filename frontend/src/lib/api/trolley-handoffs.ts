@@ -28,6 +28,31 @@ export interface TrolleyHandoffLine {
 	problem: string | null;
 }
 
+/** The part of the day a delivery window should start in. */
+export type DeliveryTimeOfDay = "any" | "morning" | "afternoon" | "evening";
+
+/** The delivery time wanted; `date` null = the store's next day (default). */
+export interface DeliveryWanted {
+	/** "YYYY-MM-DD". */
+	date: string | null;
+	time_of_day: DeliveryTimeOfDay;
+}
+
+/** The delivery window: asked for, and what the store tab did about it. */
+export interface TrolleyHandoffDelivery {
+	requested: DeliveryWanted;
+	/** `null` until the store tab reports. */
+	outcome: "reserved" | "kept" | "failed" | null;
+	/** The store's own words, e.g. "7:00am - 10:00am". */
+	window_label: string | null;
+	/** Store-local "YYYY-MM-DDTHH:MM:SS". */
+	window_start: string | null;
+	window_end: string | null;
+	/** Decimal string. */
+	fee: string | null;
+	problem: string | null;
+}
+
 /** Chosen products waiting for (or already put in) a store's trolley. */
 export interface TrolleyHandoff {
 	id: string;
@@ -38,15 +63,17 @@ export interface TrolleyHandoff {
 	expires_at: string;
 	claimed_at: string | null;
 	reported_at: string | null;
+	delivery: TrolleyHandoffDelivery;
 	lines: TrolleyHandoffLine[];
 }
 
 export const trolleyHandoffsApi = {
-	/** Hands every product chosen at `store` to the store tab. */
-	create: (store: StoreId) =>
+	/** Hands every product chosen at `store` to the store tab, with the
+	 * delivery time wanted. */
+	create: (store: StoreId, delivery: DeliveryWanted) =>
 		request<TrolleyHandoff>("/api/trolley-handoffs", {
 			method: "POST",
-			body: JSON.stringify({ store }),
+			body: JSON.stringify({ store, delivery }),
 		}),
 	/** A handoff and each line's outcome. */
 	get: (id: string) => request<TrolleyHandoff>(`/api/trolley-handoffs/${id}`),

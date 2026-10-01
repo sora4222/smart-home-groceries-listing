@@ -1,5 +1,6 @@
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 
+import { DeliveryTimeChooser } from "#/components/trolley/delivery-time-chooser";
 import { FillTrolleyBookmark } from "#/components/trolley/fill-trolley-bookmark";
 import { HandoffStatus } from "#/components/trolley/handoff-status";
 import { Button } from "#/components/ui/button";
@@ -15,6 +16,13 @@ import {
 	type TrolleyHandoffState,
 	useTrolleyHandoff,
 } from "#/hooks/useTrolleyHandoff";
+import type { DeliveryWanted } from "#/lib/api";
+
+/** Tomorrow (the store's next day), any time. */
+export const DEFAULT_DELIVERY: DeliveryWanted = {
+	date: null,
+	time_of_day: "any",
+};
 
 /** Where the household's Woolworths trolley is. */
 export const WOOLWORTHS_TROLLEY_URL =
@@ -23,6 +31,9 @@ export const WOOLWORTHS_TROLLEY_URL =
 interface SendContext extends TrolleyHandoffState {
 	/** How many list items have a Woolworths product chosen. */
 	chosenCount: number;
+	/** The delivery time to reserve; tomorrow, any time, until changed. */
+	delivery: DeliveryWanted;
+	setDelivery: (delivery: DeliveryWanted) => void;
 }
 
 const Context = createContext<SendContext | null>(null);
@@ -36,7 +47,8 @@ function useSend(): SendContext {
 
 /**
  * Puts every product chosen at Woolworths into the household's own
- * Woolworths trolley, in a sheet.
+ * Woolworths trolley, in a sheet, after reserving a delivery time (default:
+ * tomorrow, any time — changeable on Woolworths later).
  *
  * ```tsx
  * <SendToWoolworths chosenCount={3}>
@@ -57,8 +69,11 @@ function SendToWoolworthsRoot({
 	children: ReactNode;
 }) {
 	const handoff = useTrolleyHandoff("woolworths");
+	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
 	return (
-		<Context.Provider value={{ ...handoff, chosenCount }}>
+		<Context.Provider
+			value={{ ...handoff, chosenCount, delivery, setDelivery }}
+		>
 			<Sheet>{children}</Sheet>
 		</Context.Provider>
 	);
@@ -83,12 +98,12 @@ function Trigger() {
 
 /** The three steps, and the result once the bookmark reports back. */
 function Content() {
-	const { send, sending, handoff, error } = useSend();
+	const { send, sending, handoff, error, delivery, setDelivery } = useSend();
 
 	async function sendAndOpen() {
 		// Open the tab now, while the click still counts, or it is blocked.
 		const tab = window.open(WOOLWORTHS_TROLLEY_URL, "_blank");
-		const created = await send();
+		const created = await send(delivery);
 		if (!created) tab?.close();
 	}
 
@@ -105,6 +120,12 @@ function Content() {
 				<li>
 					<p>Only once: drag this to your bookmarks bar.</p>
 					<FillTrolleyBookmark />
+				</li>
+				<li>
+					<p>Pick a delivery time. You can change it on Woolworths later.</p>
+					<div className="mt-1">
+						<DeliveryTimeChooser value={delivery} onChange={setDelivery} />
+					</div>
 				</li>
 				<li>
 					<p>Press the button. Woolworths opens. Log in if asked.</p>

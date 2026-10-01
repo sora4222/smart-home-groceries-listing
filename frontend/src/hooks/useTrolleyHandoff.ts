@@ -2,7 +2,7 @@
  * Sends the chosen products to a store's trolley and follows the handoff
  * until the store tab reports back (or it is replaced).
  *
- * `send()` creates the handoff; while one is open the hook re-reads it every
+ * `send(delivery)` creates the handoff with the delivery time wanted; while one is open the hook re-reads it every
  * {@link POLL_MS} so the page shows each product's outcome as soon as the
  * bookmarklet reports. Polling stops when the handoff is finished, expired,
  * or the component unmounts.
@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "#/lib/api";
 import type { StoreId } from "#/lib/api/products";
 import {
+	type DeliveryWanted,
 	isHandoffFinished,
 	type TrolleyHandoff,
 } from "#/lib/api/trolley-handoffs";
@@ -23,7 +24,7 @@ export interface TrolleyHandoffState {
 	handoff: TrolleyHandoff | null;
 	sending: boolean;
 	error: string | null;
-	send: () => Promise<TrolleyHandoff | null>;
+	send: (delivery: DeliveryWanted) => Promise<TrolleyHandoff | null>;
 }
 
 export function useTrolleyHandoff(store: StoreId): TrolleyHandoffState {
@@ -31,21 +32,24 @@ export function useTrolleyHandoff(store: StoreId): TrolleyHandoffState {
 	const [sending, setSending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const send = useCallback(async () => {
-		setSending(true);
-		setError(null);
-		try {
-			const created = await api.trolleyHandoffs.create(store);
-			setHandoff(created);
-			return created;
-		} catch (err) {
-			console.error("[trolley-handoff] could not create", err);
-			setError(messageFor(err));
-			return null;
-		} finally {
-			setSending(false);
-		}
-	}, [store]);
+	const send = useCallback(
+		async (delivery: DeliveryWanted) => {
+			setSending(true);
+			setError(null);
+			try {
+				const created = await api.trolleyHandoffs.create(store, delivery);
+				setHandoff(created);
+				return created;
+			} catch (err) {
+				console.error("[trolley-handoff] could not create", err);
+				setError(messageFor(err));
+				return null;
+			} finally {
+				setSending(false);
+			}
+		},
+		[store],
+	);
 
 	const handoffId = handoff?.id;
 	const open =

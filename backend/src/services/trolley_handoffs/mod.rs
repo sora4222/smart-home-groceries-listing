@@ -4,11 +4,13 @@
 //! passkeys and MFA in JavaScript), so filling the trolley is handed to the
 //! household's own browser tab, which is already logged in:
 //!
-//! 1. The web app creates a handoff ([`TrolleyHandoffService::create_for_store`]):
+//! 1. The web app creates a handoff, with the delivery time wanted
+//!    (default: the next day — see [`delivery`]) ([`TrolleyHandoffService::create_for_store`]):
 //!    every item still to be bought whose chosen product is at that store.
 //! 2. The "Fill trolley" bookmarklet, run on the store's website, claims the
 //!    newest waiting handoff ([`TrolleyHandoffService::claim_for_store_tab`]).
-//! 3. It adds each product through the website's own trolley call, then
+//! 3. It reserves a delivery window on the store's website (changeable there
+//!    later), adds each product through the website's own trolley call, then
 //!    reports what happened ([`TrolleyHandoffService::record_store_tab_report`]).
 //! 4. The web app shows the result ([`TrolleyHandoffService::find`]).
 //!
@@ -17,6 +19,8 @@
 //! the household reviews the trolley and pays on the store's own website.
 //! SQL lives in [`repository`]; the store-tab rules in [`store_tab`].
 
+pub mod delivery;
+pub mod line_repository;
 mod log;
 pub mod repository;
 pub mod store_tab;
@@ -28,6 +32,7 @@ use uuid::Uuid;
 use crate::error::ApiError;
 use crate::models::db::{TrolleyHandoff, TrolleyHandoffLine, TrolleyHandoffStatus};
 use crate::services::stores::Store;
+use delivery::{DeliveryRequest, ReportedDelivery};
 use store_tab::{ReportedLine, StoreTabLine};
 
 /// How long a new handoff waits for the store tab to claim it.
@@ -65,10 +70,12 @@ impl<'a> TrolleyHandoffService<'a> {
     pub async fn create_for_store(
         &self,
         store: Store,
+        delivery: DeliveryRequest,
         user_id: &str,
     ) -> Result<HandoffWithLines, ApiError> {
+        delivery::check_requested_date(&delivery, Utc::now().date_naive())?;
         let mut tx = self.pool.begin().await?;
-        let chosen = repository::chosen_lines_for_store(&mut *tx, store).await?;
+        let chosen = line_repository::chosen_lines_for_store(&mut *tx, store).await?;
         if chosen.is_empty() {
             tx.rollback().await?;
             log::nothing_to_hand_off(store);
@@ -79,12 +86,13 @@ impl<'a> TrolleyHandoffService<'a> {
         }
         let replaced = repository::replace_waiting(&mut *tx, store).await?;
         let expires_at = Utc::now() + Duration::minutes(HANDOFF_LIFETIME_MINUTES);
-        let handoff = repository::insert_handoff(&mut *tx, store, user_id, expires_at).await?;
+        let handoff =
+            repository::insert_handoff(&mut *tx, store, user_id, expires_at, &delivery).await?;
         for (position, line) in chosen.iter().enumerate() {
             let position = i32::try_from(position).unwrap_or(i32::MAX);
-            repository::insert_line(&mut *tx, handoff.id, position, line).await?;
+            line_repository::insert_line(&mut *tx, handoff.id, position, line).await?;
         }
-        let lines = repository::lines_of(&mut *tx, handoff.id).await?;
+        let lines = line_repository::lines_of(&mut *tx, handoff.id).await?;
         tx.commit().await?;
         log::created(&handoff, lines.len(), replaced);
         Ok(HandoffWithLines { handoff, lines })
@@ -95,7 +103,7 @@ impl<'a> TrolleyHandoffService<'a> {
         let handoff = repository::find_handoff(self.pool, id)
             .await?
             .ok_or_else(|| not_found(id))?;
-        let lines = repository::lines_of(self.pool, id).await?;
+        let lines = line_repository::lines_of(self.pool, id).await?;
         Ok(HandoffWithLines { handoff, lines })
     }
 
@@ -112,7 +120,7 @@ impl<'a> TrolleyHandoffService<'a> {
             return Ok(None);
         };
         let lines =
-            store_tab::lines_for_store_tab(&repository::lines_of(&mut *tx, handoff.id).await?);
+            store_tab::lines_for_store_tab(&line_repository::lines_of(&mut *tx, handoff.id).await?);
         tx.commit().await?;
         log::claimed(&handoff, lines.len());
         Ok(Some(ClaimedHandoff { handoff, lines }))
@@ -127,6 +135,7 @@ impl<'a> TrolleyHandoffService<'a> {
         &self,
         id: Uuid,
         report: &[ReportedLine],
+        delivery: Option<&ReportedDelivery>,
     ) -> Result<HandoffWithLines, ApiError> {
         let mut tx = self.pool.begin().await?;
         let handoff = repository::lock_handoff(&mut *tx, id)
@@ -139,11 +148,12 @@ impl<'a> TrolleyHandoffService<'a> {
                 "This handoff is not waiting for a report.".to_string(),
             ));
         }
-        let lines = repository::lines_of(&mut *tx, id).await?;
+        let lines = line_repository::lines_of(&mut *tx, id).await?;
         store_tab::check_report(&lines, report)
+            .and_then(|()| delivery.map_or(Ok(()), delivery::check_delivery_report))
             .inspect_err(|err| log::report_refused(id, &err.to_string()))?;
         for line in report {
-            repository::set_outcome(
+            line_repository::set_outcome(
                 &mut *tx,
                 id,
                 &line.product_id,
@@ -152,9 +162,14 @@ impl<'a> TrolleyHandoffService<'a> {
             )
             .await?;
         }
-        let handoff =
-            repository::finish(&mut *tx, id, store_tab::status_after_report(report)).await?;
-        let lines = repository::lines_of(&mut *tx, id).await?;
+        let handoff = repository::finish(
+            &mut *tx,
+            id,
+            store_tab::status_after_report(report),
+            delivery,
+        )
+        .await?;
+        let lines = line_repository::lines_of(&mut *tx, id).await?;
         tx.commit().await?;
         log::reported(&handoff, &lines);
         Ok(HandoffWithLines { handoff, lines })

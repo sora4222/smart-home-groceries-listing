@@ -12,6 +12,8 @@ use crate::services::stores::Store;
 pub fn created(handoff: &TrolleyHandoff, lines: usize, replaced: u64) {
     tracing::info!(
         handoff_id = %handoff.id,
+        delivery_date = ?handoff.delivery_date,
+        delivery_time_of_day = ?handoff.delivery_time_of_day,
         store = %handoff.store,
         lines,
         replaced_waiting_handoffs = replaced,
@@ -46,6 +48,22 @@ pub fn reported(handoff: &TrolleyHandoff, lines: &[TrolleyHandoffLine]) {
             problem = line.problem.as_deref().unwrap_or_default(),
             "store refused a trolley line"
         );
+    }
+    match handoff.delivery_outcome {
+        Some(crate::models::db::DeliveryOutcome::Failed) => tracing::warn!(
+            handoff_id = %handoff.id,
+            problem = handoff.delivery_problem.as_deref().unwrap_or_default(),
+            "store tab could not reserve a delivery window"
+        ),
+        Some(outcome) => tracing::info!(
+            handoff_id = %handoff.id,
+            ?outcome,
+            window = handoff.delivery_window_label.as_deref().unwrap_or_default(),
+            start = ?handoff.delivery_window_start,
+            fee = ?handoff.delivery_fee,
+            "delivery window on the store's website"
+        ),
+        None => tracing::info!(handoff_id = %handoff.id, "store tab reported no delivery window"),
     }
     tracing::info!(handoff_id = %handoff.id, status = ?handoff.status, "trolley handoff report recorded");
 }

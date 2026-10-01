@@ -31,14 +31,16 @@ pub fn router() -> Router<AppState> {
 }
 
 /// `POST /api/trolley-handoffs` — hand every chosen product at a store to
-/// the store tab. 201 the new handoff; 422 nothing is chosen at that store.
+/// the store tab, with the delivery time wanted (default: next day, any
+/// time). 201 the new handoff; 422 nothing chosen at that store, or a
+/// delivery date in the past or too far ahead.
 async fn create_handoff(
     State(state): State<AppState>,
     user: AuthUser,
     ValidatedJson(body): ValidatedJson<TrolleyHandoffCreate>,
 ) -> Result<(StatusCode, Json<TrolleyHandoffResponse>), ApiError> {
     let created = TrolleyHandoffService::new(&state.pool)
-        .create_for_store(body.store, &user.id)
+        .create_for_store(body.store, (&body.delivery).into(), &user.id)
         .await?;
     Ok((StatusCode::CREATED, Json(created.into())))
 }

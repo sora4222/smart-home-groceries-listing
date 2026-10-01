@@ -25,6 +25,7 @@ use crate::models::schemas::{
     StoreTabClaimRequest, StoreTabClaimResponse, StoreTabReportRequest, TrolleyHandoffResponse,
 };
 use crate::routes::extract::AnyContentTypeJson;
+use crate::services::trolley_handoffs::delivery::ReportedDelivery;
 use crate::services::trolley_handoffs::store_tab::ReportedLine;
 use crate::services::trolley_handoffs::TrolleyHandoffService;
 use crate::state::AppState;
@@ -57,7 +58,8 @@ async fn claim_handoff(
 }
 
 /// `POST /api/store-tab/trolley-handoffs/{id}/report` — record what went
-/// into the trolley. 404 unknown, 409 not claimed, 422 incomplete report.
+/// into the trolley and which delivery window was reserved. 404 unknown, 409
+/// not claimed, 422 incomplete report or a delivery window that makes no sense.
 async fn report_handoff(
     State(state): State<AppState>,
     Path(handoff_id): Path<Uuid>,
@@ -65,8 +67,9 @@ async fn report_handoff(
 ) -> Result<Json<TrolleyHandoffResponse>, ApiError> {
     check_secret(&state, &body.secret)?;
     let report: Vec<ReportedLine> = body.lines.into_iter().map(Into::into).collect();
+    let delivery: Option<ReportedDelivery> = body.delivery.map(Into::into);
     let closed = TrolleyHandoffService::new(&state.pool)
-        .record_store_tab_report(handoff_id, &report)
+        .record_store_tab_report(handoff_id, &report, delivery.as_ref())
         .await?;
     Ok(Json(closed.into()))
 }

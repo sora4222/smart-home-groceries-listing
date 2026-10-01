@@ -1,42 +1,26 @@
-//! Every SQL statement for `trolley_handoffs` and `trolley_handoff_lines`.
+//! Every SQL statement for `trolley_handoffs` (lines: [`super::line_repository`]).
 //!
-//! The one place those tables are read or written. Every statement is a
-//! literal `&'static str` with bind parameters.
+//! Every statement is a literal `&'static str` with bind parameters. The
+//! column list is written once, in [`handoff_columns!`], and spliced in with
+//! `concat!` at compile time, so the row type and every query stay in step.
 
 use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
 use crate::error::ApiError;
-use crate::models::db::{
-    TrolleyHandoff, TrolleyHandoffLine, TrolleyHandoffStatus, TrolleyLineOutcome,
-};
+use crate::models::db::{TrolleyHandoff, TrolleyHandoffStatus};
 use crate::services::stores::Store;
 
-/// A list item's chosen product at `store`, ready to become a handoff line:
-/// `(grocery_item_id, product_id, product_name, quantity)`.
-pub type ChosenLine = (Uuid, String, String, i32);
+use super::delivery::{DeliveryRequest, ReportedDelivery};
 
-/// Every list item still to be bought (active or committed) whose chosen
-/// product is at `store`, oldest item first. Quantities are the items' current
-/// quantities, not the quantity the product was priced at.
-pub async fn chosen_lines_for_store<'e, E>(
-    executor: E,
-    store: Store,
-) -> Result<Vec<ChosenLine>, ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    Ok(sqlx::query_as::<_, ChosenLine>(
-        "SELECT i.id, s.product_id, s.product_name, i.quantity
-         FROM grocery_items i
-         JOIN item_selections s ON s.grocery_item_id = i.id
-         WHERE s.store = $1 AND i.status IN ('active', 'committed')
-         ORDER BY i.created_at, i.id",
-    )
-    .bind(store)
-    .fetch_all(executor)
-    .await?)
+/// The columns [`TrolleyHandoff`] reads, as a string literal.
+macro_rules! handoff_columns {
+    () => {
+        "id, store, status, created_by, created_at, expires_at, claimed_at, reported_at,
+         delivery_date, delivery_time_of_day, delivery_outcome, delivery_window_label,
+         delivery_window_start, delivery_window_end, delivery_fee, delivery_problem"
+    };
 }
 
 /// Marks every handoff for `store` that is still waiting as replaced, so only
@@ -55,53 +39,32 @@ where
     .rows_affected())
 }
 
-/// Inserts a new waiting handoff.
+/// Inserts a new waiting handoff with the delivery time asked for.
 pub async fn insert_handoff<'e, E>(
     executor: E,
     store: Store,
     created_by: &str,
     expires_at: DateTime<Utc>,
+    delivery: &DeliveryRequest,
 ) -> Result<TrolleyHandoff, ApiError>
 where
     E: PgExecutor<'e>,
 {
-    Ok(sqlx::query_as::<_, TrolleyHandoff>(
-        "INSERT INTO trolley_handoffs (id, store, status, created_by, expires_at)
-         VALUES ($1, $2, 'waiting_for_store_tab', $3, $4)
-         RETURNING id, store, status, created_by, created_at, expires_at, claimed_at, reported_at",
-    )
+    Ok(sqlx::query_as::<_, TrolleyHandoff>(concat!(
+        "INSERT INTO trolley_handoffs
+             (id, store, status, created_by, expires_at, delivery_date, delivery_time_of_day)
+         VALUES ($1, $2, 'waiting_for_store_tab', $3, $4, $5, $6)
+         RETURNING ",
+        handoff_columns!()
+    ))
     .bind(Uuid::new_v4())
     .bind(store)
     .bind(created_by)
     .bind(expires_at)
+    .bind(delivery.date)
+    .bind(delivery.time_of_day)
     .fetch_one(executor)
     .await?)
-}
-
-/// Inserts one line of a handoff; `position` keeps the list's order.
-pub async fn insert_line<'e, E>(
-    executor: E,
-    handoff_id: Uuid,
-    position: i32,
-    line: &ChosenLine,
-) -> Result<(), ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    sqlx::query(
-        "INSERT INTO trolley_handoff_lines
-             (handoff_id, position, grocery_item_id, product_id, product_name, quantity)
-         VALUES ($1, $2, $3, $4, $5, $6)",
-    )
-    .bind(handoff_id)
-    .bind(position)
-    .bind(line.0)
-    .bind(&line.1)
-    .bind(&line.2)
-    .bind(line.3)
-    .execute(executor)
-    .await?;
-    Ok(())
 }
 
 /// The handoff with this id, if any.
@@ -109,10 +72,11 @@ pub async fn find_handoff<'e, E>(executor: E, id: Uuid) -> Result<Option<Trolley
 where
     E: PgExecutor<'e>,
 {
-    Ok(sqlx::query_as::<_, TrolleyHandoff>(
-        "SELECT id, store, status, created_by, created_at, expires_at, claimed_at, reported_at
-         FROM trolley_handoffs WHERE id = $1",
-    )
+    Ok(sqlx::query_as::<_, TrolleyHandoff>(concat!(
+        "SELECT ",
+        handoff_columns!(),
+        " FROM trolley_handoffs WHERE id = $1"
+    ))
     .bind(id)
     .fetch_optional(executor)
     .await?)
@@ -123,10 +87,11 @@ pub async fn lock_handoff<'e, E>(executor: E, id: Uuid) -> Result<Option<Trolley
 where
     E: PgExecutor<'e>,
 {
-    Ok(sqlx::query_as::<_, TrolleyHandoff>(
-        "SELECT id, store, status, created_by, created_at, expires_at, claimed_at, reported_at
-         FROM trolley_handoffs WHERE id = $1 FOR UPDATE",
-    )
+    Ok(sqlx::query_as::<_, TrolleyHandoff>(concat!(
+        "SELECT ",
+        handoff_columns!(),
+        " FROM trolley_handoffs WHERE id = $1 FOR UPDATE"
+    ))
     .bind(id)
     .fetch_optional(executor)
     .await?)
@@ -141,7 +106,7 @@ pub async fn claim_newest_waiting<'e, E>(
 where
     E: PgExecutor<'e>,
 {
-    Ok(sqlx::query_as::<_, TrolleyHandoff>(
+    Ok(sqlx::query_as::<_, TrolleyHandoff>(concat!(
         "UPDATE trolley_handoffs SET status = 'claimed_by_store_tab', claimed_at = now()
          WHERE id = (
              SELECT id FROM trolley_handoffs
@@ -150,72 +115,41 @@ where
              LIMIT 1
              FOR UPDATE SKIP LOCKED
          )
-         RETURNING id, store, status, created_by, created_at, expires_at, claimed_at, reported_at",
-    )
+         RETURNING ",
+        handoff_columns!()
+    ))
     .bind(store)
     .fetch_optional(executor)
     .await?)
 }
 
-/// Every line of a handoff, in list order.
-pub async fn lines_of<'e, E>(
-    executor: E,
-    handoff_id: Uuid,
-) -> Result<Vec<TrolleyHandoffLine>, ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    Ok(sqlx::query_as::<_, TrolleyHandoffLine>(
-        "SELECT handoff_id, grocery_item_id, product_id, product_name, quantity, outcome, problem
-         FROM trolley_handoff_lines
-         WHERE handoff_id = $1
-         ORDER BY position",
-    )
-    .bind(handoff_id)
-    .fetch_all(executor)
-    .await?)
-}
-
-/// Writes the reported outcome onto every line of the handoff for `product_id`.
-pub async fn set_outcome<'e, E>(
-    executor: E,
-    handoff_id: Uuid,
-    product_id: &str,
-    outcome: TrolleyLineOutcome,
-    problem: Option<&str>,
-) -> Result<(), ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    sqlx::query(
-        "UPDATE trolley_handoff_lines SET outcome = $3, problem = $4
-         WHERE handoff_id = $1 AND product_id = $2",
-    )
-    .bind(handoff_id)
-    .bind(product_id)
-    .bind(outcome)
-    .bind(problem)
-    .execute(executor)
-    .await?;
-    Ok(())
-}
-
-/// Closes a claimed handoff with its final status.
+/// Closes a claimed handoff with its final status and what the store tab did
+/// about the delivery window (all delivery columns `NULL` when it said nothing).
 pub async fn finish<'e, E>(
     executor: E,
     handoff_id: Uuid,
     status: TrolleyHandoffStatus,
+    delivery: Option<&ReportedDelivery>,
 ) -> Result<TrolleyHandoff, ApiError>
 where
     E: PgExecutor<'e>,
 {
-    Ok(sqlx::query_as::<_, TrolleyHandoff>(
-        "UPDATE trolley_handoffs SET status = $2, reported_at = now()
+    Ok(sqlx::query_as::<_, TrolleyHandoff>(concat!(
+        "UPDATE trolley_handoffs SET status = $2, reported_at = now(),
+             delivery_outcome = $3, delivery_window_label = $4, delivery_window_start = $5,
+             delivery_window_end = $6, delivery_fee = $7, delivery_problem = $8
          WHERE id = $1
-         RETURNING id, store, status, created_by, created_at, expires_at, claimed_at, reported_at",
-    )
+         RETURNING ",
+        handoff_columns!()
+    ))
     .bind(handoff_id)
     .bind(status)
+    .bind(delivery.map(|d| d.outcome))
+    .bind(delivery.and_then(|d| d.window_label.as_deref()))
+    .bind(delivery.and_then(|d| d.window_start))
+    .bind(delivery.and_then(|d| d.window_end))
+    .bind(delivery.and_then(|d| d.fee))
+    .bind(delivery.and_then(|d| d.problem.as_deref()))
     .fetch_one(executor)
     .await?)
 }

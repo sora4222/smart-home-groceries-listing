@@ -1,12 +1,30 @@
 # Shadcn-pattern compound components
 
 ## UI primitives (`components/ui/`)
-Hand-built to match shadcn/ui's own generated output (cva variants + `cn()`
-from `lib/utils.ts`) rather than run via the shadcn CLI, since this repo has
-no network access to `ui.shadcn.com` guaranteed at agent-run time. If you
-add a new primitive, follow the same shape: `cva` for variants, `cn()` for
-class merging, `data-slot` attributes, no local component state.
-Do not edit `components/ui/*` files ad hoc — extend the `*Variants` export.
+Add a primitive with the shadcn CLI — never hand-build one:
+
+```bash
+cd frontend && pnpm dlx shadcn@latest add <component>
+```
+
+`components.json` configures it for this repo (new-york style, Tailwind v4,
+`src/styles.css`, `#/` aliases). The CLI writes `components/ui/<component>.tsx`
+and adds its npm dependency (`switch` brought in `radix-ui`). Afterwards, run
+`pnpm exec biome format --write` on the new file and fix any import the CLI
+wrote with a `.ts` extension (`#/lib/utils.ts` → `#/lib/utils`); otherwise
+leave generated files alone.
+
+If `ui.shadcn.com` is unreachable (a sandboxed agent), do not hand-build the
+component: serve the registry item locally and point the same CLI at it with
+`REGISTRY_URL=http://localhost:<port>/r pnpm dlx shadcn@latest add <component>`.
+The item's source is `apps/v4/registry/new-york-v4/ui/<component>.tsx` in
+github.com/shadcn-ui/ui, and its dependencies are in that folder's
+`_registry.ts`. The CLI also fetches `r/colors/neutral.json`, which can be
+empty colour maps since this repo uses CSS variables.
+
+`button`, `badge`, `card`, `input` and `textarea` predate `components.json` and
+were written by hand in shadcn's shape; replace them through the CLI when they
+next need changing.
 
 ## Feature components are compound, not context-heavy
 `components/grocery/` is the fullest example. `GroceryList` is the container
@@ -52,9 +70,9 @@ Icon-only controls carry an `aria-label` that says what they act on:
 `Remove filter 3 ply`, `Edit milk`, `Confirm removing milk`. The e2e suite
 asserts these, so they are part of the contract rather than decoration.
 
-`components/ui/switch.tsx` is a hand-built `role="switch"` button rather than
-Radix's Switch, to avoid a dependency for one toggle. Label it with
-`<label htmlFor>`.
+`components/ui/switch.tsx` is shadcn's Switch (Radix underneath): it renders
+a `role="switch"` button, so label it with `<label htmlFor>` and drive it with
+`checked` / `onCheckedChange`.
 
 ## Theme tokens
 `src/styles.css` defines the full shadcn CSS-variable palette (light +

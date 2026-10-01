@@ -42,6 +42,11 @@ pub enum ApiError {
     #[error("duplicate active item")]
     DuplicateActiveItem { detail: serde_json::Value },
 
+    /// Something the request depends on — a store — could not be reached just
+    /// now. Worth trying again later; the message says what was unavailable.
+    #[error("{0}")]
+    ServiceUnavailable(String),
+
     /// A server-side misconfiguration, such as a secret that was never set.
     #[error("{0}")]
     Misconfigured(String),
@@ -71,6 +76,7 @@ impl ApiError {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Conflict(_) | Self::DuplicateActiveItem { .. } => StatusCode::CONFLICT,
             Self::UnprocessableEntity(_) => StatusCode::UNPROCESSABLE_ENTITY,
+            Self::ServiceUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::Misconfigured(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -120,6 +126,14 @@ mod tests {
         assert_eq!(
             ApiError::DuplicateActiveItem { detail: json!({}) }.status(),
             StatusCode::CONFLICT
+        );
+    }
+
+    #[test]
+    fn an_unreachable_dependency_is_a_503() {
+        assert_eq!(
+            ApiError::ServiceUnavailable("Coles could not be searched".into()).status(),
+            StatusCode::SERVICE_UNAVAILABLE
         );
     }
 

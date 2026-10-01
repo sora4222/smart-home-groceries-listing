@@ -1,12 +1,16 @@
 //! Row types for the tables in `migrations/`.
 //!
-//! One type per table (`voice_requests`, `grocery_items`, `item_rules`) plus
+//! One type per table (`voice_requests`, `grocery_items`, `item_rules`,
+//! `item_selections`) plus
 //! the enumerations their TEXT + CHECK columns hold. Later features (purchase
 //! history, ...) add their own types alongside these without changing these.
 
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::services::stores::{Basis, Store};
 
 /// Where an intake request came from.
 ///
@@ -102,4 +106,31 @@ pub struct ItemRule {
     pub apply_to_manual: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// The one product chosen for a list item, as the store described it when it
+/// was chosen. The order screen reads these to know what to buy.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ItemSelection {
+    pub id: Uuid,
+    pub grocery_item_id: Uuid,
+    pub store: Store,
+    /// The store's own id for the product.
+    pub product_id: String,
+    pub product_name: String,
+    pub brand: Option<String>,
+    pub package_size: Option<String>,
+    /// Shelf price for one, when the store showed one.
+    pub price: Option<Decimal>,
+    /// The normalised unit price; present exactly when `unit_price_per` is.
+    pub unit_price: Option<Decimal>,
+    pub unit_price_per: Option<Basis>,
+    /// What `priced_quantity` cost with the best deal applied.
+    pub total_price: Option<Decimal>,
+    /// The item's quantity when the product was chosen.
+    pub priced_quantity: i32,
+    pub url: String,
+    /// The household member who chose it.
+    pub selected_by: String,
+    pub selected_at: DateTime<Utc>,
 }

@@ -15,13 +15,20 @@ use super::measure::{Dimension, Measure};
 const UNIT_PRICE_PLACES: u32 = 4;
 
 /// The common basis a unit price is stated against.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+///
+/// Stored as `TEXT` (`item_selections.unit_price_per`) with the same spelling
+/// the JSON uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, sqlx::Type)]
+#[sqlx(type_name = "text")]
 pub enum Basis {
     #[serde(rename = "100g")]
+    #[sqlx(rename = "100g")]
     Per100Grams,
     #[serde(rename = "100mL")]
+    #[sqlx(rename = "100mL")]
     Per100Millilitres,
     #[serde(rename = "unit")]
+    #[sqlx(rename = "unit")]
     PerUnit,
 }
 

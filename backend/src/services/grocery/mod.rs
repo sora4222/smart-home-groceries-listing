@@ -25,6 +25,7 @@ use crate::models::db::{GroceryItem, GroceryItemSource, GroceryItemStatus};
 use crate::models::schemas::{GroceryItemCreate, GroceryItemUpdate, MAX_QUANTITY};
 use crate::services::filter_terms;
 use crate::services::item_rules::{self, AddedVia};
+use crate::services::selections;
 use annotations::clean_note;
 
 /// Reads and writes the household list.
@@ -111,7 +112,8 @@ impl<'a> GroceryService<'a> {
 
     /// Applies an edit to an item on the list.
     ///
-    /// Absent fields are left as they were. A committed item is locked, so an
+    /// Absent fields are left as they were. Renaming the item or changing its
+    /// chips also drops the product chosen for it. A committed item is locked, so an
     /// edit to one is a 409 rather than a silent no-op: the user has to release
     /// the list before changing it again.
     pub async fn update(
@@ -149,6 +151,9 @@ impl<'a> GroceryService<'a> {
             &filter_terms,
         )
         .await?;
+        // A renamed or re-chipped item no longer matches the product chosen
+        // for it; dropping the choice here lands with the edit.
+        selections::forget_if_stale(&mut tx, &existing, &item).await?;
         tx.commit().await?;
         log::updated(&item);
         Ok(item)

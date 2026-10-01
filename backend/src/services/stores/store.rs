@@ -2,12 +2,16 @@
 
 use std::fmt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// A supermarket with online ordering and home delivery.
 ///
 /// Aldi is deliberately absent: it has no online ordering in Australia.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+///
+/// Stored as lowercase `TEXT` (`item_selections.store`), and read from request
+/// bodies, so an unknown store name is refused before it reaches a service.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum Store {
     Woolworths,
@@ -52,5 +56,14 @@ mod tests {
             "woolworths"
         );
         assert_eq!(Store::Coles.to_string(), "coles");
+    }
+
+    #[test]
+    fn reads_lowercase_and_refuses_other_stores() {
+        assert_eq!(
+            serde_json::from_value::<Store>(serde_json::json!("coles")).unwrap(),
+            Store::Coles
+        );
+        assert!(serde_json::from_value::<Store>(serde_json::json!("aldi")).is_err());
     }
 }

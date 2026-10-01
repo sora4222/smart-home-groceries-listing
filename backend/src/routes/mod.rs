@@ -10,6 +10,7 @@ pub mod grocery;
 pub mod health;
 pub mod item_rules;
 pub mod products;
+pub mod selections;
 pub mod voice;
 pub mod ws;
 
@@ -26,5 +27,6 @@ pub fn api_router() -> Router<AppState> {
         .merge(grocery::router())
         .merge(item_rules::router())
         .merge(products::router())
+        .merge(selections::router())
         .merge(ws::router())
 }

@@ -143,6 +143,19 @@ impl TestApp {
         .await
     }
 
+    /// `PUT <uri>` with a JSON body, as a signed-in household member.
+    pub async fn put_json(&self, uri: &str, body: &Value) -> (StatusCode, Value) {
+        self.send(
+            Request::builder()
+                .method(Method::PUT)
+                .uri(uri)
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+    }
+
     /// `DELETE <uri>` as a signed-in household member.
     pub async fn delete(&self, uri: &str) -> (StatusCode, Value) {
         self.send(

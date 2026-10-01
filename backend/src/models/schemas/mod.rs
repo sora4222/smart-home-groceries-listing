@@ -12,9 +12,11 @@
 mod common;
 mod grocery;
 mod item_rules;
+mod products;
 mod voice;
 
 pub use common::*;
 pub use grocery::*;
 pub use item_rules::*;
+pub use products::*;
 pub use voice::*;

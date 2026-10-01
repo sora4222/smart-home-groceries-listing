@@ -1,8 +1,11 @@
 # Store Integration
 
 Status: **product search built** (`services/stores/`,
-`services/product_search/`). Delivery windows, cart and checkout are not —
-the sections on them below are the plan. Behaviour and the API are in
+`services/product_search/`). **Woolworths trolley built as a browser
+handoff** (`services/trolley_handoffs/`, `docs/features/FEATURE_TROLLEY_HANDOFF.md`):
+the household's logged-in tab fills the trolley through a bookmarklet, because
+the server cannot log in (passkeys/MFA). Delivery windows and checkout are
+not built — the sections on them below are the plan. Behaviour and the API are in
 `docs/features/FEATURE_STORE_INTEGRATION.md`.
 
 ## Layout
@@ -66,6 +69,20 @@ protection.
 To capture a fresh shape, open the store's search page in a real browser and
 read the call from DevTools (or the page's `__NEXT_DATA__` for Coles), then
 trim it into `tests/fixtures/<store>/`.
+
+## Trolley (Woolworths, live 2026-10-02)
+- Read: `GET /api/v3/ui/trolley` → `Products[]` (`Stockcode`,
+  `QuantityInTrolley`, `IsAvailable`). The old `GET /apis/ui/Trolley` did not
+  show a logged-in trolley's items.
+- Write: `POST /api/v3/ui/trolley/update` with
+  `{"items":[{"stockcode":N,"quantity":Q,"source":"ProductDetail","diagnostics":"0",
+  "searchTerm":null,"evaluateRewardPoints":false,"offerId":null,"profileId":null,"priceLevel":null}]}`.
+  `quantity` is the new total, `0` removes. Unknown stockcode → `UpdatedItems: []`.
+- With no delivery time picked, a logged-in trolley answers `IsAvailable:
+  false` and `$0` for products it did add — judge success by
+  `QuantityInTrolley`, never by `IsAvailable`.
+- Called from the store's own page (`fill-woolworths-trolley.ts`), so no
+  fingerprinting is needed there. Full record: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 
 ## Finding internal endpoints
 1. Chrome DevTools → Network → filter to `Fetch/XHR`
@@ -167,7 +184,9 @@ returning `StoreError`, never `ApiError` — a store failing is not a failed
 request.
 
 ## Checkout flow
-Automate to the payment page and stop.
+Automate to the payment page and stop. **Login cannot be automated** (see
+above), so any server-side `chromiumoxide` checkout needs an imported,
+refreshed session; prefer extending the browser handoff instead.
 
 ```rust
 /// Drives the cart up to the payment step. Never enters card details.

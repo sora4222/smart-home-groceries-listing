@@ -124,6 +124,12 @@ cd frontend && pnpm e2e --project=desktop -g "commit"   # one project, by name
 cd frontend && pnpm e2e:report        # last HTML report
 ```
 
+**Sign-in is off for e2e.** The backend needs `DEV_AUTH_BYPASS=true` and the
+web app `VITE_AUTH_MODE=off` (`VITE_AUTH_MODE=off pnpm dev`), or a real Clerk
+key in `.env` sends every test to the sign-in page. Real token checks are
+backend tests: `tests/clerk_tokens.rs` (mock JWKS, test-only keys) and
+`tests/auth_required.rs` (every household route answers 401).
+
 Playwright is a **frontend-only** tool in this repo. The backend's store
 automation uses `chromiumoxide` — see `backend/skills/store-integration.md`.
 

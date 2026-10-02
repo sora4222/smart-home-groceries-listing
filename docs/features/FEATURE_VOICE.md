@@ -157,15 +157,13 @@ appears in `GET /api/voice-requests` (it only returns `pending`).
 All routes except the two intake endpoints require a Clerk JWT, verified
 against Clerk's JWKS (`backend/src/auth/clerk.rs`). The signing algorithm is
 taken from the JWK, never from the token's own header, so a token claiming a
-different algorithm cannot be verified against the RSA public key. Clerk is
-not yet wired into the frontend — see `frontend/src/lib/auth.ts`'s TODO. For
-local development set `DEV_AUTH_BYPASS=true`; the backend logs a warning at
+different algorithm cannot be verified against the RSA public key. The web
+app signs people in with Clerk — see `FEATURE_AUTH.md`. For local development
+and the e2e tests set `DEV_AUTH_BYPASS=true`; the backend logs a warning at
 startup, and it must never be enabled on a deployment reachable through the
 Cloudflare Tunnel.
 
 ## Known gaps / next steps
-- Frontend Clerk provider + `getAuthToken()` wiring (auth section of the
-  spec, not part of this goal).
 - LLM triage is built — see `FEATURE_TRIAGE.md`.
 - **Google Tasks and Google Keep sources are not built.** Tasks is a plain
   OAuth REST API and belongs in Rust; Keep would need a Python sidecar

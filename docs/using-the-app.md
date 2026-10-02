@@ -9,6 +9,7 @@ For jobs you do again and again. Setting up the first time:
 | [Check the Triage page](#check-the-triage-page) | The app | 1 min |
 | [Do a Woolworths shop](#do-a-woolworths-shop) | The app, then Woolworths in Chrome | 10–15 min |
 | [Change the delivery time](#change-the-delivery-time) | Woolworths in Chrome | 2 min |
+| [Let someone new sign in](#let-someone-new-sign-in) | clerk.com | 2 min |
 | [After an app update](#after-an-app-update) | Depends on the update | 2 min |
 | [If something goes wrong](#if-something-goes-wrong) | — | — |
 
@@ -108,6 +109,19 @@ to know.
 
 ---
 
+## Let someone new sign in
+
+**Where:** [dashboard.clerk.com](https://dashboard.clerk.com), in your browser.
+
+- [ ] 1. Open your application, then **Allowlist**.
+- [ ] 2. Add their email address. Press **Add**.
+- [ ] 3. Tell them to open the app and press **Sign up** on the sign-in page.
+
+**It worked if:** they see the Grocery List after signing up. Everyone shares
+the same list.
+
+---
+
 ## After an app update
 
 Claude tells you when an update needs one of these. Each is quick.
@@ -117,6 +131,7 @@ Claude tells you when an update needs one of these. Each is quick.
 | The bookmark's code changed | Open **Send to Woolworths** in the app. Drag **Fill Woolworths trolley** to the bookmarks bar again. Delete the old bookmark (right-click it → **Delete**). |
 | `STORE_TAB_SECRET` or the app's address changed | Same as above: drag the bookmark again. |
 | The database changed | Nothing. The app updates itself when it starts. |
+| Sign-in arrived (you used `DEV_AUTH_BYPASS=true` before) | In `.env`, rename `CLERK_PUBLISHABLE_KEY=` to `VITE_CLERK_PUBLISHABLE_KEY=`. Set `DEV_AUTH_BYPASS=false`. Do [setup part 2](human-setup.md#part-2--clerk-website-about-10-minutes), steps 8 to 11. Then `make down`, `make up`, and start the web app again. |
 | `.env` got a new setting | Run `make setup-env`. Then fill any value Claude names. Then `make down` and `make up`. |
 
 ---

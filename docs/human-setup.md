@@ -64,26 +64,40 @@ Running it twice is safe. It never changes a value that is already set.
 ## Part 2 — Clerk website (about 10 minutes)
 
 **Where:** [dashboard.clerk.com](https://dashboard.clerk.com), in your browser.
-**You need:** `.env` open.
+**You need:** `.env` open. The email address of each person in your home.
 **You get:** 3 values for `.env`.
 **Why:** Clerk handles signing in to the app.
 
 - [ ] 1. Sign up. The free plan is enough.
 - [ ] 2. Create an application.
-- [ ] 3. When it asks how people sign in, turn on **Google** and **Email**
-  (with password).
-- [ ] 4. Open **API Keys**.
-- [ ] 5. Copy each value into `.env`:
+- [ ] 3. When it asks how people sign in, turn on **Google** and **Email**.
+- [ ] 4. Open **User & authentication**. Turn on **Password**.
+- [ ] 5. Open **API Keys**.
+- [ ] 6. Copy each value into `.env`:
 
 | Copy this from Clerk | Paste it into `.env` after |
 |---|---|
-| Publishable key | `CLERK_PUBLISHABLE_KEY=` |
-| Secret key | `CLERK_SECRET_KEY=` |
+| Publishable key (starts `pk_`) | `VITE_CLERK_PUBLISHABLE_KEY=` |
+| Secret key (starts `sk_`) | `CLERK_SECRET_KEY=` |
 | JWKS URL (it ends in `/.well-known/jwks.json`; it may be under **Advanced**) | `CLERK_JWKS_URL=` |
 
-- [ ] 6. Save `.env`.
+- [ ] 7. Save `.env`.
 
-**It worked if:** all 3 lines in `.env` have a value.
+**Next, let only your home sign up.** Without this, anyone who finds the
+app could make an account and see your list.
+
+- [ ] 8. Open **Allowlist**. (It may be under **Protect** or
+  **Restrictions**.)
+- [ ] 9. Turn on **Enable allowlist**.
+- [ ] 10. Add the email address of each person in your home. Press **Add**
+  after each one.
+- [ ] 11. Press **Save**.
+
+**It worked if:** all 3 lines in `.env` have a value, and the allowlist shows
+your home's email addresses.
+
+**If it goes wrong:** no **Password** setting → it may be called **Email,
+phone, username**. Turn on **Password** there.
 
 > You can stop here.
 
@@ -247,11 +261,6 @@ then the port it uses, then `/v1`. Ollama's port is `11434`.
 
 **Where:** home server terminal, then the Cloudflare tab from part 3.
 
-**Note on signing in:** Clerk sign-in is not built into the web app yet. Until
-it is, the app only works with `DEV_AUTH_BYPASS=true` in `.env`. **Only do
-this while the tunnel has only the Alexa route from part 3.** It turns off
-signing in for the whole app.
-
 - [ ] 1. In the terminal, start the app:
 
 ```bash
@@ -275,14 +284,23 @@ cd frontend && pnpm install && pnpm dev
 ```
 
 - [ ] 4. Switch to the **Cloudflare tab** from part 3. Refresh it.
+- [ ] 5. Open [localhost:3000](http://localhost:3000). You see the sign-in
+  page.
+- [ ] 6. Press **Continue with Google**, or type your email and password.
 
 **It worked if:**
 - the tunnel says **Healthy**, and
-- [localhost:3000](http://localhost:3000) shows the Grocery List.
+- after signing in, you see the Grocery List and your picture at the top
+  right.
 
 **If it goes wrong:**
 - Tunnel not Healthy → check `CLOUDFLARE_TUNNEL_TOKEN` in `.env` has no
   spaces. Then run `make down` and `make up`.
+- No sign-in page, and a grey line says **Sign-in is off** → check
+  `VITE_CLERK_PUBLISHABLE_KEY` in `.env` (part 2). Stop the web app with
+  **Ctrl+C**, then run step 3 again.
+- "Not allowed to sign up" → add that email to the allowlist (part 2,
+  step 10).
 - Something else → run `docker compose logs` and share the last lines with
   Claude.
 

@@ -22,7 +22,7 @@ github.com/shadcn-ui/ui, and its dependencies are in that folder's
 `_registry.ts`. The CLI also fetches `r/colors/neutral.json`, which can be
 empty colour maps since this repo uses CSS variables.
 
-`sheet` was added the same way (registry served locally). `button`, `badge`,
+`sheet` and `tabs` were added the same way (registry served locally). `button`, `badge`,
 `card`, `input` and `textarea` predate `components.json` and
 were written by hand in shadcn's shape; replace them through the CLI when they
 next need changing.

@@ -120,7 +120,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
   **Verify the assumptions in the intake brief before building on them.**
 - **Nothing reaches the list unasked:** every intake item lands as `pending`
   and needs a household member to accept it, however confident the channel
-  was. Reducing marketing-driven buying is a project goal: no part of this
+  was. LLM triage (`INTAKE_LLM_PROVIDER`, `FEATURE_TRIAGE.md`) only decides
+  whether a person sees it in Pending Requests or on `/triage`. Reducing marketing-driven buying is a project goal: no part of this
   system suggests, recommends or upsells an item.
 - **Store integration priority:** official API → internal XHR/JSON endpoints →
   headless-browser HTML scrape. Both stores are behind bot protection.

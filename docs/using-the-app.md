@@ -131,6 +131,6 @@ Claude tells you when an update needs one of these. Each is quick.
 | "Fill trolley failed" with a network error | Check the app is running. Check you pressed **Allow** on Chrome's local network question. |
 | "No delivery time reserved" | Pick a time on Woolworths yourself (see [Change the delivery time](#change-the-delivery-time)). |
 | A product says **Not added** | Woolworths cannot deliver it right now. Choose another product for that item. |
-| An item says "The checker could not be reached" | Check `OPENAI_API_KEY` in `.env`, or that Ollama is running. Then press **Accept** on the item in **Triage**. |
+| An item says "The checker could not be reached" | The model is not running. In the terminal, run `make up`. If you use Ollama, also run `docker compose exec ollama ollama pull llama3.2`. Then press **Accept** on the item in **Triage**. |
 | Alexa does not add anything | See [human-setup.md, part 7](human-setup.md#part-7--test-with-your-echo-about-5-minutes). |
 | Something else | Ask Claude. Say what you pressed and what the screen said. |

@@ -157,7 +157,8 @@ in the domain's `repository.rs`.
 
 ## Triage (LLM)
 `AppState.triage` is a `TriageQueue`, built by `services::triage::registry`
-from `INTAKE_LLM_PROVIDER` (`openai` | `ollama` | `fake` | `off`). Only
+from `INTAKE_LLM_PROVIDER` (`ollama` default | `llamacpp` | `vllm` | `openai` |
+`fake` | `off`). Only
 `services/triage/openai.rs` talks to an LLM provider. An intake service
 records the request `unchecked` and calls `triage.start(&request)`, which
 classifies it in a spawned task — never inline, because the Alexa bridge only

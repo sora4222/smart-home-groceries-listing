@@ -4,7 +4,7 @@ Status: **implemented** — every intake item is checked by a classifier
 ("would a supermarket sell this?") before the household sees it, and the
 `/triage` page shows what it held or rejected. **Restore to source** is not
 built: no channel that keeps a source list (Google Tasks, Google Keep) exists
-yet. Steps for people: `docs/human-setup.md` part 5 and `docs/using-the-app.md`
+yet. Steps for people: `docs/human-setup.md` parts 5 and 6 and `docs/using-the-app.md`
 ("Check the Triage page") — keep those in step with this spec.
 
 ## What this feature does
@@ -62,22 +62,42 @@ Anything that can change a count sends both:
 "New item added — tap to review" when the pending count rises.
 
 ## The classifier
-`INTAKE_LLM_PROVIDER` picks it (`.env.example` lists every setting):
+`INTAKE_LLM_PROVIDER` picks it (`.env.example` lists every setting). The
+household chose local models over OpenAI (cheaper, item names stay home), so
+`ollama` is the default.
 
-| Value | Classifier |
-|---|---|
-| `openai` (default) | OpenAI chat completions, `gpt-4o-mini`. Needs `OPENAI_API_KEY`; without it every item is held with the reason "OPENAI_API_KEY is not set". |
-| `ollama` | Ollama's OpenAI-compatible endpoint, `llama3.2`, `http://localhost:11434/v1` (from Docker: `http://host.docker.internal:11434/v1`). Free. |
-| `fake` | a keyword list: a service word ("service", "repair", "appointment", "haircut", "plumber", "dentist", "rego", "mechanic") → rejected, anything else → approved, both at 0.9. Development, tests, e2e. |
-| `off` | no triage; every item is `skipped`. |
+| Value | Server | Default base URL / model | Notes |
+|---|---|---|---|
+| `ollama` (default) | Ollama | `http://localhost:11434/v1` · `llama3.2` | Compose profile `ollama` (`http://ollama:11434/v1`); pull the model once |
+| `llamacpp` | llama.cpp `llama-server` | `http://localhost:8080/v1` · `local` | Serves the one GGUF it started with and ignores the model name. Profile `llamacpp` downloads `LLAMACPP_HF_MODEL` |
+| `vllm` | vLLM `vllm serve` | `http://localhost:8000/v1` · `Qwen/Qwen2.5-1.5B-Instruct` | Model name must match what it serves. Profile `vllm` needs an NVIDIA GPU |
+| `openai` | OpenAI | `https://api.openai.com/v1` · `gpt-4o-mini` | Paid. Needs `OPENAI_API_KEY`; without it every item is held with "OPENAI_API_KEY is not set" |
+| `fake` | none | — | Keyword list: a service word ("service", "repair", "appointment", "haircut", "plumber", "dentist", "rego", "mechanic") → rejected, else approved, both at 0.9. Dev, tests, e2e |
+| `off` | none | — | No triage; every item is `skipped` |
 
-OpenAI and Ollama share one client (`services/triage/openai.rs`) that calls
+`llama.cpp` is also accepted as `llama.cpp`, `llama-cpp` or `llama_cpp`.
+A local server started with `--api-key` gets `INTAKE_LLM_API_KEY` as a bearer
+token; without it no `Authorization` header is sent. The default time limit is
+60 s (`INTAKE_LLM_TIMEOUT_SECONDS`), since a CPU model can be slow to load —
+the check runs in the background, so nobody waits on it.
+
+All five servers share one client (`services/triage/openai.rs`) that calls
 `POST {base}/chat/completions` with `temperature: 0` and
-`response_format: json_object`, and expects
-`{"supermarket_item": bool, "confidence": 0..1, "reason": "..."}`. The spec
-named `async-openai`; plain `reqwest` was used instead because the call is one
+`response_format: json_object` (Ollama, llama-server and vLLM all honour it),
+and expects `{"supermarket_item": bool, "confidence": 0..1, "reason": "..."}`.
+A reply wrapped in a code fence, or in words or `<think>` tags around the
+object (small and reasoning models do this), is still read. The spec named
+`async-openai`; plain `reqwest` was used instead because the call is one
 request, the crate was already in the tree, and `wiremock` can test it end to
 end.
+
+**Not tested against a running model.** This repository's test environment
+cannot download model weights or reach a GPU, so each local server is tested
+with `wiremock` serving that server's own answer shape
+(`backend/tests/fixtures/triage/{ollama,llamacpp,vllm}.json`,
+`tests/triage_local_models.rs`). The Compose services (`docker-compose.yml`,
+profiles `ollama`, `llamacpp`, `vllm`) are checked with `docker compose config`
+only.
 
 The item text is untrusted (anyone near the Echo). It travels as a JSON value
 in the user message, never inside the instructions, and the worst a crafted
@@ -99,6 +119,7 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
 | Piece | File |
 |---|---|
 | Settings | `backend/src/config/triage.rs` |
+| Local model servers | `docker-compose.yml` (profiles `ollama`, `llamacpp`, `vllm`) |
 | Classifier trait, OpenAI/Ollama, fake | `backend/src/services/triage/{model,openai,fake}.rs` |
 | Prompt + reply parsing, answer → status (pure) | `services/triage/{prompt,verdict}.rs` |
 | Time limit, picking the classifier | `services/triage/{assessor,registry}.rs` |
@@ -116,7 +137,9 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
 - Backend integration: `tests/triage.rs` (fake classifier: queues, accept,
   reject, 404/409, auth, triage off, startup re-check) and
   `tests/triage_openai.rs` (`wiremock` provider: request shape, low
-  confidence, provider error, unreadable reply, Alexa retry not re-checked).
+  confidence, provider error, unreadable reply, Alexa retry not re-checked)
+  and `tests/triage_local_models.rs` (each local server's answer, no key by
+  default, `INTAKE_LLM_API_KEY`, a server that is not running).
   The check is asynchronous, so tests wait for it with `TestApp::triaged`
   (polls, fails after 5 s). Most other suites run with triage `off`.
 - Frontend unit: card, list, confidence label, live-count and toast hooks.

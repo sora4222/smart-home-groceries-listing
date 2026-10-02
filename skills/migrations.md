@@ -31,6 +31,10 @@ make test-backend
   start with a checksum mismatch. Write a new migration instead.
 - Numbering is sequential and gapless: `0001_`, `0002_`, .... Check the highest
   existing file first (`make migration-new` does).
+- **Parallel branches:** two branches that each add `0008_` clash on merge.
+  A branch built alongside others uses a timestamp version instead
+  (`20261002120000_purchase_history.sql`). It sorts after every `00NN_` file,
+  so it still runs last. Never renumber a migration that has been applied.
 - Migrations run inside a transaction by default. For something that cannot
   (`CREATE INDEX CONCURRENTLY`, `ALTER TYPE ... ADD VALUE`), name the file
   `<version>_<description>.no-tx.sql`.

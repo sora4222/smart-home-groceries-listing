@@ -1,3 +1,0 @@
-# gitleaks false positives: test-only keys and example values in old commits.
-3fd46f51540b6f9a995d7ddc5cf4810185121751:backend/skills/triage.md:generic-api-key:63
-a434ecfef21463a38722e90954530c3f57a891b6:backend/src/auth/clerk.rs:generic-api-key:176

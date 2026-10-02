@@ -5,7 +5,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import type { GroceryItem, GroceryItemEdit } from "#/lib/api";
-import { MAX_QUANTITY, MIN_QUANTITY, clampQuantity } from "#/lib/quantity";
+import { clampQuantity, MAX_QUANTITY, MIN_QUANTITY } from "#/lib/quantity";
 
 interface GroceryItemEditorProps {
 	item: GroceryItem;

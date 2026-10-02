@@ -5,7 +5,7 @@ import { ItemRuleCard } from "#/components/item-rules/item-rule-card";
 import { ItemRuleForm } from "#/components/item-rules/item-rule-form";
 import { ItemRuleList } from "#/components/item-rules/item-rule-list";
 import { Card } from "#/components/ui/card";
-import { type ItemRuleDraft, api } from "#/lib/api";
+import { api, type ItemRuleDraft } from "#/lib/api";
 
 export const Route = createFileRoute("/settings/item-rules")({
 	loader: () => api.itemRules.list(),

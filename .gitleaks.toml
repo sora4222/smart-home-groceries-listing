@@ -1,0 +1,8 @@
+# gitleaks settings for the Secret scan workflow: the default rules, minus
+# test fixtures, which hold throwaway keys made only for tests.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test-only keys and fixtures"
+paths = ['''^backend/tests/fixtures/''']

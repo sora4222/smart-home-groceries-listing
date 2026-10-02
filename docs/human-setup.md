@@ -15,6 +15,7 @@ The parts are in this order so you start the app only once, at the end.
 | [6. Start the app](#part-6--start-the-app-about-10-minutes) | Home server terminal, then Cloudflare | 10 min |
 | [7. Test with your Echo](#part-7--test-with-your-echo-about-5-minutes) | Echo, then the app | 5 min |
 | [8. Woolworths, once](#part-8--woolworths-once-about-10-minutes) | Chrome | 10 min |
+| [9. Coles, once](#part-9--coles-once-about-10-minutes) | Chrome | 10 min |
 
 Doing a shop after setup: [`using-the-app.md`](using-the-app.md).
 
@@ -27,6 +28,7 @@ You need:
 - A domain name you own (like `yourname.com`). Cloudflare can sell you one.
 - The Amazon account your Echo uses.
 - Your Woolworths login (passkey or 1Password).
+- Your Coles login, saved in Chrome.
 
 **Words**
 - **Terminal:** the window where you type commands.
@@ -333,6 +335,34 @@ your address at the top.
 
 **The first time you press the bookmark,** Chrome may ask to let
 woolworths.com.au reach devices on your local network. Press **Allow**.
+
+> You can stop here.
+
+---
+
+## Part 9 — Coles, once (about 10 minutes)
+
+**Where:** Chrome on the computer you shop from. Do all of it in Chrome.
+**Why:** the app fills your Coles trolley through a bookmark you press on
+the Coles website. You log in to Coles yourself. The app never sees your
+Coles password.
+**You need:** the bookmarks bar showing (part 8, step 1).
+
+- [ ] 1. Open the app's **Grocery List** page.
+- [ ] 2. Press **Send to Coles**. (It needs at least one item with a Coles
+  product chosen. Use **Compare prices → Choose** first.)
+- [ ] 3. Drag the **Fill Coles trolley** button up onto the bookmarks bar.
+- [ ] 4. In a new tab, open [coles.com.au](https://www.coles.com.au).
+- [ ] 5. Press **Log in**. Chrome fills in your saved Coles login.
+- [ ] 6. Look at the top of the Coles page. If it asks for your address
+  (it may say **Set your location** or **Choose delivery**), press it and
+  choose **Delivery** to your home address.
+
+**It worked if:** the bookmark is on the bookmarks bar, and Coles shows your
+address at the top.
+
+**The first time you press the bookmark,** Chrome may ask to let
+coles.com.au reach devices on your local network. Press **Allow**.
 
 Setup is done. To shop, follow [`using-the-app.md`](using-the-app.md).
 

@@ -1,7 +1,7 @@
 # Store Integration
 
 Status: **product search built** (`services/stores/`,
-`services/product_search/`). **Woolworths trolley built as a browser
+`services/product_search/`). **Woolworths and Coles trolleys built as a browser
 handoff** (`services/trolley_handoffs/`, `docs/features/FEATURE_TROLLEY_HANDOFF.md`):
 the household's logged-in tab fills the trolley through a bookmarklet, because
 the server cannot log in (passkeys/MFA). Delivery windows and checkout are
@@ -88,6 +88,21 @@ trim it into `tests/fixtures/<store>/`.
   before products are added (`reserve-woolworths-delivery-window.ts`).
 - Called from the store's own page (`fill-woolworths-trolley.ts`), so no
   fingerprinting is needed there. Full record: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
+
+## Trolley (Coles, not yet checked live)
+- `GET`/`PATCH /api/bff/trolley/store/{storeId}` from the logged-in page,
+  with `Ocp-Apim-Subscription-Key` (`window.__RUNTIME_CONFIG__.BFF_API_SUBSCRIPTION_KEY`)
+  and `cusp-*` headers copied from the site's cookies. PATCH sets the
+  quantity. Store id: `localStorage.shoppingMethod.currentFulfilmentStoreId`.
+- `fill-coles-trolley.ts`; no delivery time reserved yet. Details:
+  `docs/features/FEATURE_TROLLEY_HANDOFF.md` ("Coles").
+
+## Adding a store
+1. Rust: a `Store` variant, a `StoreClient` for search (`registry.rs`), a
+   `StoreSettings::base_url` arm (the store-tab CORS rule uses it).
+2. Web app: a self-contained fill script and a `StoreTab` in
+   `frontend/src/lib/store-tab/store-tabs.ts`. `SendToStore` and the
+   handoff routes need no change.
 
 ## Finding internal endpoints
 1. Chrome DevTools → Network → filter to `Fetch/XHR`

@@ -60,5 +60,66 @@ services:
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
 
+  # Local model servers for LLM triage (docs/features/FEATURE_TRIAGE.md).
+  # Each is off unless named in COMPOSE_PROFILES in .env, e.g.
+  # COMPOSE_PROFILES=ollama. Point INTAKE_LLM_BASE_URL at the one you start.
+  # None is published to the host or the tunnel: only the backend reaches it.
+
+  # INTAKE_LLM_BASE_URL=http://ollama:11434/v1
+  # Download the model once: docker compose exec ollama ollama pull llama3.2
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    volumes:
+      - ollama_models:/root/.ollama
+    expose:
+      - "11434"
+    restart: unless-stopped
+
+  # INTAKE_LLM_BASE_URL=http://llamacpp:8080/v1
+  # Downloads LLAMACPP_HF_MODEL from Hugging Face on first start, then reuses it.
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    profiles: ["llamacpp"]
+    command:
+      - "-hf"
+      - "${LLAMACPP_HF_MODEL:-Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q4_K_M}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+    environment:
+      LLAMA_CACHE: /models
+    volumes:
+      - llamacpp_models:/models
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  # INTAKE_LLM_BASE_URL=http://vllm:8000/v1 — needs an NVIDIA GPU and the
+  # NVIDIA Container Toolkit. Serves INTAKE_LLM_MODEL (a Hugging Face name).
+  vllm:
+    image: vllm/vllm-openai:latest
+    profiles: ["vllm"]
+    command:
+      - "--model"
+      - "${INTAKE_LLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}"
+    ipc: host
+    volumes:
+      - vllm_models:/root/.cache/huggingface
+    expose:
+      - "8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
 volumes:
   pg_data:
+  ollama_models:
+  llamacpp_models:
+  vllm_models:

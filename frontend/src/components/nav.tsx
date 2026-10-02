@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
+import { AccountButton } from "#/components/auth/account-button";
 import { Badge } from "#/components/ui/badge";
 import { useHeldCount } from "#/hooks/useHeldCount";
 import { usePendingCount } from "#/hooks/usePendingCount";
@@ -63,6 +64,7 @@ export function Nav() {
 					</Link>
 				);
 			})}
+			<AccountButton />
 		</nav>
 	);
 }

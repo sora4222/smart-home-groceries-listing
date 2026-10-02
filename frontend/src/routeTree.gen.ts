@@ -14,6 +14,7 @@ import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as TriageRouteImport } from './routes/triage'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   path: '/settings/item-rules',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/sign-in/$': typeof SignInSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/sign-in/$': typeof SignInSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,25 @@ export interface FileRoutesById {
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/sign-in/$': typeof SignInSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/order' | '/pending' | '/triage' | '/settings/item-rules'
+  fullPaths:
+    | '/'
+    | '/order'
+    | '/pending'
+    | '/triage'
+    | '/settings/item-rules'
+    | '/sign-in/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/order' | '/pending' | '/triage' | '/settings/item-rules'
+  to:
+    | '/'
+    | '/order'
+    | '/pending'
+    | '/triage'
+    | '/settings/item-rules'
+    | '/sign-in/$'
   id:
     | '__root__'
     | '/'
@@ -75,6 +96,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/triage'
     | '/settings/item-rules'
+    | '/sign-in/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,6 +105,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   TriageRoute: typeof TriageRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
+  SignInSplatRoute: typeof SignInSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsItemRulesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -131,16 +161,18 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   TriageRoute: TriageRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
+  SignInSplatRoute: SignInSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

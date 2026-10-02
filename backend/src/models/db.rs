@@ -160,6 +160,7 @@ pub struct ItemSelection {
     pub selected_at: DateTime<Utc>,
 }
 
-// Trolley handoff rows live in their own file; re-exported so callers keep
-// importing them from `models::db`.
+// Trolley handoff and dislike rows live in their own files; re-exported so
+// callers keep importing them from `models::db`.
+pub use super::dislike_rows::*;
 pub use super::trolley_handoff_rows::*;

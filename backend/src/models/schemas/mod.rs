@@ -10,6 +10,7 @@
 //! type lives in.
 
 mod common;
+mod dislikes;
 mod grocery;
 mod item_rules;
 mod order_review;
@@ -19,6 +20,7 @@ mod trolley_handoffs;
 mod voice;
 
 pub use common::*;
+pub use dislikes::*;
 pub use grocery::*;
 pub use item_rules::*;
 pub use order_review::*;

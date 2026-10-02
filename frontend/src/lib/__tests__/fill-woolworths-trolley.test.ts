@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deliveryInfo, liveDays } from "#/lib/__tests__/woolworths-fixtures";
-import { buildFillWoolworthsTrolleyBookmarklet } from "#/lib/store-tab/bookmarklet";
+import {
+	buildFillWoolworthsTrolleyBookmarklet,
+	buildFillWoolworthsTrolleyProgram,
+} from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
@@ -219,5 +222,32 @@ describe("buildFillWoolworthsTrolleyBookmarklet", () => {
 		expect(calls[0].url).toBe(
 			"https://grocery.test/api/store-tab/trolley-handoffs/claim",
 		);
+	});
+});
+
+describe("buildFillWoolworthsTrolleyProgram for the desktop app", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	it("runs on its own and logs the result instead of an alert", async () => {
+		vi.stubGlobal("location", { hostname: "www.woolworths.com.au" });
+		fakeNetwork();
+		const alert = vi.fn();
+		vi.stubGlobal("alert", alert);
+		const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+		const program = buildFillWoolworthsTrolleyProgram(config, "log");
+
+		expect(program.startsWith("javascript:")).toBe(false);
+		new Function(program)();
+		await vi.waitFor(() =>
+			expect(info).toHaveBeenCalledWith(
+				"[fill-trolley]",
+				expect.stringContaining("Delivery"),
+			),
+		);
+		expect(alert).not.toHaveBeenCalled();
 	});
 });

@@ -11,6 +11,7 @@
 
 #![allow(dead_code)]
 
+pub mod purchases;
 pub mod triage;
 pub mod trolley;
 

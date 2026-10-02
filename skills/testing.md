@@ -75,6 +75,13 @@ splitting into a pure part and a storage part — that is why
   `common::fake_store_settings()`. A query containing `outage` makes the fake
   Coles fail, for the one-store-down path.
 
+### Work that finishes in the background
+Saving a filled trolley as bought runs in a `tokio::spawn` after the
+bookmark's report gets its answer. A test that needs the saved shop polls
+for it (`tests/common/purchases.rs` `orders_once_saved`, up to 5 s) instead
+of sleeping. To test the save itself without timing, call
+`services::purchases::record` directly.
+
 ## Alexa bridge sidecar (Python)
 ```bash
 make test-alexa
@@ -136,7 +143,8 @@ widths" gets checked.
 `frontend/e2e/fixtures.ts` replaces Playwright's `page`, and every spec should
 import `test` from there rather than from `@playwright/test`:
 
-1. **Resets state** — releases a committed list, deletes every item, rejects
+1. **Resets state** — undoes every saved shop (so bought items are not left
+   as `ordered`), releases a committed list, deletes every item, rejects
    every pending intake request, and deletes every item rule (a leftover rule
    would put chips on another test's items). Tests then start from nothing without
    touching the database directly.

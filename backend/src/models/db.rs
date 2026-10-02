@@ -163,3 +163,6 @@ pub struct ItemSelection {
 // Trolley handoff rows live in their own file; re-exported so callers keep
 // importing them from `models::db`.
 pub use super::trolley_handoff_rows::*;
+
+// Purchase history rows, likewise.
+pub use super::purchase_rows::*;

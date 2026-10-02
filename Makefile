@@ -37,6 +37,8 @@ test-backend:
 test-tooling:
 	@sh scripts/test-database-url.test.sh | grep -E "FAIL|expected|actual" || echo "tooling: ok"
 	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
+	@sh scripts/check-file-length.test.sh | grep -E "FAIL|expected|actual" || echo "check-file-length: ok"
+	@sh scripts/check-migrations.test.sh | grep -E "FAIL|expected|actual" || echo "check-migrations: ok"
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5

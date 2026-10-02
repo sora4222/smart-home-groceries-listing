@@ -1,6 +1,7 @@
 -- Google Tasks intake (docs/features/FEATURE_GOOGLE_TASKS.md).
 --
--- Numbered 0010: open PRs already use 0008 (access logs) and 0009 (dislikes).
+-- The version is a timestamp, like main's other new migrations, so branches
+-- adding migrations at the same time never pick the same number.
 --
 -- The backend polls one Google Tasks list the household picks, records each
 -- open task as an intake request (source 'tasks'), then deletes the task.

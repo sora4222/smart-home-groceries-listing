@@ -8,8 +8,8 @@ import {
 	CardFooter,
 	CardHeader,
 } from "#/components/ui/card";
-import { cn } from "#/lib/utils";
 import type { VoiceRequest } from "#/lib/api";
+import { cn } from "#/lib/utils";
 
 interface PendingRequestCardProps {
 	request: VoiceRequest;

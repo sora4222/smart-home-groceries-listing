@@ -103,7 +103,7 @@ typed marker can never skip triage.
 | SQL | `services/google_tasks/{link_repository,oauth_states}.rs`, `services/voice/restore_repository.rs` |
 | Recording a polled item | `services/voice/polled.rs` |
 | Routes | `backend/src/routes/{google_tasks,intake_settings,triage}.rs` |
-| Migration | `backend/migrations/0010_google_tasks_intake.sql` |
+| Migration | `backend/migrations/20261002130000_google_tasks_intake.sql` |
 | Page | `frontend/src/routes/settings/intake.tsx`, `components/intake/`, `hooks/useGoogleTasks.ts`, `hooks/useGoogleSignInReturn.ts` |
 | Restore button | `components/triage/triage-request-card.tsx`, `hooks/useTriageDecisions.ts` |
 

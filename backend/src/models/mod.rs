@@ -5,5 +5,6 @@
 
 pub mod db;
 pub mod google_tasks_rows;
+pub mod purchase_rows;
 pub mod schemas;
 pub mod trolley_handoff_rows;

@@ -166,3 +166,6 @@ pub struct ItemSelection {
 // so callers keep importing them from `models::db`.
 pub use super::google_tasks_rows::*;
 pub use super::trolley_handoff_rows::*;
+
+// Purchase history rows, likewise.
+pub use super::purchase_rows::*;

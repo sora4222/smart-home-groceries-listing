@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import type { NewGroceryItem } from "#/lib/api";
-import { MAX_QUANTITY, MIN_QUANTITY, clampQuantity } from "#/lib/quantity";
+import { clampQuantity, MAX_QUANTITY, MIN_QUANTITY } from "#/lib/quantity";
 
 interface AddItemFormProps {
 	/** Resolves once the item is on the list, or rejects to keep the draft. */

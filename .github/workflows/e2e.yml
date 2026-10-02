@@ -1,0 +1,104 @@
+# Playwright end-to-end tests against the real backend and a real database.
+# Fake store clients and the keyword triage checker keep it off the internet.
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    name: playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: grocery
+          POSTGRES_USER: grocery
+          POSTGRES_PASSWORD: grocery
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U grocery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Read by the backend.
+      DATABASE_URL: postgres://grocery:grocery@localhost:5432/grocery
+      BIND_ADDRESS: 127.0.0.1:8000
+      CORS_ORIGINS: http://localhost:3000
+      DEV_AUTH_BYPASS: "true"
+      STORE_CLIENTS: fake
+      INTAKE_LLM_PROVIDER: fake
+      # Matches the secret in frontend/e2e/fixtures.ts.
+      VOICE_WEBHOOK_SECRET: e2e-webhook-secret
+      # The trolley-fill bookmark's secret; the spending tests read it back.
+      STORE_TAB_SECRET: e2e-store-tab-secret
+      # Google Tasks with the fake account, checked only when a test asks.
+      GOOGLE_TASKS_CLIENT: fake
+      GOOGLE_TASKS_NO_BACKGROUND_POLL: "true"
+      # A throwaway test key (the bytes 0 to 31), allowed in .gitleaks.toml.
+      CREDENTIAL_ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Build backend
+        working-directory: backend
+        run: cargo build --locked
+      - name: Install frontend
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Start backend
+        working-directory: backend
+        run: nohup ./target/debug/grocery-backend > "$RUNNER_TEMP/backend.log" 2>&1 &
+      - name: Start frontend
+        working-directory: frontend
+        run: nohup pnpm dev > "$RUNNER_TEMP/frontend.log" 2>&1 &
+      - name: Wait for both
+        run: |
+          for url in http://localhost:8000/api/health http://localhost:3000/; do
+            for _ in $(seq 60); do curl -fsS -o /dev/null "$url" && break; sleep 2; done
+            curl -fsS -o /dev/null "$url"
+          done
+
+      - name: Playwright
+        working-directory: frontend
+        run: pnpm e2e
+
+      - name: Server logs
+        if: failure()
+        run: tail -n 100 "$RUNNER_TEMP/backend.log" "$RUNNER_TEMP/frontend.log"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

@@ -1,0 +1,43 @@
+# Alexa bridge sidecar (the only Python in the repo): ruff, pytest and
+# a dependency audit.
+name: Alexa bridge
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: sidecars/alexa-bridge
+
+jobs:
+  check:
+    name: ruff, pytest, audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: sidecars/alexa-bridge/uv.lock
+      - run: uv sync --locked
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format
+        run: uv run ruff format --check .
+      - name: Pytest
+        run: uv run pytest -q
+      # oscrypto is pinned to a git commit, so pip-audit skips it by design.
+      - name: pip-audit
+        run: |
+          uv export --locked --no-dev --no-emit-project --no-hashes \
+            --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit -r "$RUNNER_TEMP/requirements.txt" --disable-pip --no-deps

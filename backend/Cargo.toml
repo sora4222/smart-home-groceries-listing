@@ -48,6 +48,7 @@ wreq-util = "0.1.0"
 rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"
 futures-util = "0.3.34"
+chrono-tz = "0.10"
 sha2 = "0.10.9"
 url = "2.5.8"
 

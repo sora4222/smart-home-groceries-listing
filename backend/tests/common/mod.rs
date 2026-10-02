@@ -12,6 +12,7 @@
 #![allow(dead_code)]
 
 pub mod google_tasks;
+pub mod purchases;
 pub mod triage;
 pub mod trolley;
 

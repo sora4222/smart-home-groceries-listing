@@ -35,9 +35,11 @@ src/
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept, reject, restore
 │   ├── google_tasks.rs  # /api/intake/google-tasks — sign-in, lists, choices, poll
 │   ├── intake_settings.rs # GET /api/intake/settings — every channel's status
+│   ├── purchases.rs     # /api/purchase-orders (list, Undo) + /api/purchase-history
+│   ├── spending.rs      # GET /api/spending (+ /item-prices) — the Spending page
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
-│   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
+│   └── extract.rs       # ValidatedJson / OptionalValidatedJson / ValidatedQuery extractors
 ├── auth/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
 │   ├── clerk.rs         # Clerk JWKS verification (current implementation)
@@ -80,6 +82,11 @@ src/
 │   │                    #   on rename/re-chip, repository.rs owns the table
 │   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),
 │   │                    #   summary.rs (by store + totals, pure), log.rs
+│   ├── purchases/       # a filled trolley saved as bought (background), Undo,
+│   │                    #   price/fee/category rules (pure), history, read +
+│   │                    #   write repositories — docs/features/FEATURE_PURCHASE_HISTORY.md
+│   ├── spending/        # the Spending page: period.rs, range.rs (time zones),
+│   │                    #   breakdown.rs (four views, pure)
 │   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM

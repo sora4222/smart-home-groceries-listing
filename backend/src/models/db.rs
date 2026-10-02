@@ -24,6 +24,8 @@ pub enum IntakeSource {
     Webhook,
     /// Forwarded by the Alexa bridge sidecar after it verified the request.
     Alexa,
+    /// A task polled from the household's Google Tasks list.
+    Tasks,
 }
 
 /// Lifecycle of an intake request. An accepted request is a closed decision.
@@ -160,6 +162,7 @@ pub struct ItemSelection {
     pub selected_at: DateTime<Utc>,
 }
 
-// Trolley handoff rows live in their own file; re-exported so callers keep
-// importing them from `models::db`.
+// Trolley handoff and Google Tasks rows live in their own files; re-exported
+// so callers keep importing them from `models::db`.
+pub use super::google_tasks_rows::*;
 pub use super::trolley_handoff_rows::*;

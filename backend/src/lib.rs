@@ -73,10 +73,15 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
         triage,
         auth: auth::build_provider(&settings),
         stores: services::stores::registry::build(&settings.stores),
+        google_tasks: services::google_tasks::registry::build(&settings.google_tasks),
         settings: Arc::new(settings),
         hub,
         encryptor,
     };
+
+    if state.settings.google_tasks.poll_in_background {
+        services::google_tasks::schedule::spawn(state.clone());
+    }
 
     let cors = cors_layer(&state.settings);
 

@@ -11,6 +11,7 @@
 
 mod common;
 mod grocery;
+mod intake;
 mod item_rules;
 mod order_review;
 mod products;
@@ -20,6 +21,7 @@ mod voice;
 
 pub use common::*;
 pub use grocery::*;
+pub use intake::*;
 pub use item_rules::*;
 pub use order_review::*;
 pub use products::*;

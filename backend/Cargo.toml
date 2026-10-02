@@ -38,7 +38,7 @@ anyhow = "1.0.104"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 jsonwebtoken = "11.1.0"
-reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "http2", "charset"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "form", "query", "rustls", "http2", "charset"] }
 aes-gcm = "0.11.1"
 base64 = "0.23.1"
 subtle = "2.6"
@@ -48,6 +48,8 @@ wreq-util = "0.1.0"
 rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"
 futures-util = "0.3.34"
+sha2 = "0.10.9"
+url = "2.5.8"
 
 [dev-dependencies]
 http-body-util = "0.1.5"

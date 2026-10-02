@@ -8,8 +8,12 @@
 
 pub mod counts;
 mod log;
+mod polled;
 pub mod repository;
+pub mod restore_repository;
 pub mod triage_repository;
+
+pub use polled::PolledItem;
 
 use sqlx::PgPool;
 use uuid::Uuid;

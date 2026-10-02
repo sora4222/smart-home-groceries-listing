@@ -11,6 +11,7 @@
 
 #![allow(dead_code)]
 
+pub mod google_tasks;
 pub mod triage;
 pub mod trolley;
 
@@ -23,7 +24,10 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 use grocery_backend::build_app;
-use grocery_backend::config::{Settings, StoreMode, StoreSettings, TriageProvider, TriageSettings};
+use grocery_backend::config::{
+    GoogleTasksMode, GoogleTasksSettings, Settings, StoreMode, StoreSettings, TriageProvider,
+    TriageSettings,
+};
 use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
 
@@ -59,6 +63,26 @@ impl TestApp {
             router: build_app(
                 pool,
                 Settings {
+                    triage,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
+    /// Builds the real application with an encryption key and the Google
+    /// Tasks client `google_tasks` describes, triage as `triage` says.
+    pub fn with_google_tasks(
+        pool: PgPool,
+        google_tasks: GoogleTasksSettings,
+        triage: TriageSettings,
+    ) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    credential_encryption_key: TEST_ENCRYPTION_KEY.to_string(),
+                    google_tasks,
                     triage,
                     ..test_settings()
                 },
@@ -286,6 +310,26 @@ fn test_settings() -> Settings {
         dev_auth_bypass: true,
         stores: fake_store_settings(),
         triage: triage_settings(TriageProvider::Off, ""),
+        google_tasks: google_tasks_settings(GoogleTasksMode::Fake, "http://127.0.0.1:9"),
+    }
+}
+
+/// A base64 AES-256 key for tests that store a Google sign-in. Test-only.
+pub const TEST_ENCRYPTION_KEY: &str = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+
+/// Google Tasks settings for a test: the fake account, or the live client
+/// aimed at a `wiremock` server at `base_url`. Never polls on its own.
+pub fn google_tasks_settings(mode: GoogleTasksMode, base_url: &str) -> GoogleTasksSettings {
+    GoogleTasksSettings {
+        mode,
+        client_id: "test-client-id".to_string(),
+        client_secret: "test-client-secret".to_string(),
+        redirect_uri: "http://localhost:3000/settings/intake".to_string(),
+        auth_url: format!("{base_url}/o/oauth2/v2/auth"),
+        token_url: format!("{base_url}/token"),
+        api_base: base_url.to_string(),
+        timeout: std::time::Duration::from_secs(2),
+        poll_in_background: false,
     }
 }
 

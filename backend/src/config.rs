@@ -9,8 +9,10 @@ use std::time::Duration;
 
 use crate::error::ConfigError;
 
+mod google_tasks;
 mod triage;
 
+pub use google_tasks::{GoogleTasksMode, GoogleTasksSettings};
 pub use triage::{TriageProvider, TriageSettings};
 
 /// How long a fetched Clerk JWKS document is reused before being re-fetched.
@@ -53,6 +55,9 @@ pub struct Settings {
 
     /// How intake requests are screened before the household sees them.
     pub triage: TriageSettings,
+
+    /// How the backend reaches Google Tasks.
+    pub google_tasks: GoogleTasksSettings,
 }
 
 /// Which store clients the backend uses.
@@ -135,6 +140,8 @@ impl Settings {
             stores: StoreSettings::from_env()?,
 
             triage: TriageSettings::from_env()?,
+
+            google_tasks: GoogleTasksSettings::from_env()?,
         })
     }
 }

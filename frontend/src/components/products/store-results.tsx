@@ -1,11 +1,13 @@
 import { ChooseProductButton } from "#/components/products/choose-product-button";
+import { PastPurchases } from "#/components/products/past-purchases";
 import { ProductRow } from "#/components/products/product-row";
 import type { StoreProducts } from "#/lib/api";
 import { visibleProducts } from "#/lib/specials";
 
 /**
  * One store's part of the price comparison: its products cheapest per unit
- * first, each with a button to choose it when the comparison can choose, or
+ * first, each with a button to choose it when the comparison can choose and
+ * how often it was bought before, or
  * why there are none — the store failed, nothing matched the
  * item's filters, or nothing is on special.
  */
@@ -52,6 +54,11 @@ export function StoreResults({
 								store={results.store}
 								storeName={results.store_name}
 								product={product}
+							/>
+							<PastPurchases
+								store={results.store}
+								productId={product.product_id}
+								productName={product.name}
 							/>
 						</ProductRow>
 					))}

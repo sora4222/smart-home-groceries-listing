@@ -8,6 +8,7 @@
 
 pub mod clerk;
 pub mod secret;
+pub mod socket;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -56,7 +57,7 @@ pub fn build_provider(settings: &Settings) -> Arc<dyn AuthProvider> {
 ///
 /// The scheme is matched case-insensitively because RFC 7235 defines it that
 /// way, and some clients send `bearer`.
-fn bearer_token(parts: &Parts) -> Option<&str> {
+pub(crate) fn bearer_token(parts: &Parts) -> Option<&str> {
     let raw = parts.headers.get(AUTHORIZATION)?.to_str().ok()?;
     let (scheme, token) = raw.split_once(' ')?;
     if !scheme.eq_ignore_ascii_case("Bearer") {
@@ -78,14 +79,22 @@ impl FromRequestParts<AppState> for AuthUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        if state.settings.dev_auth_bypass {
-            return Ok(dev_user());
-        }
-
-        let token = bearer_token(parts)
-            .ok_or_else(|| ApiError::Unauthorized("Missing bearer token".to_string()))?;
-        state.auth.verify_token(token).await
+        authenticate(state, bearer_token(parts)).await
     }
+}
+
+/// Turns a presented token (or none) into the household member it belongs
+/// to. Shared by [`AuthUser`] and [`socket::SocketUser`], so the bypass and
+/// the verification are decided in one place.
+pub(crate) async fn authenticate(
+    state: &AppState,
+    token: Option<&str>,
+) -> Result<AuthUser, ApiError> {
+    if state.settings.dev_auth_bypass {
+        return Ok(dev_user());
+    }
+    let token = token.ok_or_else(|| ApiError::Unauthorized("Missing bearer token".to_string()))?;
+    state.auth.verify_token(token).await
 }
 
 #[cfg(test)]

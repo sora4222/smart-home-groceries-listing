@@ -13,6 +13,7 @@ pub mod order_review;
 pub mod products;
 pub mod selections;
 pub mod store_tab;
+pub mod triage;
 pub mod trolley_handoffs;
 pub mod voice;
 pub mod ws;
@@ -35,6 +36,7 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(order_review::router())
         .merge(products::router())
         .merge(selections::router())
+        .merge(triage::router())
         .merge(trolley_handoffs::router())
         .merge(store_tab::router(state.clone()))
         .merge(ws::router())

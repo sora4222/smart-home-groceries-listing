@@ -55,13 +55,16 @@ before=$(cat "$tmp/.env")
 run > /dev/null
 check "a second run changes nothing" "$before" "$(cat "$tmp/.env")"
 
-# 3. An existing .env keeps its database password, even 'changeme': the
+# 3. An existing (older) .env keeps its database password, even 'changeme': the
 #    database may already have been created with it.
 printf 'POSTGRES_PASSWORD=changeme\nDATABASE_URL=postgres://grocery:changeme@db:5432/grocery\nSTORE_TAB_SECRET=\nVOICE_WEBHOOK_SECRET=keepme\n' > "$tmp/.env"
 run > /dev/null
 check "keeps an existing database password" "changeme" "$(value POSTGRES_PASSWORD)"
 check "keeps a secret that is already set" "keepme" "$(value VOICE_WEBHOOK_SECRET)"
 check "fills a secret that is still empty" "64" "$(value STORE_TAB_SECRET | tr -d '\n' | wc -c | tr -d ' ')"
-check "adds nothing that was not in the file" "" "$(value ALEXA_BRIDGE_SECRET)"
+check "adds a secret an older .env does not have yet" "64" "$(value ALEXA_BRIDGE_SECRET | tr -d '\n' | wc -c | tr -d ' ')"
+check "adds each missing secret once" "1" "$(grep -c '^ALEXA_BRIDGE_SECRET=' "$tmp/.env")"
+run > /dev/null
+check "a later run adds it no second time" "1" "$(grep -c '^ALEXA_BRIDGE_SECRET=' "$tmp/.env")"
 
 [ "$fails" -eq 0 ]

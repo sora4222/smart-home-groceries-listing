@@ -88,7 +88,7 @@ when there is no email (`services/dislikes/member_name.rs`). It is saved
 with the dislike. When Clerk sends a real name, change only that file.
 
 ## Data
-Migration `0008_product_dislikes.sql`:
+Migration `0009_product_dislikes.sql`:
 - `product_dislikes` — one row per member per product
   (`UNIQUE (user_id, store, product_id)`). Disliking again keeps the date
   and refreshes the label.

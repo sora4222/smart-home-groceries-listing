@@ -101,6 +101,11 @@ outcome, problem). Lines are a snapshot; deleting the list item keeps them.
   `FillTrolleyBookmark`, `HandoffStatus`).
 - Setting: `STORE_TAB_SECRET`.
 
+## Desktop app
+In the desktop app the same handoff is filled by the app's own Woolworths
+window instead of the bookmark (**Fill trolley in the app**), with the same
+program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
+
 ## Not built
 - Coles (same handoff; needs a Coles script and its trolley call).
 - Showing the store's real windows and fees in the app before sending (the

@@ -8,6 +8,7 @@ For jobs you do again and again. Setting up the first time:
 | [Add items by voice](#add-items-by-voice) | Echo, then the app | 1 min |
 | [Check the Triage page](#check-the-triage-page) | The app | 1 min |
 | [Do a Woolworths shop](#do-a-woolworths-shop) | The app, then Woolworths in Chrome | 10–15 min |
+| [Do a Woolworths shop in the desktop app](#do-a-woolworths-shop-in-the-desktop-app) | The desktop app only | 5–10 min |
 | [Change the delivery time](#change-the-delivery-time) | Woolworths in Chrome | 2 min |
 | [Undo a shop saved by mistake](#undo-a-shop-saved-by-mistake) | The app | 1 min |
 | [See your spending](#see-your-spending) | The app | 2 min |
@@ -106,6 +107,41 @@ later it shows **Saved as bought**.
 
 ---
 
+## Do a Woolworths shop in the desktop app
+
+Everything happens in the **Grocery List** desktop app. No bookmark.
+Set it up first: [human-setup.md, Desktop app](human-setup.md#optional--desktop-app-about-30-minutes).
+
+- [ ] 1. Open **Grocery List** (or press the list icon, then **Open Grocery
+  List**).
+- [ ] 2. For each item without a product: press **Compare prices**, then
+  **Choose** on the product you want.
+- [ ] 3. Press **Ready to order**.
+- [ ] 4. Press **Send to Woolworths**.
+- [ ] 5. Pick a **Delivery day** and **Time of day**. **Tomorrow** and **Any
+  time** are already picked.
+- [ ] 6. Press **Fill trolley in the app**. A Woolworths window opens.
+- [ ] 7. Log in there only if Woolworths asks. The fill starts when the
+  trolley page shows.
+- [ ] 8. Wait for the notification **Woolworths trolley filled**. You can do
+  other things while you wait.
+- [ ] 9. Back in **Send to Woolworths**, press **Open checkout**.
+- [ ] 10. Check the trolley, the delivery time and the total.
+- [ ] 11. Pay in the Woolworths window. The app never pays for you.
+
+**It worked if:** each product shows **Added**, there is a **Delivery:**
+line, and later **Saved as bought**.
+
+**Good to know**
+- Closing the app window keeps it running in the menu bar or tray, so
+  notifications still arrive. To stop it: list icon → **Quit**.
+- You also get a notification when a new item arrives, or one is held in
+  **Triage**.
+- The rest is the same as the Chrome shop: products are added on top,
+  **Not added** items stay on your list, and **Undo** works the same.
+
+---
+
 ## Change the delivery time
 
 **Where:** the Woolworths tab in Chrome.
@@ -179,6 +215,7 @@ Claude tells you when an update needs one of these. Each is quick.
 |---|---|
 | The bookmark's code changed | Open **Send to Woolworths** in the app. Drag **Fill Woolworths trolley** to the bookmarks bar again. Delete the old bookmark (right-click it → **Delete**). |
 | `STORE_TAB_SECRET` or the app's address changed | Same as above: drag the bookmark again. |
+| The desktop app's code changed | In the terminal: `cd desktop && pnpm build`. Then install it again (human-setup, Desktop app, part B). You stay logged in. |
 | The database changed | Nothing. The app updates itself when it starts. |
 | `.env` got a new setting | Run `make setup-env`. Then fill any value Claude names. Then `make down` and `make up`. |
 
@@ -197,4 +234,7 @@ Claude tells you when an update needs one of these. Each is quick.
 | A product says **Not added** | Woolworths cannot deliver it right now. Choose another product for that item. |
 | An item says "The checker could not be reached" | The model is not running. In the terminal, run `make up`. If you use Ollama, also run `docker compose exec ollama ollama pull llama3.2`. Then press **Accept** on the item in **Triage**. |
 | Alexa does not add anything | See [human-setup.md, part 7](human-setup.md#part-7--test-with-your-echo-about-5-minutes). |
+| Desktop app: "The desktop app cannot do this at Coles yet" | Coles is not built yet. Use Woolworths. |
+| Desktop app: the fill never starts | Look at the Woolworths window. Log in if asked. The fill starts on the trolley page. |
+| Desktop app: no notifications | Mac: **System Settings → Notifications → Grocery List** → turn on. Windows: **Settings → System → Notifications** → turn on Grocery List. |
 | Something else | Ask Claude. Say what you pressed and what the screen said. |

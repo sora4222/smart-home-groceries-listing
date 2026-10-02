@@ -6,7 +6,7 @@ Plain words, step by step, grouped by place.
 | Doc | Read it when |
 |---|---|
 | [`human-setup.md`](human-setup.md) | Setting the app up the first time |
-| [`using-the-app.md`](using-the-app.md) | Adding items, doing a Woolworths shop, changing a delivery time, after an update, when something goes wrong |
+| [`using-the-app.md`](using-the-app.md) | Adding items, doing a Woolworths shop (in Chrome or the desktop app), changing a delivery time, after an update, when something goes wrong |
 
 ## For agents and developers
 | Doc | What it holds |

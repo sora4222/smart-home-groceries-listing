@@ -15,6 +15,7 @@ The parts are in this order so you start the app only once, at the end.
 | [6. Start the app](#part-6--start-the-app-about-10-minutes) | Home server terminal, then Cloudflare | 10 min |
 | [7. Test with your Echo](#part-7--test-with-your-echo-about-5-minutes) | Echo, then the app | 5 min |
 | [8. Woolworths, once](#part-8--woolworths-once-about-10-minutes) | Chrome | 10 min |
+| [Optional: Desktop app](#optional--desktop-app-about-30-minutes) | Your Mac or Windows computer | 30 min |
 
 Doing a shop after setup: [`using-the-app.md`](using-the-app.md).
 
@@ -335,6 +336,85 @@ your address at the top.
 woolworths.com.au reach devices on your local network. Press **Allow**.
 
 Setup is done. To shop, follow [`using-the-app.md`](using-the-app.md).
+
+---
+
+## Optional — Desktop app (about 30 minutes)
+
+**Where:** the Mac or Windows computer you shop from, in a terminal in the
+project folder.
+**Why:** the desktop app keeps you logged in to Woolworths and fills the
+trolley itself. No bookmark. It also sends desktop notifications.
+**You need:** the app running (part 6), and the address you open it at in
+your browser.
+**You get:** the **Grocery List** app on your computer.
+
+Part 8 is not needed if you use the desktop app.
+
+### A. Build the app (terminal, about 20 minutes)
+
+- [ ] 1. Mac only: install Apple's tools. Type this and press **Install**
+  when asked:
+
+```bash
+xcode-select --install
+```
+
+- [ ] 2. Install Rust. Type this, then press **Enter** to accept the
+  defaults:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+  Windows: download and run **rustup-init.exe** from
+  [rustup.rs](https://rustup.rs) instead.
+
+- [ ] 3. Close the terminal. Open a new one in the project folder.
+- [ ] 4. Build the app. It takes 5–15 minutes the first time:
+
+```bash
+cd desktop && pnpm install && pnpm build
+```
+
+**It worked if:** the last lines name a finished file.
+- Mac: a file ending in `.dmg`, in `desktop/src-tauri/target/release/bundle/dmg/`
+- Windows: a file ending in `-setup.exe`, in `desktop\src-tauri\target\release\bundle\nsis\`
+
+### B. Install and open it (about 5 minutes)
+
+- [ ] 5. Open the file from step 4.
+  - Mac: drag **Grocery List** onto **Applications**.
+  - Windows: if it says **Windows protected your PC**, press **More info**,
+    then **Run anyway**. Then press **Install**.
+- [ ] 6. Open **Grocery List**.
+  - Mac, if it says the app "cannot be opened": open **System Settings →
+    Privacy & Security**. Scroll down. Press **Open Anyway**.
+- [ ] 7. Type the app's address. Use the one you open in your browser, like
+  `http://localhost:3000` (same computer) or `http://192.168.1.20:3000`.
+- [ ] 8. Press **Save and open**. The Grocery List opens.
+
+**It worked if:** you see the Grocery List page in its own window, and a
+small list icon in the menu bar (Mac) or system tray (Windows).
+
+### C. Log in to Woolworths in the app (about 5 minutes)
+
+- [ ] 9. Press the list icon in the menu bar or tray.
+- [ ] 10. Press **Open Woolworths**. A Woolworths window opens.
+- [ ] 11. Log in.
+  - A passkey may not work in this window. If not, choose to log in with
+    your password, then type the code Woolworths sends you.
+  - Using 1Password? Copy the password from the 1Password app and paste it.
+- [ ] 12. If the page says **Set your delivery address**, press it and
+  choose your address.
+- [ ] 13. The first time the app sends a notification, your computer asks.
+  Press **Allow**.
+
+**It worked if:** the Woolworths window shows your name or address at the
+top. Close the Woolworths window. You stay logged in.
+
+To change the address later: press the list icon, then **Change server
+address…**.
 
 ---
 

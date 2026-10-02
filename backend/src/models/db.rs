@@ -166,3 +166,6 @@ pub use super::trolley_handoff_rows::*;
 
 // Purchase history rows, likewise.
 pub use super::purchase_rows::*;
+
+// Voice list changes (remove / reduce by voice, and their Undo), likewise.
+pub use super::voice_change_rows::*;

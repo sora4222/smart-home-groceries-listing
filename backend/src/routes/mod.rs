@@ -12,7 +12,9 @@ pub mod health;
 pub mod item_rules;
 pub mod order_review;
 pub mod products;
+pub mod purchases;
 pub mod selections;
+pub mod spending;
 pub mod store_tab;
 pub mod triage;
 pub mod trolley_handoffs;
@@ -37,7 +39,9 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(item_rules::router())
         .merge(order_review::router())
         .merge(products::router())
+        .merge(purchases::router())
         .merge(selections::router())
+        .merge(spending::router())
         .merge(triage::router())
         .merge(trolley_handoffs::router())
         .merge(store_tab::router(state.clone()))

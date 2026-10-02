@@ -6,8 +6,9 @@ WORKDIR /build
 
 # cmake, clang, libclang and g++ build BoringSSL, which `wreq` uses to
 # present the same TLS handshake as Chrome to the stores' bot protection.
+# git is needed too: boring-sys2's build script applies its patches with it.
 RUN apt-get update -qq \
- && apt-get install -y --no-install-recommends pkg-config cmake clang libclang-dev g++ perl make \
+ && apt-get install -y --no-install-recommends pkg-config cmake clang libclang-dev g++ perl make git \
  && rm -rf /var/lib/apt/lists/*
 
 # Dependencies first, in their own layer, so editing source does not re-fetch

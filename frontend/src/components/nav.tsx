@@ -13,6 +13,7 @@ const links: ReadonlyArray<{
 		| "/pending"
 		| "/triage"
 		| "/order"
+		| "/analysis"
 		| "/settings/item-rules"
 		| "/settings/dislikes";
 	label: string;
@@ -22,6 +23,7 @@ const links: ReadonlyArray<{
 	{ to: "/pending", label: "Pending Requests", badge: "pending" },
 	{ to: "/triage", label: "Triage", badge: "held" },
 	{ to: "/order", label: "Order" },
+	{ to: "/analysis", label: "Spending" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
 	{ to: "/settings/dislikes", label: "Dislikes" },
 ];

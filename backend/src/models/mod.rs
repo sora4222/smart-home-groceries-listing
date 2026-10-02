@@ -5,5 +5,6 @@
 
 pub mod db;
 pub mod dislike_rows;
+pub mod purchase_rows;
 pub mod schemas;
 pub mod trolley_handoff_rows;

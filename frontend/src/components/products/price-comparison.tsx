@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
 
 import { ProductDislikesProvider } from "#/components/dislikes/product-dislikes";
+import { PastPurchasesProvider } from "#/components/products/past-purchases";
 import { ProductChoiceProvider } from "#/components/products/product-choice";
 import { SpecialsOnlySwitch } from "#/components/products/specials-only-switch";
 import { StoreResults } from "#/components/products/store-results";
@@ -16,7 +17,8 @@ import {
 } from "#/components/ui/sheet";
 import { useItemDislikes } from "#/hooks/useItemDislikes";
 import { useItemProducts } from "#/hooks/useItemProducts";
-import type { GroceryItem, ProductChoice } from "#/lib/api";
+import { useProductHistory } from "#/hooks/useProductHistory";
+import type { GroceryItem, ItemProducts, ProductChoice } from "#/lib/api";
 
 /** The item being compared, shared by the parts of one comparison only. */
 const ItemContext = createContext<GroceryItem | null>(null);
@@ -138,16 +140,39 @@ function Results({ item }: { item: GroceryItem }) {
 					checked={specialsOnly}
 					onCheckedChange={setSpecialsOnly}
 				/>
-				{state.data.stores.map((results) => (
-					<StoreResults
-						key={results.store}
-						results={results}
-						quantity={state.data.item.quantity}
-						specialsOnly={specialsOnly}
-					/>
-				))}
+				<WithPastPurchases search={state.data}>
+					{state.data.stores.map((results) => (
+						<StoreResults
+							key={results.store}
+							results={results}
+							quantity={state.data.item.quantity}
+							specialsOnly={specialsOnly}
+						/>
+					))}
+				</WithPastPurchases>
 			</div>
 		</ProductDislikesProvider>
+	);
+}
+
+/** Reads the past purchases of every product found, for their rows. */
+function WithPastPurchases({
+	search,
+	children,
+}: {
+	search: ItemProducts;
+	children: ReactNode;
+}) {
+	const history = useProductHistory(
+		search.stores.flatMap((results) =>
+			results.products.map((product) => ({
+				store: results.store,
+				product_id: product.product_id,
+			})),
+		),
+	);
+	return (
+		<PastPurchasesProvider history={history}>{children}</PastPurchasesProvider>
 	);
 }
 

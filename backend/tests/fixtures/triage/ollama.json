@@ -1,0 +1,18 @@
+{
+  "id": "chatcmpl-417",
+  "object": "chat.completion",
+  "created": 1759374000,
+  "model": "llama3.2",
+  "system_fingerprint": "fp_ollama",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"supermarket_item\": true, \"confidence\": 0.92, \"reason\": \"Oat milk is sold in supermarkets.\"}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 151, "completion_tokens": 24, "total_tokens": 175 }
+}

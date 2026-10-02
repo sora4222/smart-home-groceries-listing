@@ -10,8 +10,8 @@ docs.
 **Currently implemented:**
 - **Voice intake** — the generic webhook, the Alexa channel, the confirmation
   queue and Pending Requests (`docs/features/FEATURE_VOICE.md`).
-- **LLM triage** — every intake item is checked ("would a supermarket sell
-  this?") before the household sees it; the `/triage` page holds what the
+- **LLM triage** — a local model (Ollama, llama.cpp or vLLM) checks every
+  intake item ("would a supermarket sell this?") before the household sees it; the `/triage` page holds what the
   checker rejected or was unsure of (`FEATURE_TRIAGE.md`).
 - **The grocery list** — add, edit, annotate, chip and commit items
   (`FEATURE_GROCERY_LIST.md`), with **item rules** that chip items

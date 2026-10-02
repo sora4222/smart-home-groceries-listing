@@ -9,7 +9,7 @@
 //! | File | Job |
 //! |---|---|
 //! | `model.rs` | the [`TriageModel`] trait every classifier implements |
-//! | `openai.rs` | OpenAI / Ollama, over the chat-completions API |
+//! | `openai.rs` | Ollama, llama.cpp, vLLM and OpenAI — one chat-completions client |
 //! | `fake.rs` | keyword classifier for development and tests |
 //! | `prompt.rs` | the instructions, and reading the reply (pure) |
 //! | `verdict.rs` | answer → status, reason, confidence (pure) |

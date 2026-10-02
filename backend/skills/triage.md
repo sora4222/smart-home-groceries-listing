@@ -19,7 +19,17 @@ never accepts an item.** It only picks the queue a person sees it in.
 SQL for the `triage_*` columns is in `services/voice/triage_repository.rs`;
 `services/voice/counts.rs` pushes both badge counts.
 
+## Providers
+`ollama` (default), `llamacpp`, `vllm`, `openai`, `fake`, `off`. The four real
+ones are all OpenAI-compatible and share `openai.rs`; a provider is only its
+defaults (`config/triage.rs`: base URL, model, which key variable). The
+local servers run as Compose profiles (`COMPOSE_PROFILES` in `.env`).
+
 ## Adding a provider
+0. If it serves OpenAI chat completions, it needs **no new client**: add the
+   `TriageProvider` variant with its default URL/model/key variable, a parse
+   test, an arm in `registry.rs`, and a fixture + test in
+   `tests/triage_local_models.rs`. Otherwise:
 1. Implement `TriageModel` in a new file (return `BoxFuture`, like
    `StoreClient`). Map every failure to `TriageError` with a message a
    person can read — no keys, headers or response bodies.

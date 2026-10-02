@@ -11,7 +11,7 @@ The parts are in this order so you start the app only once, at the end.
 | [2. Clerk](#part-2--clerk-website-about-10-minutes) | clerk.com | 10 min |
 | [3. Cloudflare](#part-3--cloudflare-website-about-15-minutes) | cloudflare.com | 15 min |
 | [4. Amazon Alexa](#part-4--amazon-developer-website-about-20-minutes) | developer.amazon.com | 20 min |
-| [5. Item checker](#part-5--item-checker-about-10-minutes) | platform.openai.com | 10 min |
+| [5. Item checker](#part-5--item-checker-about-5-minutes) | `.env` | 5 min |
 | [6. Start the app](#part-6--start-the-app-about-10-minutes) | Home server terminal, then Cloudflare | 10 min |
 | [7. Test with your Echo](#part-7--test-with-your-echo-about-5-minutes) | Echo, then the app | 5 min |
 | [8. Woolworths, once](#part-8--woolworths-once-about-10-minutes) | Chrome | 10 min |
@@ -202,38 +202,42 @@ Otherwise the skill will not work on your Echo.
 
 ---
 
-## Part 5 — Item checker (about 10 minutes)
+## Part 5 — Item checker (about 5 minutes)
 
-**Where:** [platform.openai.com](https://platform.openai.com), in your browser.
-**You need:** `.env` open. A payment card for OpenAI.
-**You get:** the OpenAI key for `.env`.
-**Why:** the app asks OpenAI "would a supermarket sell this?" for every item
-Alexa hears. Items that are not groceries wait on the **Triage** page.
+**Where:** `.env`, in your text editor.
+**You get:** the app's item checker, set up.
+**Why:** the app asks a small AI model "would a supermarket sell this?" for
+every item Alexa hears. Items that are not groceries wait on the **Triage**
+page. The model runs on your home server. It is free, and item names stay at
+home.
 
-**Cost:** each item costs a tiny part of a cent. $5 of credit lasts a long time.
+**Choose one.** Ollama is the easiest. It is already set in a new `.env`.
 
-- [ ] 1. Sign up or log in.
-- [ ] 2. Press **Settings** (the gear), then **Billing**.
-- [ ] 3. Press **Add payment details**. Add $5 of credit.
-- [ ] 4. Open [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
-- [ ] 5. Press **Create new secret key**. Name it `grocery-list`.
-- [ ] 6. Copy the key. It starts with `sk-`. **You see it only once.**
+| Choice | Good for | Put these lines in `.env` |
+|---|---|---|
+| **Ollama** (recommended) | Any home server | `INTAKE_LLM_PROVIDER=ollama`<br>`COMPOSE_PROFILES=ollama`<br>`INTAKE_LLM_BASE_URL=http://ollama:11434/v1` |
+| **llama.cpp** | A small or older computer | `INTAKE_LLM_PROVIDER=llamacpp`<br>`COMPOSE_PROFILES=llamacpp`<br>`INTAKE_LLM_BASE_URL=http://llamacpp:8080/v1` |
+| **vLLM** | A computer with an NVIDIA graphics card | `INTAKE_LLM_PROVIDER=vllm`<br>`COMPOSE_PROFILES=vllm`<br>`INTAKE_LLM_BASE_URL=http://vllm:8000/v1` |
+| **No checker** | Skipping it | `INTAKE_LLM_PROVIDER=off` |
 
-| Copy this from OpenAI | Paste it into `.env` after |
-|---|---|
-| The key starting `sk-` | `OPENAI_API_KEY=` |
+- [ ] 1. Find the `INTAKE_LLM_PROVIDER=` line in `.env`. If it is not there,
+  add the three lines from your choice at the end of `.env`.
+- [ ] 2. Make the lines match your choice in the table.
+- [ ] 3. Save `.env`.
 
-- [ ] 7. Check `.env` says `INTAKE_LLM_PROVIDER=openai`. Save `.env`.
+**It worked if:** `.env` has the lines for your choice.
 
-**It worked if:** `OPENAI_API_KEY=` in `.env` has a value.
+**OpenAI instead (paid, in the cloud):** set `INTAKE_LLM_PROVIDER=openai`,
+`COMPOSE_PROFILES=` empty, `INTAKE_LLM_BASE_URL=` empty, and paste a key from
+[platform.openai.com/api-keys](https://platform.openai.com/api-keys) after
+`OPENAI_API_KEY=`.
 
-**Do not want to pay OpenAI?** Pick one instead of the steps above:
-- **No checker:** in `.env`, set `INTAKE_LLM_PROVIDER=off`. Every item goes
-  straight to **Pending Requests**.
-- **Free, on your server:** install [Ollama](https://ollama.com). In a
-  terminal, run `ollama pull llama3.2`. Then in `.env` set
-  `INTAKE_LLM_PROVIDER=ollama` and
-  `INTAKE_LLM_BASE_URL=http://host.docker.internal:11434/v1`.
+**If you chose vLLM:** the home server needs the NVIDIA driver and the
+**NVIDIA Container Toolkit** installed first.
+
+**Already run Ollama, llama.cpp or vLLM yourself, outside Docker?** Leave
+`COMPOSE_PROFILES=` empty. Set `INTAKE_LLM_BASE_URL=http://host.docker.internal:`
+then the port it uses, then `/v1`. Ollama's port is `11434`.
 
 > You can stop here.
 
@@ -254,13 +258,23 @@ signing in for the whole app.
 make up
 ```
 
-- [ ] 2. Start the web app (leave this terminal open while you use the app):
+- [ ] 2. **Only if you chose Ollama in part 5:** download its model. It is
+  about 2 GB, so it takes a few minutes:
+
+```bash
+docker compose exec ollama ollama pull llama3.2
+```
+
+  (llama.cpp and vLLM download their model by themselves the first time.
+  Wait a few minutes before step 4.)
+
+- [ ] 3. Start the web app (leave this terminal open while you use the app):
 
 ```bash
 cd frontend && pnpm install && pnpm dev
 ```
 
-- [ ] 3. Switch to the **Cloudflare tab** from part 3. Refresh it.
+- [ ] 4. Switch to the **Cloudflare tab** from part 3. Refresh it.
 
 **It worked if:**
 - the tunnel says **Healthy**, and
@@ -288,7 +302,8 @@ cd frontend && pnpm install && pnpm dev
 
 **If it goes wrong:**
 - milk is not in Pending Requests → open **Triage**. If it is there, read
-  the reason on the card. "OPENAI_API_KEY is not set" → check part 5.
+  the reason on the card. "could not be reached" → check part 5, and part 6
+  step 2. Then press **Accept** on milk.
 - Alexa says it can't find the skill → check part 4, step 14 (testing on).
 - Nothing in Pending Requests → run `docker compose logs alexa-bridge`. A
   `403` means `ALEXA_SKILL_ID` does not match the skill.

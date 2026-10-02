@@ -8,6 +8,7 @@ For jobs you do again and again. Setting up the first time:
 | [Add items by voice](#add-items-by-voice) | Echo, then the app | 1 min |
 | [Check the Triage page](#check-the-triage-page) | The app | 1 min |
 | [Do a Woolworths shop](#do-a-woolworths-shop) | The app, then Woolworths in Chrome | 10–15 min |
+| [Dislike a product](#dislike-a-product) | The app | 1 min |
 | [Change the delivery time](#change-the-delivery-time) | Woolworths in Chrome | 2 min |
 | [After an app update](#after-an-app-update) | Depends on the update | 2 min |
 | [If something goes wrong](#if-something-goes-wrong) | — | — |
@@ -93,6 +94,26 @@ as **Added**, and a **Delivery:** line with the day and time.
   and time of day you chose.
 - You have **30 minutes** to press the bookmark after **Send and open
   Woolworths**. After that, press **Send and open Woolworths** again.
+
+---
+
+## Dislike a product
+
+**Where:** the app, on the **Grocery List** page.
+
+- [ ] 1. Press **Compare prices** on an item.
+- [ ] 2. Find the product you do not want again.
+- [ ] 3. Press **Dislike** on it.
+
+**It worked if:** the product shows *"You disliked this item previously."*
+
+**Good to know**
+- Everyone in the house sees your dislike, with your name.
+- You can still press **Choose** on a disliked product.
+- **Buy it this time** means "OK for this shop only". The dislike stays.
+- To take your dislike away for good: press **Remove my dislike**, or open
+  **Dislikes** in the menu and press **Remove**.
+- You can only remove your own dislikes.
 
 ---
 

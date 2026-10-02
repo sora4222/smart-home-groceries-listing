@@ -33,6 +33,7 @@ src/
 │   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
 │   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept to pending, reject
+│   ├── dislikes.rs      # /api/product-dislikes + per-item dislike overrides
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -74,6 +75,8 @@ src/
 │   ├── selections/      # choosing one product per item: offer.rs checks it
 │   │                    #   against the store's answer, staleness.rs drops it
 │   │                    #   on rename/re-chip, repository.rs owns the table
+│   ├── dislikes/        # per-member dislikes, per-item overrides; skip.rs is
+│   │                    #   the pure rule the optimiser calls — skills/dislikes.md
 │   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),
 │   │                    #   summary.rs (by store + totals, pure), log.rs
 │   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
@@ -256,3 +259,5 @@ secret, and contain no rules about the grocery list.
 ## Skills in this directory
 - `skills/store-integration.md` — store endpoints, `wreq`, bot-protection rules,
   unit prices and deals
+- `skills/dislikes.md` — dislike scopes, overrides, and how the optimiser
+  asks which product it may buy

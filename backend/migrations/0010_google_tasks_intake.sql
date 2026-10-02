@@ -1,5 +1,7 @@
 -- Google Tasks intake (docs/features/FEATURE_GOOGLE_TASKS.md).
 --
+-- Numbered 0010: open PRs already use 0008 (access logs) and 0009 (dislikes).
+--
 -- The backend polls one Google Tasks list the household picks, records each
 -- open task as an intake request (source 'tasks'), then deletes the task.
 -- Triage's "Restore to source" puts a task back, marked so the next poll

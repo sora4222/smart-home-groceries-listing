@@ -1,4 +1,4 @@
-//! Row types for the Google Tasks intake channel (`migrations/0008_*`).
+//! Row types for the Google Tasks intake channel (`migrations/0010_*`).
 
 use chrono::{DateTime, Utc};
 use uuid::Uuid;

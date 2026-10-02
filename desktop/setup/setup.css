@@ -1,0 +1,70 @@
+/* Plain styles for the setup page; light and dark follow the computer. */
+:root {
+	color-scheme: light dark;
+	--background: #ffffff;
+	--foreground: #18181b;
+	--muted: #71717a;
+	--border: #e4e4e7;
+	--primary: #18181b;
+	--primary-text: #fafafa;
+	--danger: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #09090b;
+		--foreground: #fafafa;
+		--muted: #a1a1aa;
+		--border: #27272a;
+		--primary: #fafafa;
+		--primary-text: #18181b;
+		--danger: #f87171;
+	}
+}
+body {
+	margin: 0;
+	background: var(--background);
+	color: var(--foreground);
+	font: 16px/1.5 system-ui, sans-serif;
+}
+main {
+	max-width: 28rem;
+	margin: 4rem auto;
+	padding: 0 1rem;
+}
+.hint {
+	color: var(--muted);
+	font-size: 0.875rem;
+}
+form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 1.5rem;
+}
+label {
+	font-weight: 600;
+}
+input {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 0.375rem;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+}
+button {
+	padding: 0.5rem 0.75rem;
+	border: 0;
+	border-radius: 0.375rem;
+	background: var(--primary);
+	color: var(--primary-text);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+button:disabled {
+	opacity: 0.6;
+}
+#problem {
+	color: var(--danger);
+}

@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- First-run page: asks for the grocery server's address. Saving it
+     restarts the app on the server's web app (commands/setup.rs). -->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Grocery List — set up</title>
+		<link rel="stylesheet" href="setup.css" />
+	</head>
+	<body>
+		<main>
+			<h1>Grocery List</h1>
+			<p>Type the address of your grocery server.</p>
+			<p class="hint">It is the address you open the app at in your browser.</p>
+			<form id="setup">
+				<label for="server-url">Server address</label>
+				<input
+					id="server-url"
+					name="server-url"
+					type="url"
+					placeholder="https://grocery.example.com"
+					autocomplete="url"
+					required
+				/>
+				<button type="submit">Save and open</button>
+				<p id="problem" role="alert" hidden></p>
+			</form>
+		</main>
+		<script src="setup.js" type="module"></script>
+	</body>
+</html>

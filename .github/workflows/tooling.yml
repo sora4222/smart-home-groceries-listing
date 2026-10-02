@@ -1,4 +1,6 @@
-# Tests for the shell scripts the Makefile relies on (`make test-tooling`).
+# The repo's own tooling: tests for the scripts the Makefile and CI rely on
+# (`make test-tooling`), shellcheck on those scripts, actionlint on these
+# workflows, and a parse of docker-compose.yml.
 name: Tooling
 
 on:
@@ -19,5 +21,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: sh scripts/test-database-url.test.sh
-      - run: sh scripts/fill-env.test.sh
+      - run: for test in scripts/*.test.sh; do sh "$test"; done
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: shellcheck scripts/*.sh
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uvx --from actionlint-py actionlint
+
+  compose:
+    name: docker compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Compose needs a .env to read; the example has every key.
+      - run: cp .env.example .env && docker compose config --quiet

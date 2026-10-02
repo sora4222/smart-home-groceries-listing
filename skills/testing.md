@@ -177,9 +177,16 @@ file per area:
 | `backend.yml` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` (Postgres service), `cargo audit` |
 | `frontend.yml` | `biome ci`, `tsc --noEmit`, Vitest, `pnpm build`, `pnpm audit` |
 | `alexa-bridge.yml` | `ruff check`, `ruff format --check`, pytest, `pip-audit` |
-| `tooling.yml` | the `scripts/*.test.sh` tests |
+| `tooling.yml` | the `scripts/*.test.sh` tests, shellcheck, actionlint, `docker compose config` |
+| `rules.yml` | PRs only: changed files within AGENTS.md rule 1 line limits (`scripts/check-file-length.sh`); no edits to an existing migration (`scripts/check-migrations.sh`) |
+| `docker.yml` | builds the backend and Alexa bridge images (not pushed) |
+| `secrets.yml` | gitleaks secret scan. Fixtures under `backend/tests/fixtures/` are allowed (`.gitleaks.toml`); other false positives go in `.gitleaksignore` |
+| `codeql.yml` | CodeQL security scan for Actions, TypeScript, Python and Rust, also weekly |
 | `e2e.yml` | Playwright against the real backend (`DEV_AUTH_BYPASS`, fake stores, keyword triage) |
 
 `make lint` runs the same lint, format and type checks locally. Run it and
 `make test` before pushing. `biome ci` also fails on import order and
 formatting, so use `make lint-fix` rather than fixing those by hand.
+
+`.github/dependabot.yml` opens weekly update PRs for Cargo, npm, uv,
+GitHub Actions and Docker base images, grouping minor and patch updates.

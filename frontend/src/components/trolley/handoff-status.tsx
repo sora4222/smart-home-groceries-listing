@@ -7,10 +7,11 @@ import { formatMoney } from "#/lib/money";
 /** One sentence about the delivery time, once the store tab has reported. */
 export function deliverySummary(
 	delivery: TrolleyHandoffDelivery,
+	storeName: string,
 ): string | null {
 	if (delivery.outcome === null) return null;
 	if (delivery.outcome === "failed") {
-		return `No delivery time reserved: ${delivery.problem ?? "unknown reason"}. Pick one on Woolworths.`;
+		return `No delivery time reserved: ${delivery.problem ?? "unknown reason"}. Pick one on ${storeName}.`;
 	}
 	const when = delivery.window_start
 		? `${storeDayLabel(delivery.window_start)}, ${delivery.window_label}`
@@ -18,19 +19,20 @@ export function deliverySummary(
 	const fee = delivery.fee ? ` (${formatMoney(delivery.fee)})` : "";
 	const kept =
 		delivery.outcome === "kept" ? " — kept the time you already had" : "";
-	return `Delivery: ${when}${fee}${kept}. You can change it on Woolworths.`;
+	return `Delivery: ${when}${fee}${kept}. You can change it on ${storeName}.`;
 }
 
 /** One short sentence for where the handoff is. */
 export function handoffSummary(handoff: TrolleyHandoff): string {
-	if (isExpired(handoff)) return "Too late — press “Send to Woolworths” again.";
+	const name = handoff.store_name;
+	if (isExpired(handoff)) return `Too late — press “Send to ${name}” again.`;
 	switch (handoff.status) {
 		case "waiting_for_store_tab":
-			return "Waiting. On Woolworths, press the “Fill Woolworths trolley” bookmark.";
+			return `Waiting. On ${name}, press the “Fill ${name} trolley” bookmark.`;
 		case "claimed_by_store_tab":
 			return "Adding to your trolley…";
 		case "filled":
-			return "Done. Check your trolley on Woolworths, then pay there.";
+			return `Done. Check your trolley on ${name}, then pay there.`;
 		case "filled_with_problems":
 			return "Done, but some products could not be added.";
 		case "replaced":
@@ -40,12 +42,11 @@ export function handoffSummary(handoff: TrolleyHandoff): string {
 
 /** Where the handoff is, and what happened to each product. */
 export function HandoffStatus({ handoff }: { handoff: TrolleyHandoff }) {
+	const delivery = deliverySummary(handoff.delivery, handoff.store_name);
 	return (
 		<section aria-label="Trolley progress" className="flex flex-col gap-2">
 			<output className="text-sm font-medium">{handoffSummary(handoff)}</output>
-			{deliverySummary(handoff.delivery) && (
-				<p className="text-sm">{deliverySummary(handoff.delivery)}</p>
-			)}
+			{delivery && <p className="text-sm">{delivery}</p>}
 			{handoff.delivery.problem && handoff.delivery.outcome !== "failed" && (
 				<p className="text-xs text-muted-foreground">
 					{handoff.delivery.problem}

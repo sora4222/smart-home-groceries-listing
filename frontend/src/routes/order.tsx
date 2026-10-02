@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { OrderReview } from "#/components/order/order-review";
-import { SendToWoolworths } from "#/components/trolley/send-to-woolworths";
+import { SendToStore } from "#/components/trolley/send-to-store";
 import { Button } from "#/components/ui/button";
 import { api, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
@@ -16,13 +16,11 @@ export const Route = createFileRoute("/order")({
 			api.grocery.list(),
 			api.selections.list(),
 		]);
+		const chosen = selectionsByItem(selections);
 		return {
 			review,
-			chosenAtWoolworths: chosenAtStore(
-				items,
-				selectionsByItem(selections),
-				"woolworths",
-			),
+			chosenAtWoolworths: chosenAtStore(items, chosen, "woolworths"),
+			chosenAtColes: chosenAtStore(items, chosen, "coles"),
 		};
 	},
 	pendingComponent: () => (
@@ -44,7 +42,8 @@ export const Route = createFileRoute("/order")({
  * from its 10-minute search cache.
  */
 function OrderPage() {
-	const { review, chosenAtWoolworths } = Route.useLoaderData();
+	const { review, chosenAtWoolworths, chosenAtColes } =
+		Route.useLoaderData();
 	const router = useRouter();
 	const [checking, setChecking] = useState(false);
 
@@ -83,12 +82,17 @@ function OrderPage() {
 					</Button>
 				</OrderReview.Unchosen>
 				<OrderReview.Store store="woolworths">
-					<SendToWoolworths chosenCount={chosenAtWoolworths}>
-						<SendToWoolworths.Trigger />
-						<SendToWoolworths.Content />
-					</SendToWoolworths>
+					<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
+						<SendToStore.Trigger />
+						<SendToStore.Content />
+					</SendToStore>
 				</OrderReview.Store>
-				<OrderReview.Store store="coles" />
+				<OrderReview.Store store="coles">
+					<SendToStore store="coles" chosenCount={chosenAtColes}>
+						<SendToStore.Trigger />
+						<SendToStore.Content />
+					</SendToStore>
+				</OrderReview.Store>
 				<OrderReview.Total />
 			</OrderReview>
 		</div>

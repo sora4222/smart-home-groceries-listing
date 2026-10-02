@@ -16,7 +16,9 @@ import {
 	type TrolleyHandoffState,
 	useTrolleyHandoff,
 } from "#/hooks/useTrolleyHandoff";
-import type { DeliveryWanted } from "#/lib/api";
+import type { DeliveryWanted, StoreId } from "#/lib/api";
+import type { StoreTab } from "#/lib/store-tab/store-tab";
+import { STORE_TABS } from "#/lib/store-tab/store-tabs";
 
 /** Tomorrow (the store's next day), any time. */
 export const DEFAULT_DELIVERY: DeliveryWanted = {
@@ -24,12 +26,10 @@ export const DEFAULT_DELIVERY: DeliveryWanted = {
 	time_of_day: "any",
 };
 
-/** Where the household's Woolworths trolley is. */
-export const WOOLWORTHS_TROLLEY_URL =
-	"https://www.woolworths.com.au/shop/mytrolley";
-
 interface SendContext extends TrolleyHandoffState {
-	/** How many list items have a Woolworths product chosen. */
+	/** The store's trolley handoff: names, links and its bookmark. */
+	tab: StoreTab;
+	/** How many list items have a product chosen at this store. */
 	chosenCount: number;
 	/** The delivery time to reserve; tomorrow, any time, until changed. */
 	delivery: DeliveryWanted;
@@ -40,39 +40,47 @@ const Context = createContext<SendContext | null>(null);
 
 function useSend(): SendContext {
 	const value = useContext(Context);
-	if (!value)
-		throw new Error("SendToWoolworths parts must be inside <SendToWoolworths>");
+	if (!value) throw new Error("SendToStore parts must be inside <SendToStore>");
 	return value;
 }
 
 /**
- * Puts every product chosen at Woolworths into the household's own
- * Woolworths trolley, in a sheet, after reserving a delivery time (default:
- * tomorrow, any time — changeable on Woolworths later).
+ * Puts every product chosen at one store into the household's own trolley
+ * at that store, in a sheet. Where the store's bookmark can, it reserves a
+ * delivery time first (default: tomorrow, any time — changeable on the
+ * store's website later).
  *
  * ```tsx
- * <SendToWoolworths chosenCount={3}>
- *   <SendToWoolworths.Trigger />
- *   <SendToWoolworths.Content />
- * </SendToWoolworths>
+ * <SendToStore store="coles" chosenCount={3}>
+ *   <SendToStore.Trigger />
+ *   <SendToStore.Content />
+ * </SendToStore>
  * ```
  *
- * The server cannot log in to Woolworths, so the household's logged-in
- * Woolworths tab does the adding, through the "Fill Woolworths trolley"
- * bookmark. Nothing is paid for here.
+ * The server cannot log in to a store, so the household's logged-in tab does
+ * the adding, through the store's "Fill … trolley" bookmark
+ * (`lib/store-tab/store-tabs.ts`). Nothing is paid for here.
  */
-function SendToWoolworthsRoot({
+function SendToStoreRoot({
+	store,
 	chosenCount,
 	children,
 }: {
+	store: StoreId;
 	chosenCount: number;
 	children: ReactNode;
 }) {
-	const handoff = useTrolleyHandoff("woolworths");
+	const handoff = useTrolleyHandoff(store);
 	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
 	return (
 		<Context.Provider
-			value={{ ...handoff, chosenCount, delivery, setDelivery }}
+			value={{
+				...handoff,
+				tab: STORE_TABS[store],
+				chosenCount,
+				delivery,
+				setDelivery,
+			}}
 		>
 			<Sheet>{children}</Sheet>
 		</Context.Provider>
@@ -81,7 +89,7 @@ function SendToWoolworthsRoot({
 
 /** The button that opens the sheet; disabled until something is chosen. */
 function Trigger() {
-	const { chosenCount } = useSend();
+	const { tab, chosenCount } = useSend();
 	return (
 		<SheetTrigger asChild>
 			<Button
@@ -89,55 +97,62 @@ function Trigger() {
 				className="w-full sm:w-auto"
 				disabled={chosenCount === 0}
 			>
-				Send to Woolworths ({chosenCount} {chosenCount === 1 ? "item" : "items"}
-				)
+				Send to {tab.storeName} ({chosenCount}{" "}
+				{chosenCount === 1 ? "item" : "items"})
 			</Button>
 		</SheetTrigger>
 	);
 }
 
-/** The three steps, and the result once the bookmark reports back. */
+/** The steps, and the result once the bookmark reports back. */
 function Content() {
-	const { send, sending, handoff, error, delivery, setDelivery } = useSend();
+	const { tab, send, sending, handoff, error, delivery, setDelivery } =
+		useSend();
+	const name = tab.storeName;
 
 	async function sendAndOpen() {
 		// Open the tab now, while the click still counts, or it is blocked.
-		const tab = window.open(WOOLWORTHS_TROLLEY_URL, "_blank");
+		const opened = window.open(tab.trolleyUrl, "_blank");
 		const created = await send(delivery);
-		if (!created) tab?.close();
+		if (!created) opened?.close();
 	}
 
 	return (
 		<SheetContent className="flex flex-col gap-4 overflow-y-auto p-4">
 			<SheetHeader className="p-0">
-				<SheetTitle>Send to Woolworths</SheetTitle>
+				<SheetTitle>Send to {name}</SheetTitle>
 				<SheetDescription>
-					Puts your chosen Woolworths products in your Woolworths trolley. You
-					pay on Woolworths.
+					Puts your chosen {name} products in your {name} trolley. You pay on{" "}
+					{name}.
 				</SheetDescription>
 			</SheetHeader>
 			<ol className="flex list-decimal flex-col gap-3 pl-5 text-sm">
 				<li>
 					<p>Only once: drag this to your bookmarks bar.</p>
-					<FillTrolleyBookmark />
+					<FillTrolleyBookmark tab={tab} />
 				</li>
+				{tab.reservesDelivery && (
+					<li>
+						<p>Pick a delivery time. You can change it on {name} later.</p>
+						<div className="mt-1">
+							<DeliveryTimeChooser value={delivery} onChange={setDelivery} />
+						</div>
+					</li>
+				)}
 				<li>
-					<p>Pick a delivery time. You can change it on Woolworths later.</p>
-					<div className="mt-1">
-						<DeliveryTimeChooser value={delivery} onChange={setDelivery} />
-					</div>
-				</li>
-				<li>
-					<p>Press the button. Woolworths opens. Log in if asked.</p>
+					<p>Press the button. {name} opens. Log in if asked.</p>
 					<Button
 						className="mt-1 w-full sm:w-auto"
 						disabled={sending}
 						onClick={sendAndOpen}
 					>
-						{sending ? "Sending…" : "Send and open Woolworths"}
+						{sending ? "Sending…" : `Send and open ${name}`}
 					</Button>
 				</li>
-				<li>On Woolworths, press the “Fill Woolworths trolley” bookmark.</li>
+				<li>
+					On {name}, press the “{tab.bookmarkName}” bookmark.
+					{!tab.reservesDelivery && ` Then pick a delivery time on ${name}.`}
+				</li>
 			</ol>
 			{error && (
 				<p role="alert" className="text-sm text-destructive">
@@ -149,7 +164,7 @@ function Content() {
 	);
 }
 
-export const SendToWoolworths = Object.assign(SendToWoolworthsRoot, {
+export const SendToStore = Object.assign(SendToStoreRoot, {
 	Trigger,
 	Content,
 });

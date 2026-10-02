@@ -6,8 +6,10 @@
 //! single transaction and locks the request row first, so two browser tabs
 //! racing to accept the same card cannot both succeed.
 
+pub mod counts;
 mod log;
 pub mod repository;
+pub mod triage_repository;
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,7 +23,8 @@ use crate::models::schemas::{
 };
 use crate::services::grocery::{duplicate_error, repository as grocery_repository};
 use crate::services::item_rules::{self, AddedVia};
-use crate::services::ws_hub::{ServerEvent, WsHub};
+use crate::services::triage::TriageQueue;
+use crate::services::ws_hub::WsHub;
 
 /// Whether an intake delivery produced a new request or matched one already
 /// recorded under the same `external_id`.
@@ -45,10 +48,12 @@ impl<'a> VoiceService<'a> {
         Self { pool, hub }
     }
 
-    /// Records a request from the generic webhook and notifies open sessions.
+    /// Records a request from the generic webhook, starts its triage check and
+    /// notifies open sessions.
     pub async fn create_webhook_request(
         &self,
         payload: &VoiceRequestCreate,
+        triage: &TriageQueue,
     ) -> Result<VoiceRequest, ApiError> {
         let request = repository::insert_request(
             self.pool,
@@ -57,10 +62,10 @@ impl<'a> VoiceService<'a> {
             &payload.item,
             payload.item.trim(),
             payload.quantity,
+            triage.initial_status(),
         )
         .await?;
-        log::recorded(&request);
-        self.publish_pending_count().await?;
+        self.after_recorded(&request, triage).await?;
         Ok(request)
     }
 
@@ -71,9 +76,12 @@ impl<'a> VoiceService<'a> {
     /// a skill endpoint it believes timed out, so this is the normal path, not
     /// an edge case. The returned [`Delivery`] says which happened, so the
     /// route can answer 201 for a new item and 200 for a retry.
+    ///
+    /// A retry is never classified again: the first delivery's check stands.
     pub async fn create_alexa_request(
         &self,
         payload: &AlexaIntakeCreate,
+        triage: &TriageQueue,
     ) -> Result<(VoiceRequest, Delivery), ApiError> {
         if let Some(external_id) = payload.external_id.as_deref() {
             let existing =
@@ -92,14 +100,15 @@ impl<'a> VoiceService<'a> {
             payload.raw_text.as_deref().unwrap_or(&payload.item),
             payload.item.trim(),
             payload.quantity,
+            triage.initial_status(),
         )
         .await?;
-        log::recorded(&request);
-        self.publish_pending_count().await?;
+        self.after_recorded(&request, triage).await?;
         Ok((request, Delivery::Recorded))
     }
 
-    /// Requests still awaiting a decision, newest first.
+    /// Requests waiting in Pending Requests, newest first. Requests triage
+    /// held or rejected wait in the Triage view instead.
     pub async fn list_pending(&self) -> Result<Vec<VoiceRequest>, ApiError> {
         repository::list_pending(self.pool).await
     }
@@ -177,7 +186,7 @@ impl<'a> VoiceService<'a> {
         tx.commit().await?;
         log::accepted(&accepted, &grocery_item, merged, user_id);
 
-        self.publish_pending_count().await?;
+        self.publish_counts().await?;
         Ok((accepted, grocery_item))
     }
 
@@ -197,20 +206,25 @@ impl<'a> VoiceService<'a> {
         };
         log::rejected(&request);
 
-        self.publish_pending_count().await?;
+        self.publish_counts().await?;
         Ok(request)
     }
 
-    /// Counts requests still awaiting a decision.
-    pub async fn pending_count(&self) -> Result<i64, ApiError> {
-        repository::pending_count(self.pool).await
+    /// Logs a new request, starts its triage check, and updates the badges
+    /// (a request triage skips is in Pending Requests already).
+    async fn after_recorded(
+        &self,
+        request: &VoiceRequest,
+        triage: &TriageQueue,
+    ) -> Result<(), ApiError> {
+        log::recorded(request);
+        triage.start(request);
+        self.publish_counts().await
     }
 
-    /// Pushes the current pending count to every open browser session.
-    async fn publish_pending_count(&self) -> Result<(), ApiError> {
-        let count = self.pending_count().await?;
-        self.hub.broadcast(ServerEvent::VoiceRequestAdded { count });
-        Ok(())
+    /// Pushes the badge counts to every open browser session.
+    async fn publish_counts(&self) -> Result<(), ApiError> {
+        counts::publish(self.pool, self.hub).await
     }
 }
 

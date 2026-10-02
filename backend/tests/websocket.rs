@@ -15,7 +15,7 @@ use tokio_tungstenite::tungstenite::Message;
 
 /// Waits for the next text frame, failing the test rather than hanging if the
 /// server never sends one.
-async fn next_event<S>(socket: &mut S) -> Value
+async fn next_frame<S>(socket: &mut S) -> Value
 where
     S: StreamExt<Item = Result<Message, tokio_tungstenite::tungstenite::Error>> + Unpin,
 {
@@ -29,6 +29,28 @@ where
         Message::Text(text) => serde_json::from_str(&text).expect("the frame should be JSON"),
         other => panic!("expected a text frame, got {other:?}"),
     }
+}
+
+/// Waits for the next event of one `type`, passing over the others. Each
+/// count change sends both badge counts; a test usually watches one.
+async fn next_event_of<S>(socket: &mut S, kind: &str) -> Value
+where
+    S: StreamExt<Item = Result<Message, tokio_tungstenite::tungstenite::Error>> + Unpin,
+{
+    loop {
+        let event = next_frame(socket).await;
+        if event["type"] == kind {
+            return event;
+        }
+    }
+}
+
+/// The next Pending Requests count.
+async fn next_event<S>(socket: &mut S) -> Value
+where
+    S: StreamExt<Item = Result<Message, tokio_tungstenite::tungstenite::Error>> + Unpin,
+{
+    next_event_of(socket, "voice_request_added").await
 }
 
 #[sqlx::test]
@@ -134,4 +156,21 @@ async fn a_dropped_session_does_not_stop_the_others(pool: PgPool) {
     app.post_webhook(&json!({ "item": "milk" })).await;
 
     assert_eq!(next_event(&mut survivor).await["count"], 1);
+}
+
+#[sqlx::test]
+async fn every_count_change_also_pushes_the_held_count(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let address = app.serve().await;
+
+    let (mut socket, _) = tokio_tungstenite::connect_async(format!("ws://{address}/ws"))
+        .await
+        .unwrap();
+
+    app.post_webhook(&json!({ "item": "milk" })).await;
+
+    assert_eq!(
+        next_event_of(&mut socket, "triage_held").await,
+        json!({ "type": "triage_held", "count": 0 })
+    );
 }

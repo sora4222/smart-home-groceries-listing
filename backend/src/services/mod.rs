@@ -9,6 +9,7 @@ pub mod order_review;
 pub mod product_search;
 pub mod selections;
 pub mod stores;
+pub mod triage;
 pub mod trolley_handoffs;
 pub mod voice;
 pub mod ws_hub;

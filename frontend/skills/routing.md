@@ -26,6 +26,12 @@ export const Route = createFileRoute('/pending')({
 })
 ```
 
+## Search params
+Validate them on the route and give the page a default:
+`validateSearch: (s) => (s.tab === "rejected" ? { tab: "rejected" } : {})`,
+then `const { tab = "held" } = Route.useSearch()` (see `routes/triage.tsx`).
+A toast or link can then open a tab directly.
+
 ## Mutations
 A route's loader is the single source of truth. Mutate through `lib/api`, then
 `await router.invalidate()` — inside the same `try`, so an invalidation still
@@ -49,7 +55,13 @@ the current route gets nav-highlighted — no manual `usePathname` check.
 
 ## Real-time (WebSocket) + toasts
 `lib/ws.ts` is a client-only singleton socket (guarded on `typeof window`).
-`hooks/usePendingCount.ts` and `hooks/useVoiceRequestToasts.ts` both
-`subscribe()` to it — one drives the nav badge, the other fires the Sonner
-toast only when the pending count *increases* (a new voice request), not on
-every accept/reject. Mount `useVoiceRequestToasts` once, at the root.
+Each event carries a fresh count: `voice_request_added` (Pending Requests) and
+`triage_held` (held for review). Two generic hooks `subscribe()` to it:
+- `useLiveCount(type, load)` — a nav badge: loads once, then follows pushes
+  (`usePendingCount`, `useHeldCount`). Give it a module-level `load`.
+- `useCountRiseToast(type, onRise)` — fires only when the count *rises* (a
+  new item), not on every accept/reject (`useVoiceRequestToasts`,
+  `useTriageToasts`). Mount the toast hooks once, at the root.
+
+A new badge or toast is a two-line hook on top of these, plus a new event
+type in `lib/ws.ts` and `ServerEvent` in `backend/src/services/ws_hub.rs`.

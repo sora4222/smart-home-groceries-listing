@@ -6,6 +6,7 @@ For jobs you do again and again. Setting up the first time:
 | Job | Where | Time |
 |---|---|---|
 | [Add items by voice](#add-items-by-voice) | Echo, then the app | 1 min |
+| [Check the Triage page](#check-the-triage-page) | The app | 1 min |
 | [Do a Woolworths shop](#do-a-woolworths-shop) | The app, then Woolworths in Chrome | 10–15 min |
 | [Change the delivery time](#change-the-delivery-time) | Woolworths in Chrome | 2 min |
 | [After an app update](#after-an-app-update) | Depends on the update | 2 min |
@@ -23,6 +24,32 @@ For jobs you do again and again. Setting up the first time:
 - [ ] 4. Press **Accept**.
 
 **It worked if:** the item is on the **Grocery List** page.
+
+**Not in Pending Requests?** The checker may have stopped it. See the next
+part.
+
+---
+
+## Check the Triage page
+
+**Where:** the app. Do this when **Triage** in the menu shows a red number,
+or when an item you said is not in **Pending Requests**.
+
+The checker asks "would a supermarket sell this?". It stops items it says
+no to, and items it is not sure about.
+
+- [ ] 1. Open **Triage**.
+- [ ] 2. Look at **Held for review**. These need you.
+- [ ] 3. Read the reason on each card.
+- [ ] 4. Press **Accept** if you want the item. It moves to **Pending
+  Requests**.
+- [ ] 5. Press **Reject** if you do not want it.
+- [ ] 6. Optional: look at **Rejected** too, in case the checker was wrong.
+
+**It worked if:** the red number on **Triage** is gone.
+
+**Accept does not add it to the list yet.** Open **Pending Requests** and
+press **Accept** there too.
 
 ---
 
@@ -104,5 +131,6 @@ Claude tells you when an update needs one of these. Each is quick.
 | "Fill trolley failed" with a network error | Check the app is running. Check you pressed **Allow** on Chrome's local network question. |
 | "No delivery time reserved" | Pick a time on Woolworths yourself (see [Change the delivery time](#change-the-delivery-time)). |
 | A product says **Not added** | Woolworths cannot deliver it right now. Choose another product for that item. |
-| Alexa does not add anything | See [human-setup.md, part 6](human-setup.md#part-6--test-with-your-echo-about-5-minutes). |
+| An item says "The checker could not be reached" | The model is not running. In the terminal, run `make up`. If you use Ollama, also run `docker compose exec ollama ollama pull llama3.2`. Then press **Accept** on the item in **Triage**. |
+| Alexa does not add anything | See [human-setup.md, part 7](human-setup.md#part-7--test-with-your-echo-about-5-minutes). |
 | Something else | Ask Claude. Say what you pressed and what the screen said. |

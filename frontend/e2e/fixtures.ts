@@ -1,4 +1,9 @@
-import { type Page, expect, test as base } from "@playwright/test";
+import {
+	type APIRequestContext,
+	type Page,
+	expect,
+	test as base,
+} from "@playwright/test";
 
 /** Where the backend answers. The app itself is reached through `baseURL`. */
 export const API_BASE_URL = process.env.E2E_API_BASE_URL ?? "http://localhost:8000";
@@ -36,6 +41,13 @@ export const test = base.extend<GroceryFixtures>({
 		for (const item of (await pending.json()) as Array<{ id: string }>) {
 			await request.post(`${API_BASE_URL}/api/voice-requests/${item.id}/reject`);
 		}
+		// And both Triage tabs: a held item would show in the Triage badge.
+		for (const tab of ["held", "rejected"]) {
+			const waiting = await request.get(`${API_BASE_URL}/api/triage?tab=${tab}`);
+			for (const item of (await waiting.json()) as Array<{ id: string }>) {
+				await request.post(`${API_BASE_URL}/api/triage/${item.id}/reject`);
+			}
+		}
 		// Rules would otherwise put chips on items other tests add.
 		const rules = await request.get(`${API_BASE_URL}/api/item-rules`);
 		for (const rule of (await rules.json()) as Array<{ id: string }>) {
@@ -65,6 +77,46 @@ export const test = base.extend<GroceryFixtures>({
 });
 
 export { expect };
+
+/** Where the triage step put a delivered item. */
+export type TriagedTo = "pending" | "held" | "rejected";
+
+/**
+ * Delivers an item through the intake webhook — what a Home Assistant
+ * automation or `curl` would call — and waits for the triage step to put it
+ * in a queue. Triage runs after the webhook answers, so opening a page
+ * straight away could miss the item.
+ */
+export async function deliverVoiceItem(
+	request: APIRequestContext,
+	item: string,
+	quantity = 1,
+): Promise<TriagedTo> {
+	const delivered = await request.post(`${API_BASE_URL}/api/voice-requests`, {
+		headers: { "x-webhook-secret": "e2e-webhook-secret" },
+		data: { item, quantity },
+	});
+	expect(delivered.status()).toBe(201);
+	const { id } = (await delivered.json()) as { id: string };
+
+	const queues: Array<[TriagedTo, string]> = [
+		["pending", "/api/voice-requests"],
+		["held", "/api/triage?tab=held"],
+		["rejected", "/api/triage?tab=rejected"],
+	];
+	let found: TriagedTo | null = null;
+	await expect
+		.poll(async () => {
+			for (const [queue, path] of queues) {
+				const listed = await request.get(`${API_BASE_URL}${path}`);
+				const ids = ((await listed.json()) as Array<{ id: string }>).map((r) => r.id);
+				if (ids.includes(id)) found = queue;
+			}
+			return found;
+		}, { message: `${item} should be triaged` })
+		.not.toBeNull();
+	return found as unknown as TriagedTo;
+}
 
 /**
  * Navigates and waits for React to hydrate.

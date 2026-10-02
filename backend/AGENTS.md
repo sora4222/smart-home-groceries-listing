@@ -32,6 +32,7 @@ src/
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
 │   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
 │   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
+│   ├── triage.rs        # /api/triage — held/rejected tabs, accept to pending, reject
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
@@ -53,7 +54,12 @@ src/
 │   ├── voice/
 │   │   ├── mod.rs       # VoiceService: the confirmation-queue rules
 │   │   ├── log.rs       # the queue's log events
-│   │   └── repository.rs# every voice_requests statement, as literals
+│   │   ├── counts.rs    # pushes both badge counts (pending, held)
+│   │   ├── repository.rs# voice_requests statements, as literals
+│   │   └── triage_repository.rs # the triage_* columns of the same table
+│   ├── triage/          # LLM triage: TriageModel trait, OpenAI/Ollama client,
+│   │                    #   fake, prompt + verdict (pure), background queue,
+│   │                    #   Triage view rules — see backend/skills/triage.md
 │   ├── item_rules/
 │   │   ├── mod.rs       # ItemRuleService: list, add, edit, delete
 │   │   ├── apply.rs     # filter_terms_for(): the chips a new item gets
@@ -149,6 +155,16 @@ A service **borrows** the pool a route hands it; it never creates one. No HTTP
 calls in a service (that is `services/stores/`), and no SQL either — SQL lives
 in the domain's `repository.rs`.
 
+## Triage (LLM)
+`AppState.triage` is a `TriageQueue`, built by `services::triage::registry`
+from `INTAKE_LLM_PROVIDER` (`ollama` default | `llamacpp` | `vllm` | `openai` |
+`fake` | `off`). Only
+`services/triage/openai.rs` talks to an LLM provider. An intake service
+records the request `unchecked` and calls `triage.start(&request)`, which
+classifies it in a spawned task — never inline, because the Alexa bridge only
+waits 3 s. Integration tests run with triage `off` unless they build
+`TestApp::with_triage`. See `backend/skills/triage.md`.
+
 ## Store clients
 `AppState.stores` holds every `StoreClient`, built once by
 `services::stores::registry::build` from `STORE_CLIENTS` (`live` | `fake`).
@@ -172,7 +188,8 @@ never an `ApiError`. Money is `rust_decimal::Decimal`, sent as a string.
   `ix_grocery_items_normalised_name`, and as
   `services::grocery::repository::normalise` in Rust. Change one, change all
   three.
-- **A table has one repository.** Every `grocery_items` statement lives in
+- **A table has one repository** (a module directory; `voice/` splits its
+  statements over `repository.rs` and `triage_repository.rs` for length). Every `grocery_items` statement lives in
   `services/grocery/repository.rs`, including the ones the intake queue uses
   when it accepts a request — `services/voice/` calls into it rather than
   writing item SQL of its own.

@@ -12,6 +12,7 @@ import { itemRulesApi } from "#/lib/api/item-rules";
 import { orderReviewApi } from "#/lib/api/order-review";
 import { productsApi } from "#/lib/api/products";
 import { selectionsApi } from "#/lib/api/selections";
+import { triageApi } from "#/lib/api/triage";
 import { trolleyHandoffsApi } from "#/lib/api/trolley-handoffs";
 import { voiceApi } from "#/lib/api/voice";
 
@@ -21,11 +22,13 @@ export * from "#/lib/api/item-rules";
 export * from "#/lib/api/order-review";
 export * from "#/lib/api/products";
 export * from "#/lib/api/selections";
+export * from "#/lib/api/triage";
 export * from "#/lib/api/trolley-handoffs";
 export * from "#/lib/api/voice";
 
 export const api = {
 	voice: voiceApi,
+	triage: triageApi,
 	grocery: groceryApi,
 	itemRules: itemRulesApi,
 	products: productsApi,

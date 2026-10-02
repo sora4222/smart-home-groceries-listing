@@ -13,6 +13,9 @@ const request: VoiceRequest = {
 	parsed_quantity: 2,
 	status: "pending",
 	created_at: new Date().toISOString(),
+	triage_status: "approved",
+	triage_reason: "Milk is sold at supermarkets.",
+	triage_confidence: 0.95,
 };
 
 describe("PendingRequestCard", () => {

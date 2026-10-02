@@ -25,6 +25,9 @@ const CHANNEL_CAPACITY: usize = 64;
 pub enum ServerEvent {
     /// The pending-request count changed (an item arrived, or one was decided).
     VoiceRequestAdded { count: i64 },
+    /// The held-for-review count changed (triage held an item, or a person
+    /// moved or rejected one). Drives the Triage nav badge and its toast.
+    TriageHeld { count: i64 },
 }
 
 /// Publishes [`ServerEvent`]s to all subscribed connections.
@@ -75,6 +78,15 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({ "type": "voice_request_added", "count": 3 })
+        );
+    }
+
+    #[test]
+    fn triage_held_serialises_with_its_own_type() {
+        let json = serde_json::to_value(ServerEvent::TriageHeld { count: 2 }).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({ "type": "triage_held", "count": 2 })
         );
     }
 

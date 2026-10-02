@@ -15,6 +15,7 @@ The parts are in this order so you start the app only once, at the end.
 | [6. Start the app](#part-6--start-the-app-about-10-minutes) | Home server terminal, then Cloudflare | 10 min |
 | [7. Test with your Echo](#part-7--test-with-your-echo-about-5-minutes) | Echo, then the app | 5 min |
 | [8. Woolworths, once](#part-8--woolworths-once-about-10-minutes) | Chrome | 10 min |
+| [Optional — Google Tasks](#optional--google-tasks-about-25-minutes) | Google Tasks, Google Cloud, `.env`, the app | 25 min |
 
 Doing a shop after setup: [`using-the-app.md`](using-the-app.md).
 
@@ -335,6 +336,116 @@ your address at the top.
 woolworths.com.au reach devices on your local network. Press **Allow**.
 
 Setup is done. To shop, follow [`using-the-app.md`](using-the-app.md).
+
+---
+
+## Optional — Google Tasks (about 25 minutes)
+
+Add groceries by typing them into a Google Tasks list. The app checks the
+list, takes each item off it, and puts it in **Pending Requests**.
+
+**Before you start, know this:**
+- Saying *"Hey Google, add milk to my shopping list"* does **not** go to
+  Google Tasks. Google sends that to its own shopping list, which has no way
+  in for this app. Type items into the Tasks app instead.
+- **Use a list just for groceries.** The app takes **every** task off the
+  list you pick.
+- Do step D on the **home server itself**, in its browser.
+  Why: Google only sends you back to `localhost` there.
+
+### A. Google Tasks (about 2 minutes)
+
+**Where:** the Google Tasks app on your phone, or
+[tasks.google.com](https://tasks.google.com).
+**You get:** a list called **Groceries**.
+
+- [ ] 1. Press **Create new list** (on the phone: **+ New list**).
+- [ ] 2. Type `Groceries`.
+- [ ] 3. Press **Done**.
+
+### B. Google Cloud website (about 15 minutes)
+
+**Where:** [console.cloud.google.com](https://console.cloud.google.com), in
+your browser. Log in with the Google account that has the Groceries list.
+**You need:** `.env` open in your text editor.
+**You get:** a client ID and a client secret.
+
+- [ ] 1. Press the project menu at the top. Press **New project**.
+- [ ] 2. Type the name `Grocery list`. Press **Create**.
+- [ ] 3. Make sure **Grocery list** is chosen in the project menu.
+- [ ] 4. In the search bar at the top, type `Google Tasks API`. Open it.
+- [ ] 5. Press **Enable**.
+- [ ] 6. In the search bar, type `Google Auth Platform`. Open it.
+- [ ] 7. Press **Get started**.
+- [ ] 8. Type the app name `Grocery list`. Choose your email. Press **Next**.
+- [ ] 9. Choose **External**. Press **Next**.
+- [ ] 10. Type your email again. Press **Next**.
+- [ ] 11. Tick the box to agree. Press **Continue**, then **Create**.
+- [ ] 12. Press **Audience** on the left.
+- [ ] 13. Press **Publish app**. Press **Confirm**.
+  Why: in "Testing", Google stops the sign-in working after 7 days.
+- [ ] 14. Press **Clients** on the left. Press **Create client**.
+- [ ] 15. For **Application type**, choose **Web application**.
+- [ ] 16. Under **Authorized redirect URIs**, press **Add URI**. Paste:
+
+```
+http://localhost:3000/settings/intake
+```
+
+- [ ] 17. Press **Create**. A box shows the client ID and secret.
+- [ ] 18. In `.env`, look for `GOOGLE_CLIENT_ID=`. If it is not there, add
+  these two lines at the end:
+
+```
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
+| Copy this | Paste it into `.env` after |
+|---|---|
+| **Client ID** (ends in `.apps.googleusercontent.com`) | `GOOGLE_CLIENT_ID=` |
+| **Client secret** (starts with `GOCSPX-`) | `GOOGLE_CLIENT_SECRET=` |
+
+- [ ] 19. Save `.env`.
+
+**It worked if:** both values are in `.env`, with no spaces.
+
+### C. Home server terminal (about 2 minutes)
+
+- [ ] 1. Restart the app so it reads the new values:
+
+```bash
+make up
+```
+
+### D. The app, on the home server (about 5 minutes)
+
+**Where:** a browser on the home server, at
+[localhost:3000](http://localhost:3000).
+
+- [ ] 1. Press **Intake** in the menu.
+- [ ] 2. Press **Connect Google Tasks**.
+- [ ] 3. Choose the Google account that has the Groceries list.
+- [ ] 4. Google says **Google hasn't verified this app**. Press
+  **Advanced**, then **Go to Grocery list**.
+  Why: the app is yours, so nobody at Google checked it. That is expected.
+- [ ] 5. Press **Continue** to allow access to your tasks.
+- [ ] 6. Back in the app, open **Grocery list**. Choose **Groceries**.
+- [ ] 7. Turn on **Check this list**.
+- [ ] 8. Press **Save**.
+
+**It worked if:** the Google Tasks card says **On**. Add `milk` to the
+Groceries list, press **Check now**, and milk shows in **Pending Requests**.
+
+**If it goes wrong:**
+- The card says **Not set up yet** → check part B's values in `.env`, then
+  part C.
+- Google says **redirect_uri_mismatch** → check part B, step 16. It must
+  match exactly.
+- The card shows a red message → read it. "connect Google Tasks again" →
+  press **Disconnect**, then do part D again.
+
+> You can stop here.
 
 ---
 

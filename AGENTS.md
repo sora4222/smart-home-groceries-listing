@@ -115,8 +115,10 @@ contains no business logic and holds no database credentials. See "Sidecars".
   Action / OAuth account-linking design is dropped.
   `POST /api/voice-requests` remains as a generic shared-secret webhook (Home
   Assistant, IFTTT, `curl`, tests). `POST /api/intake/alexa` takes items from
-  the Alexa bridge sidecar. Google Tasks and Google Keep are planned, not
-  built — see `docs/features/FEATURE_VOICE.md`.
+  the Alexa bridge sidecar. Google Tasks is polled over OAuth from Rust
+  (`docs/features/FEATURE_GOOGLE_TASKS.md`); "Hey Google, add to my shopping
+  list" does not reach it — Google keeps that list to itself. Google Keep is
+  paused, not built — see `docs/features/FEATURE_VOICE.md`.
   **Verify the assumptions in the intake brief before building on them.**
 - **Nothing reaches the list unasked:** every intake item lands as `pending`
   and needs a household member to accept it, however confident the channel

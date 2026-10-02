@@ -6,6 +6,7 @@ For jobs you do again and again. Setting up the first time:
 | Job | Where | Time |
 |---|---|---|
 | [Add items by voice](#add-items-by-voice) | Echo, then the app | 1 min |
+| [Add items with Google Tasks](#add-items-with-google-tasks) | Google Tasks, then the app | 1 min |
 | [Check the Triage page](#check-the-triage-page) | The app | 1 min |
 | [Do a Woolworths shop](#do-a-woolworths-shop) | The app, then Woolworths in Chrome | 10–15 min |
 | [Change the delivery time](#change-the-delivery-time) | Woolworths in Chrome | 2 min |
@@ -30,6 +31,24 @@ part.
 
 ---
 
+## Add items with Google Tasks
+
+Only after the Google Tasks part of
+[`human-setup.md`](human-setup.md#optional--google-tasks-about-25-minutes).
+
+**Where:** the Google Tasks app, then the app.
+
+- [ ] 1. In Google Tasks, open the **Groceries** list.
+- [ ] 2. Add a task with the item. Put the number first: `2 oat milk`.
+- [ ] 3. Wait for the next check (every minute, unless you changed it). Or in
+  the app, open **Intake** and press **Check now**.
+- [ ] 4. Open **Pending Requests**. Press **Accept**.
+
+**It worked if:** the task is gone from Google Tasks, and the item is on the
+**Grocery List** page.
+
+---
+
 ## Check the Triage page
 
 **Where:** the app. Do this when **Triage** in the menu shows a red number,
@@ -45,6 +64,10 @@ no to, and items it is not sure about.
   Requests**.
 - [ ] 5. Press **Reject** if you do not want it.
 - [ ] 6. Optional: look at **Rejected** too, in case the checker was wrong.
+
+- [ ] 7. Optional: on an item from Google Tasks, press **Put back in Google
+  Tasks** to send it back to your list. On the next check it skips the
+  checker and goes to **Pending Requests**.
 
 **It worked if:** the red number on **Triage** is gone.
 
@@ -132,5 +155,6 @@ Claude tells you when an update needs one of these. Each is quick.
 | "No delivery time reserved" | Pick a time on Woolworths yourself (see [Change the delivery time](#change-the-delivery-time)). |
 | A product says **Not added** | Woolworths cannot deliver it right now. Choose another product for that item. |
 | An item says "The checker could not be reached" | The model is not running. In the terminal, run `make up`. If you use Ollama, also run `docker compose exec ollama ollama pull llama3.2`. Then press **Accept** on the item in **Triage**. |
+| Google Tasks items do not arrive | Open **Intake**. Read the red message on the Google Tasks card. If it says "connect Google Tasks again", press **Disconnect**, then **Connect Google Tasks** on the home server. |
 | Alexa does not add anything | See [human-setup.md, part 7](human-setup.md#part-7--test-with-your-echo-about-5-minutes). |
 | Something else | Ask Claude. Say what you pressed and what the screen said. |

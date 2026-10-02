@@ -3,6 +3,7 @@
 ## Target groups
 | Group | Targets |
 |---|---|
+| First-time setup | `setup-env` — makes `.env`, fills empty random secrets, never overwrites (`scripts/fill-env.sh`) |
 | Lifecycle | `up`, `down`, `restart`, `alexa-up` |
 | Test | `test`, `test-backend`, `test-frontend`, `test-alexa`, `hm-test*` |
 | DB | `migrate`, `migration-new name="<desc>"` |

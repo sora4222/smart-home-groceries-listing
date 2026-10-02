@@ -1,5 +1,5 @@
 .PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
-        migrate migration-new lint lint-fix build alexa-up \
+        migrate migration-new lint lint-fix build alexa-up setup-env \
         hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
 # Where the backend's tests create their throwaway databases. Overridable per
@@ -7,6 +7,12 @@
 # POSTGRES_* in the environment or .env, aimed at the port Compose publishes:
 # .env's own DATABASE_URL names the host `db`, which only resolves in Docker.
 TEST_DATABASE_URL ?= $(shell sh scripts/test-database-url.sh)
+
+## First-time setup
+# Makes .env from .env.example and fills every random secret that is still
+# empty. Never overwrites a value. See docs/human-setup.md, part 1.
+setup-env:
+	@sh scripts/fill-env.sh
 
 ## Lifecycle
 up:
@@ -30,6 +36,7 @@ test-backend:
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
 	@sh scripts/test-database-url.test.sh | grep -E "FAIL|expected|actual" || echo "tooling: ok"
+	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5

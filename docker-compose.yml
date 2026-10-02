@@ -29,6 +29,10 @@ services:
     # the generic webhook path, never the whole API.
     expose:
       - "8000"
+    # Lets INTAKE_LLM_BASE_URL reach an Ollama running on the home server
+    # itself (http://host.docker.internal:11434/v1).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "grocery-backend --health-check || exit 1"]
       interval: 10s

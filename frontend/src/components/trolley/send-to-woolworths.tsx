@@ -1,9 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { type ReactNode, useState } from "react";
 
-import { DeliveryTimeChooser } from "#/components/trolley/delivery-time-chooser";
-import { FillTrolleyBookmark } from "#/components/trolley/fill-trolley-bookmark";
+import { BookmarkSteps } from "#/components/trolley/bookmark-steps";
+import { DesktopSteps } from "#/components/trolley/desktop-steps";
 import { HandoffStatus } from "#/components/trolley/handoff-status";
+import { SendContext, useSend } from "#/components/trolley/send-context";
 import { Button } from "#/components/ui/button";
 import {
 	Sheet,
@@ -13,38 +14,19 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "#/components/ui/sheet";
-import {
-	type TrolleyHandoffState,
-	useTrolleyHandoff,
-} from "#/hooks/useTrolleyHandoff";
+import { useDesktop } from "#/hooks/useDesktop";
+import { useHandoffNotice } from "#/hooks/useHandoffNotice";
+import { useTrolleyHandoff } from "#/hooks/useTrolleyHandoff";
 import { type DeliveryWanted, isHandoffFinished } from "#/lib/api";
+import { abilitiesAt } from "#/lib/desktop/commands";
+
+export { WOOLWORTHS_TROLLEY_URL } from "#/components/trolley/bookmark-steps";
 
 /** Tomorrow (the store's next day), any time. */
 export const DEFAULT_DELIVERY: DeliveryWanted = {
 	date: null,
 	time_of_day: "any",
 };
-
-/** Where the household's Woolworths trolley is. */
-export const WOOLWORTHS_TROLLEY_URL =
-	"https://www.woolworths.com.au/shop/mytrolley";
-
-interface SendContext extends TrolleyHandoffState {
-	/** How many list items have a Woolworths product chosen. */
-	chosenCount: number;
-	/** The delivery time to reserve; tomorrow, any time, until changed. */
-	delivery: DeliveryWanted;
-	setDelivery: (delivery: DeliveryWanted) => void;
-}
-
-const Context = createContext<SendContext | null>(null);
-
-function useSend(): SendContext {
-	const value = useContext(Context);
-	if (!value)
-		throw new Error("SendToWoolworths parts must be inside <SendToWoolworths>");
-	return value;
-}
 
 /**
  * Puts every product chosen at Woolworths into the household's own
@@ -58,9 +40,10 @@ function useSend(): SendContext {
  * </SendToWoolworths>
  * ```
  *
- * The server cannot log in to Woolworths, so the household's logged-in
- * Woolworths tab does the adding, through the "Fill Woolworths trolley"
- * bookmark. Nothing is paid for here.
+ * The server cannot log in to Woolworths. In a browser the household's
+ * logged-in Woolworths tab does the adding through the bookmark; in the
+ * desktop app its own Woolworths window does (`FEATURE_DESKTOP_APP.md`).
+ * Nothing is paid for here.
  */
 function SendToWoolworthsRoot({
 	chosenCount,
@@ -72,6 +55,7 @@ function SendToWoolworthsRoot({
 	const handoff = useTrolleyHandoff("woolworths");
 	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
 	const router = useRouter({ warn: false });
+	useHandoffNotice(handoff.handoff);
 	// A filled trolley is saved as bought and its items leave the list (or
 	// come back after Undo). Re-read the page once the sheet closes — not
 	// while it is open, which could remove the card the sheet belongs to.
@@ -81,11 +65,11 @@ function SendToWoolworthsRoot({
 		}
 	}
 	return (
-		<Context.Provider
+		<SendContext.Provider
 			value={{ ...handoff, chosenCount, delivery, setDelivery }}
 		>
 			<Sheet onOpenChange={onOpenChange}>{children}</Sheet>
-		</Context.Provider>
+		</SendContext.Provider>
 	);
 }
 
@@ -106,55 +90,34 @@ function Trigger() {
 	);
 }
 
-/** The three steps, and the result once the bookmark reports back. */
+/** The steps (desktop app or bookmark), and the result once reported. */
 function Content() {
-	const { send, sending, handoff, error, delivery, setDelivery } = useSend();
-
-	async function sendAndOpen() {
-		// Open the tab now, while the click still counts, or it is blocked.
-		const tab = window.open(WOOLWORTHS_TROLLEY_URL, "_blank");
-		const created = await send(delivery);
-		if (!created) tab?.close();
-	}
+	const { handoff, error } = useSend();
+	const inApp = abilitiesAt(useDesktop(), "woolworths");
+	const fillsInApp = inApp?.fill_trolley === true;
 
 	return (
 		<SheetContent className="flex flex-col gap-4 overflow-y-auto p-4">
 			<SheetHeader className="p-0">
 				<SheetTitle>Send to Woolworths</SheetTitle>
 				<SheetDescription>
-					Puts your chosen Woolworths products in your Woolworths trolley. You
-					pay on Woolworths.
+					Puts your chosen Woolworths products in your Woolworths trolley.{" "}
+					{fillsInApp
+						? "You pay at checkout in the Woolworths window."
+						: "You pay on Woolworths."}
 				</SheetDescription>
 			</SheetHeader>
-			<ol className="flex list-decimal flex-col gap-3 pl-5 text-sm">
-				<li>
-					<p>Only once: drag this to your bookmarks bar.</p>
-					<FillTrolleyBookmark />
-				</li>
-				<li>
-					<p>Pick a delivery time. You can change it on Woolworths later.</p>
-					<div className="mt-1">
-						<DeliveryTimeChooser value={delivery} onChange={setDelivery} />
-					</div>
-				</li>
-				<li>
-					<p>Press the button. Woolworths opens. Log in if asked.</p>
-					<Button
-						className="mt-1 w-full sm:w-auto"
-						disabled={sending}
-						onClick={sendAndOpen}
-					>
-						{sending ? "Sending…" : "Send and open Woolworths"}
-					</Button>
-				</li>
-				<li>On Woolworths, press the “Fill Woolworths trolley” bookmark.</li>
-			</ol>
+			{inApp && fillsInApp ? (
+				<DesktopSteps abilities={inApp} />
+			) : (
+				<BookmarkSteps />
+			)}
 			{error && (
 				<p role="alert" className="text-sm text-destructive">
 					{error}
 				</p>
 			)}
-			{handoff && <HandoffStatus handoff={handoff} />}
+			{handoff && <HandoffStatus handoff={handoff} inApp={fillsInApp} />}
 		</SheetContent>
 	);
 }

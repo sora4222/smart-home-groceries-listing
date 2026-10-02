@@ -49,7 +49,12 @@ describe("desktop bridge", () => {
 		const abilities = {
 			version: "0.1.0",
 			stores: [
-				{ store: "woolworths", login: true, fill_trolley: true, checkout: true },
+				{
+					store: "woolworths",
+					login: true,
+					fill_trolley: true,
+					checkout: true,
+				},
 				{ store: "coles", login: false, fill_trolley: false, checkout: false },
 			],
 		};

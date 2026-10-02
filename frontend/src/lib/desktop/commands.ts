@@ -26,8 +26,7 @@ export const desktop = {
 	/** What the app can do at each store. */
 	abilities: () => invokeDesktop<DesktopAbilities>("desktop_abilities"),
 	/** Shows the store's website in its window, to log in. */
-	openStore: (store: StoreId) =>
-		invokeDesktop<void>("open_store", { store }),
+	openStore: (store: StoreId) => invokeDesktop<void>("open_store", { store }),
 	/** Runs the fill program on the store's trolley page in its window. */
 	fillTrolley: (store: StoreId, program: string) =>
 		invokeDesktop<void>("fill_store_trolley", { store, program }),

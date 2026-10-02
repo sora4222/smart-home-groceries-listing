@@ -22,11 +22,14 @@ export function deliverySummary(
 	return `Delivery: ${when}${fee}${kept}. You can change it on Woolworths.`;
 }
 
-/** One short sentence for where the handoff is. */
-export function handoffSummary(handoff: TrolleyHandoff): string {
+/** One short sentence for where the handoff is. `inApp`: the desktop app's
+ * Woolworths window fills the trolley, not the bookmark. */
+export function handoffSummary(handoff: TrolleyHandoff, inApp = false): string {
 	if (isExpired(handoff)) return "Too late — press “Send to Woolworths” again.";
 	switch (handoff.status) {
 		case "waiting_for_store_tab":
+			if (inApp)
+				return "Waiting for the Woolworths window. Log in there if asked.";
 			return "Waiting. On Woolworths, press the “Fill Woolworths trolley” bookmark.";
 		case "claimed_by_store_tab":
 			return "Adding to your trolley…";
@@ -41,10 +44,18 @@ export function handoffSummary(handoff: TrolleyHandoff): string {
 
 /** Where the handoff is, what happened to each product, and — once filled —
  * the shop saved as bought, with Undo. */
-export function HandoffStatus({ handoff }: { handoff: TrolleyHandoff }) {
+export function HandoffStatus({
+	handoff,
+	inApp = false,
+}: {
+	handoff: TrolleyHandoff;
+	inApp?: boolean;
+}) {
 	return (
 		<section aria-label="Trolley progress" className="flex flex-col gap-2">
-			<output className="text-sm font-medium">{handoffSummary(handoff)}</output>
+			<output className="text-sm font-medium">
+				{handoffSummary(handoff, inApp)}
+			</output>
 			{deliverySummary(handoff.delivery) && (
 				<p className="text-sm">{deliverySummary(handoff.delivery)}</p>
 			)}

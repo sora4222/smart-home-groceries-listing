@@ -37,6 +37,8 @@ test-backend:
 test-tooling:
 	@sh scripts/test-database-url.test.sh | grep -E "FAIL|expected|actual" || echo "tooling: ok"
 	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
+	@sh scripts/check-file-length.test.sh | grep -E "FAIL|expected|actual" || echo "check-file-length: ok"
+	@sh scripts/check-migrations.test.sh | grep -E "FAIL|expected|actual" || echo "check-migrations: ok"
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5
@@ -71,13 +73,15 @@ lint:
 	@cd backend && cargo clippy --all-targets --quiet -- -D warnings 2>&1 | grep -E "^error|^warning" || true
 	@cd backend && cargo fmt --check 2>&1 | grep -E "Diff in" || true
 	@cd sidecars/alexa-bridge && uv run ruff check . 2>&1 | grep -vE "^All checks passed" || true
-	@cd frontend && pnpm lint --quiet 2>&1 | grep -E "error|^$$" || true
+	@cd sidecars/alexa-bridge && uv run ruff format --check . 2>&1 | grep -E "Would reformat" || true
+	@cd frontend && pnpm check 2>&1 | grep -E "error|^$$" || true
+	@cd frontend && pnpm exec tsc --noEmit 2>&1 | grep -E "error" || true
 
 lint-fix:
 	@cd backend && cargo clippy --all-targets --fix --allow-dirty --quiet 2>&1 | tail -2
 	@cd backend && cargo fmt
 	@cd sidecars/alexa-bridge && uv run ruff check --fix . && uv run ruff format .
-	@cd frontend && pnpm lint --fix --quiet
+	@cd frontend && pnpm check --write
 
 ## Build
 build:

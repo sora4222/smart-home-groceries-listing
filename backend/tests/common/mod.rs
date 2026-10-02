@@ -11,7 +11,7 @@
 
 #![allow(dead_code)]
 
-pub mod access_logs;
+pub mod purchases;
 pub mod triage;
 pub mod trolley;
 

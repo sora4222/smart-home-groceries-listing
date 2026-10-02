@@ -3,7 +3,7 @@ import { useState } from "react";
 import { TermChips } from "#/components/terms/term-chips";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { MAX_TERMS, addTerm } from "#/lib/terms";
+import { addTerm, MAX_TERMS } from "#/lib/terms";
 
 interface TermListFieldProps {
 	/** Unique on the page; the text input's id. */

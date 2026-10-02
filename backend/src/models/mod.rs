@@ -5,5 +5,6 @@
 
 pub mod access_log_rows;
 pub mod db;
+pub mod purchase_rows;
 pub mod schemas;
 pub mod trolley_handoff_rows;

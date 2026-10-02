@@ -2,14 +2,17 @@
 //! in `access_logs`, and the `/logs` page's `GET /api/access-logs`.
 
 mod common;
+// Not in `common/mod.rs`: only this file reads access-log rows.
+#[path = "common/access_logs.rs"]
+mod logged;
 
 use std::net::SocketAddr;
 
 use axum::body::Body;
 use axum::extract::ConnectInfo;
 use axum::http::{Method, Request, StatusCode};
-use common::access_logs::{logged_requests, wait_for_logged, wait_for_path};
 use common::TestApp;
+use logged::{logged_requests, wait_for_logged, wait_for_path};
 use serde_json::json;
 use sqlx::PgPool;
 

@@ -29,8 +29,8 @@ pub fn normalise(name: &str) -> String {
 }
 
 /// Everything on the household list: items being reviewed and items already
-/// committed for purchase, newest first. `ordered` items are history and are
-/// left to the purchase-history feature.
+/// committed for purchase, newest first. `ordered` items are bought; their
+/// record is the purchase history (`services/purchases/`).
 pub async fn list_items<'e, E>(executor: E) -> Result<Vec<GroceryItem>, ApiError>
 where
     E: PgExecutor<'e>,
@@ -217,6 +217,41 @@ where
     .bind(to)
     .fetch_all(executor)
     .await?)
+}
+
+/// Marks still-to-buy items as bought (`ordered`), returning the ids it moved.
+/// Items already ordered, or no longer on the list, are left alone.
+pub async fn mark_ordered<'e, E>(executor: E, item_ids: &[Uuid]) -> Result<Vec<Uuid>, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    Ok(sqlx::query_scalar::<_, Uuid>(
+        "UPDATE grocery_items SET status = 'ordered'
+         WHERE id = ANY($1) AND status IN ('active', 'committed')
+         RETURNING id",
+    )
+    .bind(item_ids)
+    .fetch_all(executor)
+    .await?)
+}
+
+/// Puts an `ordered` item back to `status` (Undo of a purchase); `true` when
+/// it moved.
+pub async fn unmark_ordered<'e, E>(
+    executor: E,
+    item_id: Uuid,
+    status: GroceryItemStatus,
+) -> Result<bool, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    let result =
+        sqlx::query("UPDATE grocery_items SET status = $2 WHERE id = $1 AND status = 'ordered'")
+            .bind(item_id)
+            .bind(status)
+            .execute(executor)
+            .await?;
+    Ok(result.rows_affected() > 0)
 }
 
 #[cfg(test)]

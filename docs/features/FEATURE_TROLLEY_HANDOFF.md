@@ -20,6 +20,9 @@ Steps for people: `docs/using-the-app.md` ("Do a Woolworths shop") and
    then adds each product **on top of** what is already in the trolley, then
    reports back. The sheet shows each
    product as Added / Not added (it re-reads every 3 s).
+6. The report also saves the shop as bought, in the background
+   (`FEATURE_PURCHASE_HISTORY.md`). The sheet then shows **Saved as bought**
+   with **Undo**. Closing the sheet refreshes the list page.
 
 Nothing is bought and no Woolworths login or cookie is ever stored.
 

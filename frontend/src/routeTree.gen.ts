@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
@@ -19,6 +20,11 @@ import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-ru
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogsRoute = LogsRouteImport.update({
@@ -49,6 +55,7 @@ const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/logs': typeof LogsRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/logs': typeof LogsRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/logs': typeof LogsRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
@@ -75,12 +84,26 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/logs' | '/order' | '/pending' | '/triage' | '/settings/item-rules'
+    | '/'
+    | '/analysis'
+    | '/logs'
+    | '/order'
+    | '/pending'
+    | '/triage'
+    | '/settings/item-rules'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/logs' | '/order' | '/pending' | '/triage' | '/settings/item-rules'
+  to:
+    | '/'
+    | '/analysis'
+    | '/logs'
+    | '/order'
+    | '/pending'
+    | '/triage'
+    | '/settings/item-rules'
   id:
     | '__root__'
     | '/'
+    | '/analysis'
     | '/logs'
     | '/order'
     | '/pending'
@@ -90,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalysisRoute: typeof AnalysisRoute
   LogsRoute: typeof LogsRoute
   OrderRoute: typeof OrderRoute
   PendingRoute: typeof PendingRoute
@@ -104,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logs': {
@@ -146,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalysisRoute: AnalysisRoute,
   LogsRoute: LogsRoute,
   OrderRoute: OrderRoute,
   PendingRoute: PendingRoute,

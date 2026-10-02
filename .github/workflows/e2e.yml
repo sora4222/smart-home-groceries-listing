@@ -46,15 +46,15 @@ jobs:
       # The trolley-fill bookmark's secret; the spending tests read it back.
       STORE_TAB_SECRET: e2e-store-tab-secret
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: backend
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -89,7 +89,7 @@ jobs:
       - name: Server logs
         if: failure()
         run: tail -n 100 "$RUNNER_TEMP/backend.log" "$RUNNER_TEMP/frontend.log"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report

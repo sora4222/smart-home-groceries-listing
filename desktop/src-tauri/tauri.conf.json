@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "Grocery List",
+	"version": "0.1.0",
+	"identifier": "com.sora4222.grocerylist",
+	"build": {
+		"frontendDist": "../setup"
+	},
+	"app": {
+		"windows": [],
+		"security": {
+			"csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": ["app", "dmg", "nsis", "msi"],
+		"category": "Lifestyle",
+		"shortDescription": "Grocery list: Woolworths and Coles steps on this computer",
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		]
+	}
+}

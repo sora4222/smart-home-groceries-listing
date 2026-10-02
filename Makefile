@@ -1,6 +1,6 @@
-.PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
+.PHONY: up down restart test test-backend test-frontend test-alexa test-desktop test-tooling e2e \
         migrate migration-new lint lint-fix build alexa-up setup-env \
-        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
+        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-desktop hm-test-tooling hm-e2e desktop-build
 
 # Where the backend's tests create their throwaway databases. Overridable per
 # git worktree so concurrent agents do not collide. The default is built from
@@ -28,7 +28,7 @@ alexa-up:
 	@docker compose up -d alexa-bridge 2>&1 | grep -E "error|Error|started" || true
 
 ## Tests (compact — for agent use)
-test: up test-backend test-frontend test-alexa test-tooling
+test: up test-backend test-frontend test-alexa test-desktop test-tooling
 
 test-backend:
 	@cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test --quiet 2>&1 | grep -E "error|warning: unused|test result|FAILED|panicked" || true
@@ -40,6 +40,11 @@ test-tooling:
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5
+
+# The Tauri desktop app's Rust tests (desktop/). Needs the system webview
+# libraries: on Linux libwebkit2gtk-4.1-dev; nothing extra on Mac or Windows.
+test-desktop:
+	@cd desktop/src-tauri && cargo test --quiet 2>&1 | grep -E "error|warning: unused|test result|FAILED|panicked" || true
 
 test-alexa:
 	@cd sidecars/alexa-bridge && uv run pytest -q 2>&1 | tail -5
@@ -70,18 +75,25 @@ migration-new:
 lint:
 	@cd backend && cargo clippy --all-targets --quiet -- -D warnings 2>&1 | grep -E "^error|^warning" || true
 	@cd backend && cargo fmt --check 2>&1 | grep -E "Diff in" || true
+	@cd desktop/src-tauri && cargo clippy --all-targets --quiet -- -D warnings 2>&1 | grep -E "^error|^warning" || true
+	@cd desktop/src-tauri && cargo fmt --check 2>&1 | grep -E "Diff in" || true
 	@cd sidecars/alexa-bridge && uv run ruff check . 2>&1 | grep -vE "^All checks passed" || true
 	@cd frontend && pnpm lint --quiet 2>&1 | grep -E "error|^$$" || true
 
 lint-fix:
 	@cd backend && cargo clippy --all-targets --fix --allow-dirty --quiet 2>&1 | tail -2
 	@cd backend && cargo fmt
+	@cd desktop/src-tauri && cargo fmt
 	@cd sidecars/alexa-bridge && uv run ruff check --fix . && uv run ruff format .
 	@cd frontend && pnpm lint --fix --quiet
 
 ## Build
 build:
 	@docker compose build -q
+
+# The desktop app's installer for this computer (desktop/src-tauri/target/release/bundle/).
+desktop-build:
+	@cd desktop && pnpm install --silent && pnpm build 2>&1 | grep -E "error|Finished|bundle" || true
 
 check:
 	@cd backend && cargo check --all-targets --quiet 2>&1 | grep -E "^error|^warning" || true
@@ -90,7 +102,7 @@ check:
 hm-up:
 	docker compose up
 
-hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling
+hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-desktop hm-test-tooling
 
 hm-test-backend:
 	cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test
@@ -100,6 +112,9 @@ hm-test-tooling:
 
 hm-test-frontend:
 	cd frontend && pnpm test:run
+
+hm-test-desktop:
+	cd desktop/src-tauri && cargo test
 
 hm-test-alexa:
 	cd sidecars/alexa-bridge && uv run pytest -v

@@ -5,10 +5,10 @@
 |---|---|
 | First-time setup | `setup-env` — makes `.env`, fills empty random secrets, never overwrites (`scripts/fill-env.sh`) |
 | Lifecycle | `up`, `down`, `restart`, `alexa-up` |
-| Test | `test`, `test-backend`, `test-frontend`, `test-alexa`, `hm-test*` |
+| Test | `test`, `test-backend`, `test-frontend`, `test-alexa`, `test-desktop`, `hm-test*` |
 | DB | `migrate`, `migration-new name="<desc>"` |
 | Lint | `lint`, `lint-fix`, `check` |
-| Build | `build` |
+| Build | `build`, `desktop-build` (the Tauri installer for this computer) |
 
 ## Adding a target
 ```makefile

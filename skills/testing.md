@@ -188,7 +188,7 @@ file per area:
 | `tooling.yml` | the `scripts/*.test.sh` tests, shellcheck, actionlint, `docker compose config` |
 | `rules.yml` | PRs only: changed files within AGENTS.md rule 1 line limits (`scripts/check-file-length.sh`); no edits to an existing migration (`scripts/check-migrations.sh`) |
 | `docker.yml` | builds the backend and Alexa bridge images (not pushed) |
-| `secrets.yml` | gitleaks secret scan. Fixtures under `backend/tests/fixtures/` are allowed (`.gitleaks.toml`); other false positives go in `.gitleaksignore` |
+| `secrets.yml` | gitleaks secret scan. Scans only new commits (a PR's, or a push's). Fixtures under `backend/tests/fixtures/` are allowed in `.gitleaks.toml`; mark another false positive with a `gitleaks:allow` comment on its line |
 | `codeql.yml` | CodeQL security scan for Actions, TypeScript, Python and Rust, also weekly |
 | `e2e.yml` | Playwright against the real backend (`DEV_AUTH_BYPASS`, fake stores, keyword triage) |
 

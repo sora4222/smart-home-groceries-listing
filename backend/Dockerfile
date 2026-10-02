@@ -1,7 +1,7 @@
 # Multi-stage build: compile with the full toolchain, ship a small runtime
 # image containing one statically-linked-ish binary and no build tools.
 
-FROM rust:1.95-slim-bookworm AS builder
+FROM rust:1.98-slim-bookworm AS builder
 WORKDIR /build
 
 # cmake, clang, libclang and g++ build BoringSSL, which `wreq` uses to

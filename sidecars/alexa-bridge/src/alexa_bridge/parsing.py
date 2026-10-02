@@ -48,6 +48,18 @@ class ParsedItem:
     quantity: int
 
 
+@dataclass(frozen=True)
+class ParsedRemoval:
+    """What the bridge forwards to take an item off, or lower its quantity.
+
+    `quantity` of `None` means the whole item; a number means "this many
+    fewer". What either does to the list is the backend's decision.
+    """
+
+    item: str
+    quantity: int | None
+
+
 def parse_item_name(raw: str | None) -> str:
     """Normalises a spoken item name.
 
@@ -89,6 +101,25 @@ def parse_quantity(raw: str | None) -> int:
     return max(MIN_QUANTITY, min(value, MAX_QUANTITY))
 
 
+def parse_optional_quantity(raw: str | None) -> int | None:
+    """Reads a quantity slot that may rightly be empty.
+
+    `None` when no usable number was said ("remove milk"), otherwise the
+    number clamped like `parse_quantity`. Unlike adding, an unheard number
+    is not read as one: "remove milk" and "remove one milk" mean different
+    things.
+    """
+    text = (raw or "").strip().lower()
+    if not text:
+        return None
+    if text not in _NUMBER_WORDS:
+        try:
+            int(float(text))
+        except ValueError:
+            return None
+    return parse_quantity(text)
+
+
 def parse_slots(item: str | None, quantity: str | None) -> ParsedItem:
     """Parses both slots together.
 
@@ -96,3 +127,12 @@ def parse_slots(item: str | None, quantity: str | None) -> ParsedItem:
         UnusableRequest: if there is no item name.
     """
     return ParsedItem(item=parse_item_name(item), quantity=parse_quantity(quantity))
+
+
+def parse_removal_slots(item: str | None, quantity: str | None) -> ParsedRemoval:
+    """Parses a remove request: the item, and a quantity only if one was said.
+
+    Raises:
+        UnusableRequest: if there is no item name.
+    """
+    return ParsedRemoval(item=parse_item_name(item), quantity=parse_optional_quantity(quantity))

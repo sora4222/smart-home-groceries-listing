@@ -53,6 +53,21 @@ press **Accept** there too.
 
 ---
 
+## See who used the app
+
+**Where:** the app. Do this if you think someone else is using the app.
+
+- [ ] 1. Open **Logs**.
+- [ ] 2. Read the list. The newest is at the top.
+- [ ] 3. Each line shows the time, the page, and who it was.
+- [ ] 4. Press **Load older** at the bottom to see more.
+
+**Not signed in** is normal for Alexa and the health check. A lot of red
+**401** or **404** lines from an address you do not know can mean a stranger
+is trying the app. Ask Claude to look.
+
+---
+
 ## Do a Woolworths shop
 
 Two places, in this order: first **the app**, then **Woolworths in

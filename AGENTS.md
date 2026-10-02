@@ -54,7 +54,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ├── skills/                  # Agent reference files ← read before acting
 ├── docs/
 │   ├── features/            # FEATURE_*.md specs
-│   └── human-setup.md       # Signups, secrets, one-time config
+│   ├── human-setup.md       # Steps a person does once — plain words
+│   └── using-the-app.md     # Steps a person repeats — plain words
 ├── Makefile
 ├── docker-compose.yml
 ├── .env.example
@@ -90,6 +91,12 @@ contains no business logic and holds no database credentials. See "Sidecars".
     sidecar, and only when no maintained Rust crate exists. Say so and ask first.
 12. **No dynamic SQL** — every query is a literal string with bind parameters.
     Never reach for sqlx's `AssertSqlSafe`.
+13. **Steps for a person** — anything only a person can do (sign up, paste a
+    value, log in, press a bookmark, allow a prompt) goes in
+    `docs/human-setup.md` or `docs/using-the-app.md`, written with the
+    `human-instructions` skill (`.claude/skills/human-instructions/`): plain
+    words, grouped by place, in the order the values are needed. Not for
+    telling the developer to run tests.
 
 ## Toolchains
 

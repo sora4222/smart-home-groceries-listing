@@ -43,6 +43,8 @@ jobs:
       INTAKE_LLM_PROVIDER: fake
       # Matches the secret in frontend/e2e/fixtures.ts.
       VOICE_WEBHOOK_SECRET: e2e-webhook-secret
+      # The trolley-fill bookmark's secret; the spending tests read it back.
+      STORE_TAB_SECRET: e2e-store-tab-secret
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable

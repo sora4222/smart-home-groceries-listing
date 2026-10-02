@@ -8,6 +8,7 @@ interface TriageListProps {
 	busyId: string | null;
 	onAccept: (request: VoiceRequest) => void;
 	onReject: (request: VoiceRequest) => void;
+	onRestore: (request: VoiceRequest) => void;
 }
 
 /** The cards of one Triage tab, or a line saying there are none. */
@@ -17,6 +18,7 @@ export function TriageList({
 	busyId,
 	onAccept,
 	onReject,
+	onRestore,
 }: TriageListProps) {
 	if (requests.length === 0) {
 		return <p className="py-4 text-sm text-muted-foreground">{emptyText}</p>;
@@ -30,6 +32,7 @@ export function TriageList({
 					busy={busyId === request.id}
 					onAccept={onAccept}
 					onReject={onReject}
+					onRestore={onRestore}
 				/>
 			))}
 		</div>

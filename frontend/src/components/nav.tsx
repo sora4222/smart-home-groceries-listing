@@ -8,7 +8,13 @@ import { usePendingCount } from "#/hooks/usePendingCount";
 type BadgeKind = "pending" | "held";
 
 const links: ReadonlyArray<{
-	to: "/" | "/pending" | "/triage" | "/order" | "/settings/item-rules";
+	to:
+		| "/"
+		| "/pending"
+		| "/triage"
+		| "/order"
+		| "/settings/item-rules"
+		| "/settings/intake";
 	label: string;
 	badge?: BadgeKind;
 }> = [
@@ -17,6 +23,7 @@ const links: ReadonlyArray<{
 	{ to: "/triage", label: "Triage", badge: "held" },
 	{ to: "/order", label: "Order" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
+	{ to: "/settings/intake", label: "Intake" },
 ];
 
 /** What a badge's count is read aloud as. */

@@ -4,7 +4,7 @@ import type { GroceryItem } from "#/lib/api/grocery";
 
 export type VoiceRequestStatus = "pending" | "accepted" | "rejected";
 /** Which intake channel delivered an item. */
-export type IntakeSource = "webhook" | "alexa";
+export type IntakeSource = "webhook" | "alexa" | "tasks";
 
 /**
  * Which queue the LLM triage step put a request in. `approved` and `skipped`

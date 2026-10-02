@@ -167,3 +167,19 @@ Chromium instead of the one Playwright manages, for a machine where
 Real Alexa requests, real store requests, a real Google account, a real LLM
 provider, or the development database. Every one of those is either a
 credential in CI or a flake.
+
+## GitHub Actions (CI)
+Every pull request and every push to `main` runs `.github/workflows/`, one
+file per area:
+
+| Workflow | Runs |
+|---|---|
+| `backend.yml` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` (Postgres service), `cargo audit` |
+| `frontend.yml` | `biome ci`, `tsc --noEmit`, Vitest, `pnpm build`, `pnpm audit` |
+| `alexa-bridge.yml` | `ruff check`, `ruff format --check`, pytest, `pip-audit` |
+| `tooling.yml` | the `scripts/*.test.sh` tests |
+| `e2e.yml` | Playwright against the real backend (`DEV_AUTH_BYPASS`, fake stores, keyword triage) |
+
+`make lint` runs the same lint, format and type checks locally. Run it and
+`make test` before pushing. `biome ci` also fails on import order and
+formatting, so use `make lint-fix` rather than fixing those by hand.

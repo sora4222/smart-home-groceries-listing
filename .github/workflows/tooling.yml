@@ -1,0 +1,23 @@
+# Tests for the shell scripts the Makefile relies on (`make test-tooling`).
+name: Tooling
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sh scripts/test-database-url.test.sh
+      - run: sh scripts/fill-env.test.sh

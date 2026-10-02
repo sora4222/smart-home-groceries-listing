@@ -19,34 +19,37 @@ use sqlx::{PgExecutor, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::error::ApiError;
-use crate::models::db::{IntakeSource, VoiceRequest};
+use crate::models::db::{IntakeSource, TriageStatus, VoiceRequest};
 
-/// Requests still awaiting a decision, newest first.
+/// Requests waiting in Pending Requests, newest first: undecided, and either
+/// approved by triage or let past it. Held, rejected and unchecked requests
+/// wait in the Triage view instead (`triage_repository`).
 pub async fn list_pending<'e, E>(executor: E) -> Result<Vec<VoiceRequest>, ApiError>
 where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
          FROM voice_requests
-         WHERE status = 'pending'
+         WHERE status = 'pending' AND triage_status IN ('approved', 'skipped')
          ORDER BY created_at DESC",
     )
     .fetch_all(executor)
     .await?)
 }
 
-/// Counts requests still awaiting a decision.
+/// Counts the requests [`list_pending`] returns.
 pub async fn pending_count<'e, E>(executor: E) -> Result<i64, ApiError>
 where
     E: PgExecutor<'e>,
 {
-    Ok(
-        sqlx::query_scalar("SELECT count(*) FROM voice_requests WHERE status = 'pending'")
-            .fetch_one(executor)
-            .await?,
+    Ok(sqlx::query_scalar(
+        "SELECT count(*) FROM voice_requests
+             WHERE status = 'pending' AND triage_status IN ('approved', 'skipped')",
     )
+    .fetch_one(executor)
+    .await?)
 }
 
 /// Whether a request exists at all, used to tell 404 from 409.
@@ -72,7 +75,7 @@ where
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
          FROM voice_requests
          WHERE source = $1 AND external_id = $2",
     )
@@ -82,7 +85,8 @@ where
     .await?)
 }
 
-/// Inserts a new pending request.
+/// Inserts a new pending request. `triage_status` is `unchecked` when the
+/// classifier will look at it next, or `skipped` when triage is off.
 pub async fn insert_request<'e, E>(
     executor: E,
     source: IntakeSource,
@@ -90,16 +94,19 @@ pub async fn insert_request<'e, E>(
     raw_text: &str,
     parsed_name: &str,
     quantity: i32,
+    triage_status: TriageStatus,
 ) -> Result<VoiceRequest, ApiError>
 where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "INSERT INTO voice_requests
-             (id, source, external_id, raw_text, parsed_name, parsed_quantity, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+             (id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
+              triage_status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                   grocery_item_id, created_at",
+                   grocery_item_id, created_at, triage_status, triage_reason,
+                   triage_confidence",
     )
     .bind(Uuid::new_v4())
     .bind(source)
@@ -107,6 +114,7 @@ where
     .bind(raw_text)
     .bind(parsed_name)
     .bind(quantity)
+    .bind(triage_status)
     .fetch_one(executor)
     .await?)
 }
@@ -123,7 +131,8 @@ where
         "UPDATE voice_requests SET status = 'rejected'
          WHERE id = $1 AND status = 'pending'
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                   grocery_item_id, created_at",
+                   grocery_item_id, created_at, triage_status, triage_reason,
+                   triage_confidence",
     )
     .bind(request_id)
     .fetch_optional(executor)
@@ -137,7 +146,7 @@ pub async fn lock_request(
 ) -> Result<Option<VoiceRequest>, ApiError> {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
          FROM voice_requests
          WHERE id = $1
          FOR UPDATE",
@@ -160,7 +169,8 @@ pub async fn mark_accepted(
          SET status = 'accepted', parsed_name = $2, parsed_quantity = $3, grocery_item_id = $4
          WHERE id = $1
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                   grocery_item_id, created_at",
+                   grocery_item_id, created_at, triage_status, triage_reason,
+                   triage_confidence",
     )
     .bind(request_id)
     .bind(name)

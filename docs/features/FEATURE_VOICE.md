@@ -6,9 +6,11 @@ see `docs/human-setup.md`.
 
 ## What this feature does
 A household member says *"Alexa, add two oat milk to the shopping list."* The
-item lands as **pending** — never directly on the active grocery list — until
-a household member reviews it in the web app's Pending Requests view and
-accepts or rejects it.
+item lands as **pending** — never directly on the active grocery list. An LLM
+first checks it is something a supermarket sells (`FEATURE_TRIAGE.md`); items
+it rejects or is unsure about wait on the `/triage` page instead. A household
+member then reviews it in the web app's Pending Requests view and accepts or
+rejects it.
 
 That holds for every channel, however confident it was. Reducing
 marketing-driven buying is a project goal, so nothing in this system adds,
@@ -82,7 +84,8 @@ The table is still called `voice_requests` to limit churn; the concept is an
   leaking one does not grant the other). Body:
   `{"item": str, "quantity": int = 1, "external_id": str?, "raw_text": str?}`.
   `201` for a new item, `200` when `external_id` has already been seen.
-- `GET /api/voice-requests` — list pending requests (Clerk JWT).
+- `GET /api/voice-requests` — list pending requests that triage approved or
+  skipped (Clerk JWT). Held and rejected ones are on `/api/triage`.
 - `POST /api/voice-requests/{id}/accept` — body optionally overrides
   `{"name", "quantity"}` (the user corrected a misheard item); an absent or
   empty body means "accept as heard". Query `?merge=true` folds the quantity
@@ -116,9 +119,10 @@ request row and on any duplicate it finds, so two browser tabs racing to
 accept the same card cannot both succeed.
 
 ### Real-time push
-Every create/accept/reject broadcasts
-`{"type": "voice_request_added", "count": <pending count>}` over `/ws` to
-every open browser session. The frontend uses this for the nav badge and the
+Every create/accept/reject (and every stored triage check) broadcasts
+`{"type": "voice_request_added", "count": <pending count>}` and
+`{"type": "triage_held", "count": <held count>}` over `/ws` to every open
+browser session. The frontend uses this for the nav badge and the
 toast — no polling. A `tokio::sync::broadcast` channel does the fan-out, so a
 slow client cannot block a publisher. Events are process-local; fronting
 several backend processes would need Postgres `LISTEN/NOTIFY`.
@@ -162,10 +166,7 @@ Cloudflare Tunnel.
 ## Known gaps / next steps
 - Frontend Clerk provider + `getAuthToken()` wiring (auth section of the
   spec, not part of this goal).
-- **LLM triage is not built.** The intake brief plans a "is this something a
-  supermarket sells?" classifier with `approved`/`rejected`/`held` states and
-  a `/triage` view. The schema has `source` and `external_id` but none of the
-  triage columns.
+- LLM triage is built — see `FEATURE_TRIAGE.md`.
 - **Google Tasks and Google Keep sources are not built.** Tasks is a plain
   OAuth REST API and belongs in Rust; Keep would need a Python sidecar
   (`gkeepapi` is unofficial and authenticates with a master token — treat that

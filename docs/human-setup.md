@@ -11,9 +11,10 @@ The parts are in this order so you start the app only once, at the end.
 | [2. Clerk](#part-2--clerk-website-about-10-minutes) | clerk.com | 10 min |
 | [3. Cloudflare](#part-3--cloudflare-website-about-15-minutes) | cloudflare.com | 15 min |
 | [4. Amazon Alexa](#part-4--amazon-developer-website-about-20-minutes) | developer.amazon.com | 20 min |
-| [5. Start the app](#part-5--start-the-app-about-10-minutes) | Home server terminal, then Cloudflare | 10 min |
-| [6. Test with your Echo](#part-6--test-with-your-echo-about-5-minutes) | Echo, then the app | 5 min |
-| [7. Woolworths, once](#part-7--woolworths-once-about-10-minutes) | Chrome | 10 min |
+| [5. Item checker](#part-5--item-checker-about-10-minutes) | platform.openai.com | 10 min |
+| [6. Start the app](#part-6--start-the-app-about-10-minutes) | Home server terminal, then Cloudflare | 10 min |
+| [7. Test with your Echo](#part-7--test-with-your-echo-about-5-minutes) | Echo, then the app | 5 min |
+| [8. Woolworths, once](#part-8--woolworths-once-about-10-minutes) | Chrome | 10 min |
 
 Doing a shop after setup: [`using-the-app.md`](using-the-app.md).
 
@@ -48,8 +49,8 @@ You need:
 make setup-env
 ```
 
-- [ ] 2. Open `.env` in your text editor. **Keep it open** for parts 2, 3
-  and 4. You paste values into it.
+- [ ] 2. Open `.env` in your text editor. **Keep it open** for parts 2, 3,
+  4 and 5. You paste values into it.
 
 **It worked if:** the terminal ends with `Done.`
 
@@ -127,7 +128,7 @@ Running it twice is safe. It never changes a value that is already set.
 **It worked if:** the tunnel is listed. It says **Down** or **Inactive** for
 now. That is fine — the app is not started yet.
 
-**Keep this tab open.** You check it again in part 5.
+**Keep this tab open.** You check it again in part 6.
 
 > You can stop here.
 
@@ -201,7 +202,44 @@ Otherwise the skill will not work on your Echo.
 
 ---
 
-## Part 5 — Start the app (about 10 minutes)
+## Part 5 — Item checker (about 10 minutes)
+
+**Where:** [platform.openai.com](https://platform.openai.com), in your browser.
+**You need:** `.env` open. A payment card for OpenAI.
+**You get:** the OpenAI key for `.env`.
+**Why:** the app asks OpenAI "would a supermarket sell this?" for every item
+Alexa hears. Items that are not groceries wait on the **Triage** page.
+
+**Cost:** each item costs a tiny part of a cent. $5 of credit lasts a long time.
+
+- [ ] 1. Sign up or log in.
+- [ ] 2. Press **Settings** (the gear), then **Billing**.
+- [ ] 3. Press **Add payment details**. Add $5 of credit.
+- [ ] 4. Open [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+- [ ] 5. Press **Create new secret key**. Name it `grocery-list`.
+- [ ] 6. Copy the key. It starts with `sk-`. **You see it only once.**
+
+| Copy this from OpenAI | Paste it into `.env` after |
+|---|---|
+| The key starting `sk-` | `OPENAI_API_KEY=` |
+
+- [ ] 7. Check `.env` says `INTAKE_LLM_PROVIDER=openai`. Save `.env`.
+
+**It worked if:** `OPENAI_API_KEY=` in `.env` has a value.
+
+**Do not want to pay OpenAI?** Pick one instead of the steps above:
+- **No checker:** in `.env`, set `INTAKE_LLM_PROVIDER=off`. Every item goes
+  straight to **Pending Requests**.
+- **Free, on your server:** install [Ollama](https://ollama.com). In a
+  terminal, run `ollama pull llama3.2`. Then in `.env` set
+  `INTAKE_LLM_PROVIDER=ollama` and
+  `INTAKE_LLM_BASE_URL=http://host.docker.internal:11434/v1`.
+
+> You can stop here.
+
+---
+
+## Part 6 — Start the app (about 10 minutes)
 
 **Where:** home server terminal, then the Cloudflare tab from part 3.
 
@@ -238,7 +276,7 @@ cd frontend && pnpm install && pnpm dev
 
 ---
 
-## Part 6 — Test with your Echo (about 5 minutes)
+## Part 7 — Test with your Echo (about 5 minutes)
 
 **Where:** next to your Echo, then the app.
 
@@ -249,6 +287,8 @@ cd frontend && pnpm install && pnpm dev
 **It worked if:** milk is now on the **Grocery List** page.
 
 **If it goes wrong:**
+- milk is not in Pending Requests → open **Triage**. If it is there, read
+  the reason on the card. "OPENAI_API_KEY is not set" → check part 5.
 - Alexa says it can't find the skill → check part 4, step 14 (testing on).
 - Nothing in Pending Requests → run `docker compose logs alexa-bridge`. A
   `403` means `ALEXA_SKILL_ID` does not match the skill.
@@ -257,7 +297,7 @@ cd frontend && pnpm install && pnpm dev
 
 ---
 
-## Part 7 — Woolworths, once (about 10 minutes)
+## Part 8 — Woolworths, once (about 10 minutes)
 
 **Where:** Chrome on the computer you shop from. Do all of it in Chrome.
 **Why:** the app fills your Woolworths trolley through a bookmark you press on

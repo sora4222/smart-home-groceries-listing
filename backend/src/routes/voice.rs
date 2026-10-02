@@ -61,7 +61,7 @@ async fn create_voice_request(
     )?;
 
     let request = VoiceService::new(&state.pool, &state.hub)
-        .create_webhook_request(&body)
+        .create_webhook_request(&body, &state.triage)
         .await?;
     Ok((StatusCode::CREATED, Json(request.into())))
 }

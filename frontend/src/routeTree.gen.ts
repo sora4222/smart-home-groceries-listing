@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
+import { Route as TriageRouteImport } from './routes/triage'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const PendingRoute = PendingRouteImport.update({
   path: '/pending',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TriageRoute = TriageRouteImport.update({
+  id: '/triage',
+  path: '/triage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   id: '/settings/item-rules',
   path: '/settings/item-rules',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
+  '/triage': typeof TriageRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
+  '/triage': typeof TriageRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,28 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
+  '/triage': typeof TriageRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/order' | '/pending' | '/settings/item-rules'
+  fullPaths: '/' | '/order' | '/pending' | '/triage' | '/settings/item-rules'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/order' | '/pending' | '/settings/item-rules'
-  id: '__root__' | '/' | '/order' | '/pending' | '/settings/item-rules'
+  to: '/' | '/order' | '/pending' | '/triage' | '/settings/item-rules'
+  id:
+    | '__root__'
+    | '/'
+    | '/order'
+    | '/pending'
+    | '/triage'
+    | '/settings/item-rules'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrderRoute: typeof OrderRoute
   PendingRoute: typeof PendingRoute
+  TriageRoute: typeof TriageRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
 }
 
@@ -92,6 +108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/triage': {
+      id: '/triage'
+      path: '/triage'
+      fullPath: '/triage'
+      preLoaderRoute: typeof TriageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/item-rules': {
       id: '/settings/item-rules'
       path: '/settings/item-rules'
@@ -106,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrderRoute: OrderRoute,
   PendingRoute: PendingRoute,
+  TriageRoute: TriageRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
 }
 export const routeTree = rootRouteImport

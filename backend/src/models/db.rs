@@ -49,6 +49,25 @@ pub enum GroceryItemStatus {
     Ordered,
 }
 
+/// Where the LLM triage step left an intake request
+/// (`docs/features/FEATURE_TRIAGE.md`). Triage never accepts an item; it
+/// only decides which queue a person sees it in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum TriageStatus {
+    /// Recorded; the classifier has not answered yet. Shown nowhere.
+    Unchecked,
+    /// A plausible supermarket item; shown in Pending Requests.
+    Approved,
+    /// Not a supermarket item; shown in the Triage view's Rejected tab.
+    Rejected,
+    /// Low confidence or a classifier failure; Held for review.
+    Held,
+    /// Triage bypassed: switched off, or a person moved the item on.
+    Skipped,
+}
+
 /// How an item reached the list.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
@@ -72,6 +91,12 @@ pub struct VoiceRequest {
     pub status: VoiceRequestStatus,
     pub grocery_item_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    /// Which queue triage put the request in.
+    pub triage_status: TriageStatus,
+    /// The classifier's one-sentence reason, or why it could not answer.
+    pub triage_reason: Option<String>,
+    /// The classifier's confidence, 0 to 1, when it answered.
+    pub triage_confidence: Option<f32>,
 }
 
 /// An item on the shared household grocery list.

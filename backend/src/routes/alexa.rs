@@ -55,7 +55,7 @@ async fn create_alexa_request(
     )?;
 
     let (request, delivery) = VoiceService::new(&state.pool, &state.hub)
-        .create_alexa_request(&body)
+        .create_alexa_request(&body, &state.triage)
         .await?;
 
     let status = match delivery {

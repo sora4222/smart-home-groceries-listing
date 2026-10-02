@@ -4,7 +4,7 @@ Status: **implemented for Woolworths.** Puts every chosen Woolworths product
 into the household's own online trolley. Payment stays on woolworths.com.au.
 Why it works this way: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 Steps for people: `docs/using-the-app.md` ("Do a Woolworths shop") and
-`docs/human-setup.md` part 7 — keep those in step with this spec.
+`docs/human-setup.md` part 8 — keep those in step with this spec.
 
 ## What this feature does
 1. On the grocery list, or in the Woolworths card on `/order`,

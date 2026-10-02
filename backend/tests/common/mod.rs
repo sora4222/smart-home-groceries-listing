@@ -11,6 +11,7 @@
 
 #![allow(dead_code)]
 
+pub mod triage;
 pub mod trolley;
 
 use axum::body::Body;
@@ -22,7 +23,7 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 use grocery_backend::build_app;
-use grocery_backend::config::{Settings, StoreMode, StoreSettings};
+use grocery_backend::config::{Settings, StoreMode, StoreSettings, TriageProvider, TriageSettings};
 use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
 
@@ -46,6 +47,19 @@ impl TestApp {
                 pool,
                 Settings {
                     dev_auth_bypass: false,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
+    /// Builds the real application with triage switched on, as `triage` says.
+    pub fn with_triage(pool: PgPool, triage: TriageSettings) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    triage,
                     ..test_settings()
                 },
             ),
@@ -271,6 +285,20 @@ fn test_settings() -> Settings {
         cors_origins: vec!["http://localhost:3000".to_string()],
         dev_auth_bypass: true,
         stores: fake_store_settings(),
+        triage: triage_settings(TriageProvider::Off, ""),
+    }
+}
+
+/// Triage settings for a test. Off by default, so a request is in Pending
+/// Requests the moment it is recorded; the triage tests switch it on.
+pub fn triage_settings(provider: TriageProvider, base_url: &str) -> TriageSettings {
+    TriageSettings {
+        provider,
+        base_url: base_url.to_string(),
+        model: "test-model".to_string(),
+        api_key: "test-key".to_string(),
+        timeout: std::time::Duration::from_secs(2),
+        min_confidence: 0.7,
     }
 }
 

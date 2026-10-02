@@ -29,6 +29,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::config::Settings;
 use crate::services::encryption::Encryptor;
+use crate::services::triage::TriageQueue;
 use crate::services::ws_hub::WsHub;
 use crate::state::AppState;
 
@@ -59,12 +60,21 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
         );
     }
 
+    let hub = WsHub::new();
+    let triage = TriageQueue::new(
+        services::triage::registry::build(&settings.triage),
+        pool.clone(),
+        hub.clone(),
+    );
+    recheck_in_background(triage.clone());
+
     let state = AppState {
         pool,
+        triage,
         auth: auth::build_provider(&settings),
         stores: services::stores::registry::build(&settings.stores),
         settings: Arc::new(settings),
-        hub: WsHub::new(),
+        hub,
         encryptor,
     };
 
@@ -115,4 +125,17 @@ fn cors_layer(settings: &Settings) -> CorsLayer {
             Method::DELETE,
         ])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
+}
+
+/// Checks, once at startup, any intake request a restart left `unchecked`.
+///
+/// Runs in the background so a slow classifier never delays serving. Needs a
+/// Tokio runtime, which `main` and every test already provide.
+fn recheck_in_background(triage: TriageQueue) {
+    let started_at = chrono::Utc::now();
+    tokio::spawn(async move {
+        if let Err(err) = triage.recheck_unchecked(started_at).await {
+            tracing::error!(%err, "re-checking unchecked intake requests failed");
+        }
+    });
 }

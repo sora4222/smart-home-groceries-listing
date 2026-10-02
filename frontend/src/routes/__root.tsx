@@ -1,16 +1,17 @@
-import type { ReactNode } from "react";
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
+	createRootRoute,
 	HeadContent,
 	Outlet,
 	Scripts,
-	createRootRoute,
 } from "@tanstack/react-router";
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import { Nav } from "#/components/nav";
 import { useHydrated } from "#/hooks/useHydrated";
+import { useTriageToasts } from "#/hooks/useTriageToasts";
 import { useVoiceRequestToasts } from "#/hooks/useVoiceRequestToasts";
 
 import appCss from "#/styles.css?url";
@@ -46,6 +47,7 @@ function RootComponent() {
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 	useVoiceRequestToasts();
+	useTriageToasts();
 	const hydrated = useHydrated();
 
 	return (

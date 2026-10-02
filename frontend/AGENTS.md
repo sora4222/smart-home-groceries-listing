@@ -28,7 +28,8 @@ with `lib/money.ts`. Choosing a product sends only `{ store, product_id }`
 the store.
 
 `VoiceRequest` carries a `source` field (`"webhook" | "alexa"`) saying which
-intake channel delivered the item.
+intake channel delivered the item, and `triage_status`, `triage_reason` and
+`triage_confidence` from the LLM triage step (`docs/features/FEATURE_TRIAGE.md`).
 
 Playwright is a **frontend-only** tool here. The backend's store automation
 uses `chromiumoxide`; do not add Playwright to anything outside `frontend/`.
@@ -55,6 +56,7 @@ File-based routing — one file per route:
 | `routes/__root.tsx` | Root layout (nav, Sonner toaster) |
 | `routes/index.tsx` | `/` — Grocery list |
 | `routes/pending.tsx` | `/pending` — Confirmation queue |
+| `routes/triage.tsx` | `/triage` — Held for review / Rejected tabs (`?tab=rejected`) |
 | `routes/order.tsx` | `/order` — Order review |
 | `routes/analysis.tsx` | `/analysis` — Spending analysis |
 | `routes/settings/index.tsx` | `/settings` |
@@ -98,8 +100,10 @@ import { useParams } from '@tanstack/react-router'
 ## WebSocket (real-time)
 ```typescript
 // lib/ws.ts — connect on app mount, reconnect on disconnect
-// Events: { type: 'voice_request_added', count: number }
-// On event: fire Sonner toast + update pending badge count
+// Events: { type: 'voice_request_added', count } — Pending Requests badge
+//         { type: 'triage_held', count }         — Triage badge
+// Badges: hooks/useLiveCount (usePendingCount, useHeldCount)
+// Toasts: hooks/useCountRiseToast — fires only when a count rises
 ```
 
 ## API client pattern

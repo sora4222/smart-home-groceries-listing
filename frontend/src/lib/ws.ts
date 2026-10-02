@@ -1,6 +1,6 @@
 /**
- * WebSocket client for real-time push events (currently just
- * `voice_request_added`). Auto-reconnects with backoff; safe to call
+ * WebSocket client for real-time push events: `voice_request_added` (the
+ * Pending Requests count) and `triage_held` (the held-for-review count). Auto-reconnects with backoff; safe to call
  * `connect` once at app mount — it is a no-op if a socket is already open.
  */
 import { WS_URL } from "#/lib/config";
@@ -10,7 +10,17 @@ export interface VoiceRequestAddedEvent {
 	count: number;
 }
 
-type ServerEvent = VoiceRequestAddedEvent;
+/** The held-for-review count changed. */
+export interface TriageHeldEvent {
+	type: "triage_held";
+	count: number;
+}
+
+/** Every event the backend pushes. Each carries a fresh count. */
+export type ServerEvent = VoiceRequestAddedEvent | TriageHeldEvent;
+
+/** The `type` of an event that carries a count. */
+export type CountEventType = ServerEvent["type"];
 
 type Listener = (event: ServerEvent) => void;
 

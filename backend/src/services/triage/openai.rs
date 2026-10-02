@@ -1,7 +1,8 @@
 //! A classifier behind an OpenAI-compatible chat-completions API.
 //!
-//! OpenAI and Ollama both serve `POST {base}/chat/completions`, so this one
-//! client covers both; [`crate::config::TriageSettings`] picks the base URL,
+//! OpenAI and the local model servers — Ollama, llama.cpp's `llama-server`
+//! and vLLM — all serve `POST {base}/chat/completions`, so this one client
+//! covers them all; [`crate::config::TriageSettings`] picks the base URL,
 //! model and key. This is the only file that talks to an LLM provider.
 
 use reqwest::Client;
@@ -20,8 +21,9 @@ pub struct OpenAiCompatible {
 }
 
 impl OpenAiCompatible {
-    /// A client for `base_url` (e.g. `https://api.openai.com/v1`). An empty
-    /// `api_key` sends no `Authorization` header, which is what Ollama wants.
+    /// A client for `base_url` (e.g. `http://localhost:11434/v1`). An empty
+    /// `api_key` sends no `Authorization` header, which is what a local
+    /// server started without `--api-key` wants.
     pub fn new(http: Client, base_url: &str, model: &str, api_key: &str) -> Self {
         Self {
             http,

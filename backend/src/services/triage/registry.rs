@@ -19,7 +19,10 @@ pub fn build(settings: &TriageSettings) -> Triage {
             tracing::warn!("OPENAI_API_KEY is empty: every intake item will be held for review");
             Some(Arc::new(Unconfigured))
         }
-        TriageProvider::OpenAi | TriageProvider::Ollama => Some(Arc::new(OpenAiCompatible::new(
+        TriageProvider::OpenAi
+        | TriageProvider::Ollama
+        | TriageProvider::LlamaCpp
+        | TriageProvider::Vllm => Some(Arc::new(OpenAiCompatible::new(
             reqwest::Client::new(),
             &settings.base_url,
             &settings.model,

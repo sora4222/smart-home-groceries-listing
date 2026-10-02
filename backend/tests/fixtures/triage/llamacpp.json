@@ -1,0 +1,24 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"supermarket_item\": true, \"confidence\": 0.9, \"reason\": \"Oat milk is a grocery item.\"}"
+      }
+    }
+  ],
+  "created": 1759374000,
+  "model": "local",
+  "system_fingerprint": "b6650-a1b2c3d4",
+  "object": "chat.completion",
+  "usage": { "completion_tokens": 26, "prompt_tokens": 160, "total_tokens": 186 },
+  "id": "chatcmpl-Qm3b0kP2xRk8vZ1yT6sN",
+  "timings": {
+    "prompt_n": 160,
+    "prompt_ms": 412.3,
+    "predicted_n": 26,
+    "predicted_ms": 980.1
+  }
+}

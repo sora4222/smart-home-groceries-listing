@@ -37,8 +37,9 @@ struct Reply {
 /// Reads the classifier's reply text. Anything but the asked-for object is a
 /// [`TriageError::BadReply`] — the item is then held for a person.
 pub fn parse_reply(content: &str) -> Result<Classification, TriageError> {
-    let reply: Reply =
-        serde_json::from_str(strip_code_fence(content)).map_err(|_| TriageError::BadReply)?;
+    let reply: Reply = serde_json::from_str(strip_code_fence(content))
+        .or_else(|_| serde_json::from_str(outermost_object(content)))
+        .map_err(|_| TriageError::BadReply)?;
     Ok(Classification {
         is_supermarket_item: reply.supermarket_item,
         confidence: reply.confidence,
@@ -63,6 +64,16 @@ fn strip_code_fence(content: &str) -> &str {
     };
     let inner = inner.strip_prefix("json").unwrap_or(inner);
     inner.strip_suffix("```").unwrap_or(inner).trim()
+}
+
+/// The text from the first `{` to the last `}`. Small local models (and
+/// reasoning models that think aloud in `<think>` tags first) sometimes wrap
+/// the asked-for object in words; the object itself is still usable.
+fn outermost_object(content: &str) -> &str {
+    match (content.find('{'), content.rfind('}')) {
+        (Some(start), Some(end)) if start < end => &content[start..=end],
+        _ => content,
+    }
 }
 
 #[cfg(test)]
@@ -94,6 +105,17 @@ mod tests {
             parse_reply("```json\n{\"supermarket_item\": true, \"confidence\": 1}\n```").unwrap();
         assert!(answer.is_supermarket_item);
         assert_eq!(answer.reason, "");
+    }
+
+    #[test]
+    fn accepts_an_object_after_a_local_model_thinks_aloud() {
+        let answer = parse_reply(
+            "<think>Milk is a dairy product.</think>\n\
+             {\"supermarket_item\": true, \"confidence\": 0.9, \"reason\": \"Dairy.\"}",
+        )
+        .unwrap();
+        assert!(answer.is_supermarket_item);
+        assert_eq!(answer.reason, "Dairy.");
     }
 
     #[test]

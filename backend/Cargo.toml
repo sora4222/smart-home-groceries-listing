@@ -37,7 +37,9 @@ thiserror = "2.0.21"
 anyhow = "1.0.104"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
-jsonwebtoken = "11.1.0"
+# aws_lc_rs: without a crypto backend jsonwebtoken panics on the first RS256
+# verification. aws-lc-rs is already in the tree through other crates.
+jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "http2", "charset"] }
 aes-gcm = "0.11.1"
 base64 = "0.23.1"

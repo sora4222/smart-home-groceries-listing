@@ -11,6 +11,7 @@
 
 #![allow(dead_code)]
 
+pub mod clerk;
 pub mod triage;
 pub mod trolley;
 
@@ -47,6 +48,21 @@ impl TestApp {
                 pool,
                 Settings {
                     dev_auth_bypass: false,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
+    /// Builds the real application verifying session tokens against the
+    /// JWKS at `jwks_url` (see [`clerk::serve_jwks`]).
+    pub fn with_clerk(pool: PgPool, jwks_url: &str) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    dev_auth_bypass: false,
+                    clerk_jwks_url: jwks_url.to_string(),
                     ..test_settings()
                 },
             ),

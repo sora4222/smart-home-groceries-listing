@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deliveryInfo, liveDays } from "#/lib/__tests__/woolworths-fixtures";
-import { buildFillWoolworthsTrolleyBookmarklet } from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
+import { WOOLWORTHS_TAB } from "#/lib/store-tab/store-tabs";
 
 const config = { apiBaseUrl: "https://grocery.test", secret: "s3cret" };
 const helpers = {
@@ -193,7 +193,7 @@ describe("fillWoolworthsTrolley", () => {
 	});
 });
 
-describe("buildFillWoolworthsTrolleyBookmarklet", () => {
+describe("the Woolworths bookmarklet", () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();
 	});
@@ -204,7 +204,7 @@ describe("buildFillWoolworthsTrolleyBookmarklet", () => {
 		const alert = vi.fn();
 		vi.stubGlobal("alert", alert);
 
-		const href = buildFillWoolworthsTrolleyBookmarklet({
+		const href = WOOLWORTHS_TAB.buildBookmarklet({
 			...config,
 			apiBaseUrl: "https://grocery.test/",
 		});

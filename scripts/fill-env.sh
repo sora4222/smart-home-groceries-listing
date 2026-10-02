@@ -3,7 +3,8 @@
 #
 # - No `.env` yet: copies `.env.example`, and gives the database a random
 #   password (in POSTGRES_PASSWORD and DATABASE_URL, so they match).
-# - Fills every app secret that is still empty with a new random value:
+# - Fills every app secret that is still empty — or adds it, when an older
+#   `.env` does not have the line yet — with a new random value:
 #   VOICE_WEBHOOK_SECRET, ALEXA_BRIDGE_SECRET, STORE_TAB_SECRET (hex) and
 #   CREDENTIAL_ENCRYPTION_KEY (base64 of 32 bytes).
 # - Never changes a value that is already set, and never changes the
@@ -32,6 +33,18 @@ current() { sed -n "s/^$1=//p" "$env_file" | head -n 1; }
 # has_key KEY — the line exists in .env.
 has_key() { grep -q "^$1=" "$env_file"; }
 
+# fill KEY VALUE — sets KEY when it is empty, or adds it when an older .env
+# does not have the line yet. A value already set is left alone.
+fill() {
+    if ! has_key "$1"; then
+        printf '\n%s=%s\n' "$1" "$2" >> "$env_file"
+        echo "Added $1"
+    elif [ -z "$(current "$1")" ]; then
+        set_value "$1" "$2"
+        echo "Filled $1"
+    fi
+}
+
 if [ ! -f "$env_file" ]; then
     cp "$root/.env.example" "$env_file"
     chmod 600 "$env_file"
@@ -45,15 +58,13 @@ if [ ! -f "$env_file" ]; then
 fi
 
 for key in VOICE_WEBHOOK_SECRET ALEXA_BRIDGE_SECRET STORE_TAB_SECRET; do
-    if has_key "$key" && [ -z "$(current "$key")" ]; then
-        set_value "$key" "$(openssl rand -hex 32)"
-        echo "Filled $key"
+    if ! has_key "$key" || [ -z "$(current "$key")" ]; then
+        fill "$key" "$(openssl rand -hex 32)"
     fi
 done
 
-if has_key CREDENTIAL_ENCRYPTION_KEY && [ -z "$(current CREDENTIAL_ENCRYPTION_KEY)" ]; then
-    set_value CREDENTIAL_ENCRYPTION_KEY "$(openssl rand -base64 32)"
-    echo "Filled CREDENTIAL_ENCRYPTION_KEY"
+if ! has_key CREDENTIAL_ENCRYPTION_KEY || [ -z "$(current CREDENTIAL_ENCRYPTION_KEY)" ]; then
+    fill CREDENTIAL_ENCRYPTION_KEY "$(openssl rand -base64 32)"
 fi
 
 echo "Done. Still to fill by hand: the Clerk, Cloudflare and Alexa values (docs/human-setup.md)."

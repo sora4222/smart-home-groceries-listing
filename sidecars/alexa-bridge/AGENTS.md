@@ -29,9 +29,12 @@ Python 3.13 · Flask · `ask-sdk-core` · `ask-sdk-webservice-support` ·
 src/alexa_bridge/
 ├── app.py         # Flask app, SkillBuilder + SkillAdapter wiring, /health
 ├── config.py      # Settings from env; fails closed on a missing secret
-├── handlers.py    # Intent handlers — thin, no rules
+├── handlers.py    # Add, launch, help, stop handlers — thin, no rules
+├── list_change_handlers.py  # Remove/reduce and Undo handlers — thin, no rules
 ├── parsing.py     # Pure slot → (item, quantity); where the tests bite
-└── backend.py     # The one place that talks to the Rust backend
+├── speech.py      # Pure: what Alexa says after a remove, reduce or undo
+├── backend.py     # Posts added items to the Rust backend
+└── list_changes.py# Posts removes and undos; maps 404/409 to exceptions
 tests/             # pytest; no network, no real Alexa, no real backend
 ```
 
@@ -60,8 +63,16 @@ tests/             # pytest; no network, no real Alexa, no real backend
 6. If the backend needs a new field, change `backend/src/models/schemas.rs`
    first and its tests with it.
 
+## Remove, reduce and undo
+`RemoveItemIntent` (no quantity = whole item), `ReduceItemIntent` (default
+1) and `UndoIntent` forward to `POST /api/intake/alexa/remove` and `/undo`.
+The backend matches the item, applies the change and records it for Undo —
+see `docs/features/FEATURE_VOICE.md`. This side only reads slots, forwards
+Alexa's request id as `external_id`, and speaks the answer (`speech.py`).
+After a change the session is left open so a bare "undo" works.
+
 ## Alexa list events
-The current skill uses a custom `AddItemIntent`. Amazon also offers household
+The current skill uses custom intents (`AddItemIntent` and the three above). Amazon also offers household
 list events (`AlexaHouseholdListEvent.ItemsCreated`), which would make
 "Alexa, add milk to my shopping list" work without a custom invocation. That
 path needs the List API and a permissions grant; it is unbuilt. Confirm the

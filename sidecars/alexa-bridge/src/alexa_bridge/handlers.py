@@ -84,8 +84,10 @@ class LaunchRequestHandler(AbstractRequestHandler):
 
     def handle(self, handler_input: HandlerInput) -> Response:
         return (
-            handler_input.response_builder.speak("What would you like to add to the shopping list?")
-            .ask("What should I add?")
+            handler_input.response_builder.speak(
+                "What would you like to add to or remove from the shopping list?"
+            )
+            .ask("What should I add or remove?")
             .response
         )
 
@@ -100,9 +102,11 @@ class HelpIntentHandler(AbstractRequestHandler):
         return (
             handler_input.response_builder.speak(
                 "Say something like, add milk to the shopping list. "
-                "Items wait for someone to confirm them in the web app."
+                "Items wait for someone to confirm them in the web app. "
+                "You can also say, remove milk, or reduce milk by two, "
+                "and say undo to put it back."
             )
-            .ask("What should I add?")
+            .ask("What should I add or remove?")
             .response
         )
 

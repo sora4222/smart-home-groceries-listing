@@ -27,6 +27,7 @@ src/
 ├── routes/              # One module per domain — expose `router()`, merge in routes/mod.rs
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
 │   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
+│   ├── alexa_list_changes.rs # POST /api/intake/alexa/remove, /undo
 │   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
@@ -62,6 +63,9 @@ src/
 │   ├── triage/          # LLM triage: TriageModel trait, OpenAI/Ollama client,
 │   │                    #   fake, prompt + verdict (pure), background queue,
 │   │                    #   Triage view rules — see backend/skills/triage.md
+│   ├── voice_changes/   # remove/reduce by voice + Undo: matching.rs (name
+│   │                    #   variants, pure), plan.rs (arithmetic, pure),
+│   │                    #   undo.rs, repository.rs (voice_list_changes)
 │   ├── item_rules/
 │   │   ├── mod.rs       # ItemRuleService: list, add, edit, delete
 │   │   ├── apply.rs     # filter_terms_for(): the chips a new item gets

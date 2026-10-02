@@ -19,6 +19,7 @@ mod selections;
 mod spending;
 mod trolley_handoffs;
 mod voice;
+mod voice_changes;
 
 pub use common::*;
 pub use grocery::*;
@@ -30,3 +31,4 @@ pub use selections::*;
 pub use spending::*;
 pub use trolley_handoffs::*;
 pub use voice::*;
+pub use voice_changes::*;

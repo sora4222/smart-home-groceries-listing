@@ -96,3 +96,28 @@ where
         Ok(Self(value))
     }
 }
+
+/// A query string, rejected with 422 unless it parses and validates.
+pub struct ValidatedQuery<T>(pub T);
+
+impl<S, T> axum::extract::FromRequestParts<S> for ValidatedQuery<T>
+where
+    S: Send + Sync,
+    T: DeserializeOwned + Validate + 'static,
+{
+    type Rejection = ApiError;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        let axum::extract::Query(value) =
+            axum::extract::Query::<T>::from_request_parts(parts, state)
+                .await
+                .map_err(|rejection| ApiError::UnprocessableEntity(rejection.body_text()))?;
+        value
+            .validate()
+            .map_err(|errors| ApiError::UnprocessableEntity(errors.to_string()))?;
+        Ok(Self(value))
+    }
+}

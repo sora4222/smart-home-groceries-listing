@@ -1,5 +1,5 @@
 import {
-	API_BASE_URL,
+	deliverVoiceItem,
 	addForm,
 	addItem,
 	expect,
@@ -199,11 +199,7 @@ test.describe("committing the list", () => {
 test.describe("a voice item reaching the list", () => {
 	test("appears on the main page once it is accepted", async ({ page, request }) => {
 		// The intake webhook a Home Assistant automation or `curl` would call.
-		const delivered = await request.post(`${API_BASE_URL}/api/voice-requests`, {
-			headers: { "x-webhook-secret": "e2e-webhook-secret" },
-			data: { item: "oat milk", quantity: 2 },
-		});
-		expect(delivered.status()).toBe(201);
+		expect(await deliverVoiceItem(request, "oat milk", 2)).toBe("pending");
 
 		await gotoList(page, "/pending");
 		await page.getByRole("button", { name: "Accept oat milk" }).click();

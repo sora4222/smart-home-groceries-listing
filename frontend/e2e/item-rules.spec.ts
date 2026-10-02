@@ -1,5 +1,5 @@
 import {
-	API_BASE_URL,
+	deliverVoiceItem,
 	addItem,
 	expect,
 	gotoList,
@@ -91,11 +91,8 @@ test.describe("a rule reaching the list", () => {
 		await gotoList(page, "/settings/item-rules");
 		await addRule(page, ["toilet paper"], ["3 ply"]);
 
-		const delivered = await request.post(`${API_BASE_URL}/api/voice-requests`, {
-			headers: { "x-webhook-secret": "e2e-webhook-secret" },
-			data: { item: "Toilet Paper", quantity: 1 },
-		});
-		expect(delivered.status()).toBe(201);
+		// The intake webhook a Home Assistant automation or `curl` would call.
+		expect(await deliverVoiceItem(request, "Toilet Paper", 1)).toBe("pending");
 
 		await gotoList(page, "/pending");
 		await page.getByRole("button", { name: "Accept Toilet Paper" }).click();

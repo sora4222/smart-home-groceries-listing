@@ -65,7 +65,7 @@ impl TriageSettings {
             model: optional("INTAKE_LLM_MODEL")
                 .unwrap_or_else(|| default_model(provider).to_string()),
             api_key: optional(api_key_variable(provider)).unwrap_or_default(),
-            timeout: Duration::from_secs(parse_or("INTAKE_LLM_TIMEOUT_SECONDS", 20)?),
+            timeout: Duration::from_secs(parse_or("INTAKE_LLM_TIMEOUT_SECONDS", 60)?),
             min_confidence,
         })
     }

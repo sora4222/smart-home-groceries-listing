@@ -7,6 +7,7 @@
  * `api` object and re-exports their types, so callers import from
  * `#/lib/api` without caring which file a type lives in.
  */
+import { dislikesApi } from "#/lib/api/dislikes";
 import { groceryApi } from "#/lib/api/grocery";
 import { itemRulesApi } from "#/lib/api/item-rules";
 import { orderReviewApi } from "#/lib/api/order-review";
@@ -17,6 +18,7 @@ import { trolleyHandoffsApi } from "#/lib/api/trolley-handoffs";
 import { voiceApi } from "#/lib/api/voice";
 
 export { ApiError } from "#/lib/api/client";
+export * from "#/lib/api/dislikes";
 export * from "#/lib/api/grocery";
 export * from "#/lib/api/item-rules";
 export * from "#/lib/api/order-review";
@@ -35,4 +37,5 @@ export const api = {
 	selections: selectionsApi,
 	trolleyHandoffs: trolleyHandoffsApi,
 	orderReview: orderReviewApi,
+	dislikes: dislikesApi,
 };

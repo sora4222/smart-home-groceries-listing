@@ -1,3 +1,5 @@
+import { DislikeButton } from "#/components/dislikes/dislike-button";
+import { DislikeNotice } from "#/components/dislikes/dislike-notice";
 import { ChooseProductButton } from "#/components/products/choose-product-button";
 import { ProductRow } from "#/components/products/product-row";
 import type { StoreProducts } from "#/lib/api";
@@ -5,7 +7,8 @@ import { visibleProducts } from "#/lib/specials";
 
 /**
  * One store's part of the price comparison: its products cheapest per unit
- * first, each with a button to choose it when the comparison can choose, or
+ * first, each with a button to choose it when the comparison can choose, a
+ * button to dislike it, and a warning when someone dislikes it — or
  * why there are none — the store failed, nothing matched the
  * item's filters, or nothing is on special.
  */
@@ -47,7 +50,13 @@ export function StoreResults({
 							product={product}
 							quantity={quantity}
 							storeName={results.store_name}
+							notice={<DislikeNotice store={results.store} product={product} />}
 						>
+							<DislikeButton
+								store={results.store}
+								storeName={results.store_name}
+								product={product}
+							/>
 							<ChooseProductButton
 								store={results.store}
 								storeName={results.store_name}

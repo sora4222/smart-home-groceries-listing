@@ -25,6 +25,7 @@ intent or scope is ambiguous. Do not assume on non-trivial changes.
 | Auth | Clerk → `backend/src/auth/mod.rs` (swap provider here only) |
 | Automation | `chromiumoxide` (CDP) · `wreq` (TLS fingerprint emulation) |
 | Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python in the repo |
+| Desktop | `desktop/` — Tauri 2 (Rust); loads the server's web app, owns the store windows |
 | Infra | Docker Compose · Cloudflare Tunnel |
 
 **The backend is Rust. There is no Python in it.** The single Python process
@@ -49,6 +50,10 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   ├── migrations/          # sqlx migrations, embedded in the binary
 │   ├── tests/               # Integration tests over the real router
 │   └── AGENTS.md            # Backend-specific rules
+├── desktop/                 # Tauri 2 app for Mac/Windows — shows the server's
+│   │                        # web app, does the store steps (skills/desktop.md)
+│   ├── src-tauri/           # Rust: commands, store windows, tray, settings
+│   └── setup/               # First-run page (server address)
 ├── sidecars/
 │   └── alexa-bridge/        # Python ask-sdk bridge — AGENTS.md of its own
 ├── skills/                  # Agent reference files ← read before acting
@@ -132,7 +137,17 @@ contains no business logic and holds no database credentials. See "Sidecars".
   never retry a refused store request in a loop. `STORE_CLIENTS=fake` for
   development and tests.
 - **Checkout:** automated to the payment page only. Never stores or enters
-  card details.
+  card details. Planned (desktop app, `FEATURE_DESKTOP_APP.md` goal 8): place
+  the order with the card already saved on the store account, **only after
+  the person taps Place order** — never by itself.
+- **Desktop app:** `desktop/` runs on the household's Mac or Windows
+  computer and only talks to the server and the stores. It shows the
+  server's web app (no second copy of the screens); the web app shows desktop
+  steps when `lib/desktop/` finds the app. Voice intake and PostgreSQL stay
+  on the server. The server origin may call only the app's own commands
+  (`server_access.rs`); the fill program runs only on the store's own
+  trolley page. Store logins live in the webview's cookies — never read or
+  stored by the app.
 - **Credentials:** AES-256-GCM encrypted in PostgreSQL
   (`backend/src/services/encryption.rs`). Key in an env var. Never logged,
   never sent to the frontend.

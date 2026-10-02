@@ -7,6 +7,7 @@
 //! application changes.
 
 pub mod clerk;
+pub mod request_user;
 pub mod secret;
 
 use std::future::Future;
@@ -78,13 +79,19 @@ impl FromRequestParts<AppState> for AuthUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        if state.settings.dev_auth_bypass {
-            return Ok(dev_user());
-        }
+        let user = if state.settings.dev_auth_bypass {
+            dev_user()
+        } else {
+            let token = bearer_token(parts)
+                .ok_or_else(|| ApiError::Unauthorized("Missing bearer token".to_string()))?;
+            state.auth.verify_token(token).await?
+        };
 
-        let token = bearer_token(parts)
-            .ok_or_else(|| ApiError::Unauthorized("Missing bearer token".to_string()))?;
-        state.auth.verify_token(token).await
+        // Tells the access log who this request was (`request_user.rs`).
+        if let Some(slot) = parts.extensions.get::<request_user::RequestUser>() {
+            slot.record(&user.id);
+        }
+        Ok(user)
     }
 }
 

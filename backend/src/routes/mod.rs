@@ -4,6 +4,7 @@
 //! merging it in [`api_router`] — this module stays a thin wiring layer, the
 //! way `app/main.py` did.
 
+pub mod access_logs;
 pub mod alexa;
 pub mod extract;
 pub mod grocery;
@@ -29,6 +30,7 @@ use crate::state::AppState;
 pub fn api_router(state: &AppState) -> Router<AppState> {
     Router::new()
         .merge(health::router())
+        .merge(access_logs::router())
         .merge(voice::router())
         .merge(alexa::router())
         .merge(grocery::router())

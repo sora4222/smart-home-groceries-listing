@@ -65,12 +65,15 @@ impl GoogleTasksSettings {
             client_secret: optional("GOOGLE_CLIENT_SECRET").unwrap_or_default(),
             redirect_uri: optional("GOOGLE_REDIRECT_URI")
                 .unwrap_or_else(|| "http://localhost:3000/settings/intake".to_string()),
-            auth_url: optional("GOOGLE_OAUTH_AUTH_URL")
-                .unwrap_or_else(|| "https://accounts.google.com/o/oauth2/v2/auth".to_string()),
-            token_url: optional("GOOGLE_OAUTH_TOKEN_URL")
-                .unwrap_or_else(|| "https://oauth2.googleapis.com/token".to_string()),
-            api_base: optional("GOOGLE_TASKS_API_BASE")
-                .unwrap_or_else(|| "https://tasks.googleapis.com".to_string()),
+            auth_url: google_endpoint(
+                "GOOGLE_OAUTH_AUTH_URL",
+                "https://accounts.google.com/o/oauth2/v2/auth",
+            )?,
+            token_url: google_endpoint(
+                "GOOGLE_OAUTH_TOKEN_URL",
+                "https://oauth2.googleapis.com/token",
+            )?,
+            api_base: google_endpoint("GOOGLE_TASKS_API_BASE", "https://tasks.googleapis.com")?,
             timeout: Duration::from_secs(parse_or("GOOGLE_TIMEOUT_SECONDS", 15)?),
             poll_in_background: !parse_bool("GOOGLE_TASKS_NO_BACKGROUND_POLL"),
         })
@@ -80,6 +83,37 @@ impl GoogleTasksSettings {
     pub fn is_configured(&self) -> bool {
         self.mode == GoogleTasksMode::Fake
             || (!self.client_id.is_empty() && !self.client_secret.is_empty())
+    }
+}
+
+/// One of Google's addresses, from `key` or the default. The client secret
+/// and the household's tokens travel to these, so they must be `https`; plain
+/// `http` is allowed only to this machine, for the tests' stand-in Google.
+fn google_endpoint(key: &str, default: &str) -> Result<String, ConfigError> {
+    let value = optional(key).unwrap_or_else(|| default.to_string());
+    if is_safe_endpoint(&value) {
+        Ok(value)
+    } else {
+        Err(ConfigError::Invalid {
+            key: key.to_string(),
+        })
+    }
+}
+
+/// Whether `value` is an `https` URL, or an `http` URL to this machine.
+fn is_safe_endpoint(value: &str) -> bool {
+    let Ok(url) = url::Url::parse(value) else {
+        return false;
+    };
+    match url.scheme() {
+        "https" => true,
+        "http" => match url.host() {
+            Some(url::Host::Domain(name)) => name == "localhost",
+            Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+            Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+            None => false,
+        },
+        _ => false,
     }
 }
 
@@ -126,6 +160,16 @@ mod tests {
     #[test]
     fn the_fake_needs_no_client() {
         assert!(settings(GoogleTasksMode::Fake, "", "").is_configured());
+    }
+
+    #[test]
+    fn google_addresses_must_be_https_except_to_this_machine() {
+        assert!(is_safe_endpoint("https://oauth2.googleapis.com/token"));
+        assert!(is_safe_endpoint("http://127.0.0.1:4010/token"));
+        assert!(is_safe_endpoint("http://localhost:4010/token"));
+        assert!(!is_safe_endpoint("http://oauth2.googleapis.com/token"));
+        assert!(!is_safe_endpoint("http://10.0.0.5/token"));
+        assert!(!is_safe_endpoint("not a url"));
     }
 
     #[test]

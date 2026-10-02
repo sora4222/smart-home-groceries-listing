@@ -50,7 +50,7 @@ struct ApiList {
 /// Google Tasks over HTTPS.
 pub struct LiveTasksApi {
     http: reqwest::Client,
-    oauth: OAuth,
+    google_sign_in: OAuth,
     api_base: String,
 }
 
@@ -58,7 +58,7 @@ impl LiveTasksApi {
     /// A client for the household's Google Cloud project.
     pub fn new(http: reqwest::Client, settings: &GoogleTasksSettings) -> Self {
         Self {
-            oauth: OAuth::new(http.clone(), settings),
+            google_sign_in: OAuth::new(http.clone(), settings),
             http,
             api_base: settings.api_base.trim_end_matches('/').to_string(),
         }
@@ -71,7 +71,7 @@ impl LiveTasksApi {
         refresh_token: &str,
         build: impl FnOnce(&reqwest::Client) -> RequestBuilder,
     ) -> Result<reqwest::Response, GoogleError> {
-        let token = self.oauth.access_token(refresh_token).await?;
+        let token = self.google_sign_in.access_token(refresh_token).await?;
         let response = build(&self.http)
             .bearer_auth(token)
             .send()
@@ -80,7 +80,7 @@ impl LiveTasksApi {
         match response.status() {
             status if status.is_success() => Ok(response),
             StatusCode::UNAUTHORIZED => {
-                self.oauth.forget().await;
+                self.google_sign_in.forget().await;
                 Err(GoogleError::SignInRevoked)
             }
             StatusCode::NOT_FOUND => Err(GoogleError::NotFound),
@@ -127,11 +127,11 @@ impl LiveTasksApi {
 
 impl TasksApi for LiveTasksApi {
     fn authorize_url(&self, state: &str) -> String {
-        self.oauth.authorize_url(state)
+        self.google_sign_in.authorize_url(state)
     }
 
     fn exchange_code<'a>(&'a self, code: &'a str) -> BoxFuture<'a, Result<String, GoogleError>> {
-        Box::pin(self.oauth.exchange_code(code))
+        Box::pin(self.google_sign_in.exchange_code(code))
     }
 
     fn task_lists<'a>(

@@ -92,7 +92,9 @@ typed marker can never skip triage.
 (default `http://localhost:3000/settings/intake`), `GOOGLE_TASKS_CLIENT`
 (`live` | `fake`), `GOOGLE_TIMEOUT_SECONDS` (15). Test-only overrides:
 `GOOGLE_OAUTH_AUTH_URL`, `GOOGLE_OAUTH_TOKEN_URL`, `GOOGLE_TASKS_API_BASE`,
-`GOOGLE_TASKS_NO_BACKGROUND_POLL`.
+`GOOGLE_TASKS_NO_BACKGROUND_POLL`. The three addresses must be `https`
+(plain `http` only to this machine), because the client secret and tokens
+travel to them; the backend refuses to start otherwise.
 
 ## Code
 | Piece | File |

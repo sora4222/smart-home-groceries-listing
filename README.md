@@ -31,9 +31,12 @@ Ordering, checkout and spending analysis are not built yet; their
 > `docs/features/FEATURE_VOICE.md`.
 
 ## First-time setup
-**If you haven't signed up for anything yet (Clerk, Cloudflare, Amazon
-developer), start with [`docs/human-setup.md`](docs/human-setup.md).** It's the
-only part of this that a human has to do — everything else is `make up`.
+**Start with [`docs/human-setup.md`](docs/human-setup.md).** It lists every
+step a person has to do (accounts, values for `.env`, Alexa, Woolworths), in
+order, grouped by website. `make setup-env` fills in the random secrets.
+
+For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
+[`docs/using-the-app.md`](docs/using-the-app.md).
 
 ## Stack
 | Layer | Tech |
@@ -51,7 +54,8 @@ interpreter, virtualenv or migration files on the home server.
 
 ## Running it
 ```bash
-cp .env.example .env        # fill in the values from docs/human-setup.md
+make setup-env              # makes .env and fills the random secrets
+                            # then fill the rest from docs/human-setup.md
 make up                     # Postgres, backend, Alexa bridge, Cloudflare Tunnel
 make migrate                # optional — the backend migrates itself at startup
 
@@ -97,7 +101,9 @@ sidecars/
   alexa-bridge/   Python ask-sdk bridge — see its AGENTS.md
 docs/
   features/       One spec-and-status doc per major goal
-  human-setup.md  Human setup instructions (signups, secrets, one-time config)
+  README.md       Which doc is for whom
+  human-setup.md  Setup steps a person does once (signups, .env, Alexa, Woolworths)
+  using-the-app.md  Everyday steps for people (a shop, fixes)
 skills/           Reference notes for agents working in this repo — read before
                   touching migrations, the Makefile, git conventions, or
                   store integrations

@@ -89,8 +89,9 @@ Nothing was bought. Your trolley was left as it was (one existing item).
 
 ## Things to know
 
-- **Chrome may ask** "allow woolworths.com.au to access devices on your local
-  network?" the first time the bookmark calls the app at home. Choose Allow.
+- Steps for people (setup, a weekly shop, fixes) are in
+  [`human-setup.md` part 7](human-setup.md#part-7--woolworths-once-about-10-minutes)
+  and [`using-the-app.md`](using-the-app.md). Do not repeat them here.
 - The bookmark calls the app at `VITE_API_BASE_URL`. It must be reachable
   from the browser (it already is, if the app works).
 - Woolworths can change these calls at any time. If the bookmark starts

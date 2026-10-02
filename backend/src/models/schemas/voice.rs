@@ -7,7 +7,7 @@ use validator::Validate;
 
 use super::common::{default_quantity, MAX_NAME_LEN, MAX_QUANTITY};
 use super::grocery::GroceryItemResponse;
-use crate::models::db::{IntakeSource, VoiceRequest, VoiceRequestStatus};
+use crate::models::db::{IntakeSource, TriageStatus, VoiceRequest, VoiceRequestStatus};
 
 /// Payload the generic intake webhook accepts.
 #[derive(Debug, Deserialize, Validate)]
@@ -56,6 +56,12 @@ pub struct VoiceRequestResponse {
     pub parsed_quantity: i32,
     pub status: VoiceRequestStatus,
     pub created_at: DateTime<Utc>,
+    /// Which queue triage put the request in.
+    pub triage_status: TriageStatus,
+    /// The classifier's reason, or why it could not answer.
+    pub triage_reason: Option<String>,
+    /// The classifier's confidence, 0 to 1, when it answered.
+    pub triage_confidence: Option<f32>,
 }
 
 impl From<VoiceRequest> for VoiceRequestResponse {
@@ -68,6 +74,9 @@ impl From<VoiceRequest> for VoiceRequestResponse {
             parsed_quantity: row.parsed_quantity,
             status: row.status,
             created_at: row.created_at,
+            triage_status: row.triage_status,
+            triage_reason: row.triage_reason,
+            triage_confidence: row.triage_confidence,
         }
     }
 }

@@ -9,6 +9,10 @@ use std::time::Duration;
 
 use crate::error::ConfigError;
 
+mod triage;
+
+pub use triage::{TriageProvider, TriageSettings};
+
 /// How long a fetched Clerk JWKS document is reused before being re-fetched.
 pub const JWKS_CACHE_TTL_SECONDS: u64 = 3600;
 
@@ -46,6 +50,9 @@ pub struct Settings {
 
     /// How the backend reaches Woolworths and Coles.
     pub stores: StoreSettings,
+
+    /// How intake requests are screened before the household sees them.
+    pub triage: TriageSettings,
 }
 
 /// Which store clients the backend uses.
@@ -126,6 +133,8 @@ impl Settings {
             dev_auth_bypass: parse_bool("DEV_AUTH_BYPASS"),
 
             stores: StoreSettings::from_env()?,
+
+            triage: TriageSettings::from_env()?,
         })
     }
 }

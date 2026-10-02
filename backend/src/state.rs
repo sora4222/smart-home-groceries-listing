@@ -8,6 +8,7 @@ use crate::auth::AuthProvider;
 use crate::config::Settings;
 use crate::services::encryption::Encryptor;
 use crate::services::stores::StoreClients;
+use crate::services::triage::TriageQueue;
 use crate::services::ws_hub::WsHub;
 
 /// Handles to everything a route needs. Cheap to clone — the pool, hub and
@@ -24,4 +25,7 @@ pub struct AppState {
     pub encryptor: Option<Encryptor>,
     /// Woolworths and Coles, real or fake as `STORE_CLIENTS` chose.
     pub stores: StoreClients,
+    /// Classifies intake requests in the background, as
+    /// `INTAKE_LLM_PROVIDER` chose.
+    pub triage: TriageQueue,
 }

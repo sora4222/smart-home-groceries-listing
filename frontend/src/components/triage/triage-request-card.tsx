@@ -17,19 +17,23 @@ interface TriageRequestCardProps {
 	busy: boolean;
 	onAccept: (request: VoiceRequest) => void;
 	onReject: (request: VoiceRequest) => void;
+	/** Puts a Google Tasks item back on its list. */
+	onRestore: (request: VoiceRequest) => void;
 }
 
 /**
  * One request the triage step held or rejected (spec: "Triage View"). Shows
  * what was heard, where it came from, what the checker said and when. Accept
  * moves it on to Pending Requests — a person still accepts it onto the list
- * there. Reject confirms it is not wanted.
+ * there. Reject confirms it is not wanted. A Google Tasks item can also be
+ * put back on its list ("Restore to source"), so the request is not lost.
  */
 export function TriageRequestCard({
 	request,
 	busy,
 	onAccept,
 	onReject,
+	onRestore,
 }: TriageRequestCardProps) {
 	const name = request.parsed_name;
 	const sure = confidenceLabel(request.triage_confidence);
@@ -59,7 +63,7 @@ export function TriageRequestCard({
 					{new Date(request.created_at).toLocaleString()}
 				</p>
 			</CardContent>
-			<CardFooter className="gap-2">
+			<CardFooter className="flex-wrap gap-2">
 				<Button
 					size="sm"
 					className="flex-1 sm:flex-none"
@@ -79,6 +83,18 @@ export function TriageRequestCard({
 				>
 					Reject
 				</Button>
+				{request.source === "tasks" && (
+					<Button
+						size="sm"
+						variant="ghost"
+						className="w-full sm:w-auto"
+						disabled={busy}
+						onClick={() => onRestore(request)}
+						aria-label={`Put ${name} back in Google Tasks`}
+					>
+						Put back in Google Tasks
+					</Button>
+				)}
 			</CardFooter>
 		</Card>
 	);

@@ -50,11 +50,17 @@ local servers run as Compose profiles (`COMPOSE_PROFILES` in `.env`).
 - e2e: the backend runs `INTAKE_LLM_PROVIDER=fake`; use `deliverVoiceItem()`
   from `frontend/e2e/fixtures.ts`.
 
+Restore to source (Google Tasks) is in `backend/skills/google-tasks.md`.
+
 ## Running the e2e stack by hand
+The Google Tasks lines are for `e2e/google-tasks.spec.ts` (fake account, a
+test-only key, no background poll racing the tests).
 ```bash
 DATABASE_URL=postgres://grocery:changeme@localhost:5432/grocery_e2e \
 DEV_AUTH_BYPASS=true VOICE_WEBHOOK_SECRET=e2e-webhook-secret \
 STORE_TAB_SECRET=e2e-store-tab STORE_CLIENTS=fake INTAKE_LLM_PROVIDER=fake \
+GOOGLE_TASKS_CLIENT=fake GOOGLE_TASKS_NO_BACKGROUND_POLL=true \
+CREDENTIAL_ENCRYPTION_KEY=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8= \
 BIND_ADDRESS=127.0.0.1:8000 CORS_ORIGINS=http://localhost:3000 \
   ./backend/target/debug/grocery-backend
 ```

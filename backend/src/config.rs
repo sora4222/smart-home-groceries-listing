@@ -11,9 +11,11 @@ use crate::error::ConfigError;
 use crate::services::stores::Store;
 
 mod access_log;
+mod google_tasks;
 mod triage;
 
 pub use access_log::access_log_dir;
+pub use google_tasks::{GoogleTasksMode, GoogleTasksSettings};
 pub use triage::{TriageProvider, TriageSettings};
 
 /// How long a fetched Clerk JWKS document is reused before being re-fetched.
@@ -56,6 +58,9 @@ pub struct Settings {
 
     /// How intake requests are screened before the household sees them.
     pub triage: TriageSettings,
+
+    /// How the backend reaches Google Tasks.
+    pub google_tasks: GoogleTasksSettings,
 }
 
 /// Which store clients the backend uses.
@@ -147,6 +152,8 @@ impl Settings {
             stores: StoreSettings::from_env()?,
 
             triage: TriageSettings::from_env()?,
+
+            google_tasks: GoogleTasksSettings::from_env()?,
         })
     }
 }

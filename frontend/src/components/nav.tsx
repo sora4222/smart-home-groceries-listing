@@ -15,6 +15,7 @@ const links: ReadonlyArray<{
 		| "/order"
 		| "/analysis"
 		| "/settings/item-rules"
+		| "/settings/intake"
 		| "/settings/dislikes"
 		| "/settings/delivery"
 		| "/logs";
@@ -27,6 +28,7 @@ const links: ReadonlyArray<{
 	{ to: "/order", label: "Order" },
 	{ to: "/analysis", label: "Spending" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
+	{ to: "/settings/intake", label: "Intake" },
 	{ to: "/settings/dislikes", label: "Dislikes" },
 	{ to: "/settings/delivery", label: "Delivery" },
 	{ to: "/logs", label: "Logs" },

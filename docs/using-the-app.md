@@ -8,6 +8,7 @@ and API details are in [`features/`](features/).
 |---|---|
 | [Voice intake: add](#voice-intake-add) | Echo, then the web app |
 | [Voice intake: remove, reduce, undo](#voice-intake-remove-reduce-undo) | Echo |
+| [Google Tasks intake](#google-tasks-intake) | Google Tasks, then the web app |
 | [Triage review](#triage-review) | Web app `/triage` |
 | [Delivery fees and store choice](#delivery-fees-and-store-choice) | Web app `/settings/delivery`, `/order` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
@@ -63,6 +64,18 @@ shrink the order. Each one is recorded so it can be reverted. Spec:
 
 ---
 
+## Google Tasks intake
+
+Needs [`human-setup.md` → Optional: Google Tasks](human-setup.md#optional-google-tasks).
+Add a task such as `2 oat milk` to the watched list (quantity first; `2 x`,
+`x2` also parse). The backend polls every `poll_seconds` (default 60), records
+each open task as a **pending** request and deletes it from Google. **Intake
+→ Check now** polls immediately.
+
+1. Open **Pending Requests** and **Accept** as for voice.
+
+---
+
 ## Triage review
 
 The intake classifier holds low-confidence items and rejects non-grocery
@@ -72,6 +85,9 @@ items (`FEATURE_TRIAGE.md`). The **Triage** nav badge counts held items.
 2. **Accept** moves the item to Pending Requests (it still needs a second
    **Accept** there). **Reject** discards it.
 3. Optionally scan **Rejected** for false negatives.
+4. Google Tasks items also get **Put back in Google Tasks**: the task is
+   re-created on the list and the next poll brings it straight to Pending
+   Requests, skipping the classifier.
 
 ---
 
@@ -264,4 +280,5 @@ volume (`/var/log/grocery`), kept 30 days.
 | Triage says "The checker could not be reached" | Model server down: `make up` (Ollama: also `docker compose exec ollama ollama pull llama3.2`), then **Accept** in Triage. |
 | Alexa: "I couldn't find … on the list" | No `active` item matched; check the exact name on **Grocery List**. |
 | Alexa: "The list is locked for purchase" | The list is committed; release it in the web app first. |
+| Google Tasks card: "connect Google Tasks again" | Access was revoked or expired: **Intake → Disconnect**, then connect again. |
 | Alexa adds/removes nothing | [`human-setup.md` §7](human-setup.md#7-smoke-test-the-skill). |

@@ -13,6 +13,7 @@ describe("TriageRequestCard", () => {
 				busy={false}
 				onAccept={vi.fn()}
 				onReject={vi.fn()}
+				onRestore={vi.fn()}
 			/>,
 		);
 
@@ -37,6 +38,7 @@ describe("TriageRequestCard", () => {
 				busy={false}
 				onAccept={vi.fn()}
 				onReject={vi.fn()}
+				onRestore={vi.fn()}
 			/>,
 		);
 
@@ -52,6 +54,7 @@ describe("TriageRequestCard", () => {
 				busy={false}
 				onAccept={vi.fn()}
 				onReject={vi.fn()}
+				onRestore={vi.fn()}
 			/>,
 		);
 
@@ -69,6 +72,7 @@ describe("TriageRequestCard", () => {
 				busy={false}
 				onAccept={onAccept}
 				onReject={onReject}
+				onRestore={vi.fn()}
 			/>,
 		);
 
@@ -86,6 +90,7 @@ describe("TriageRequestCard", () => {
 				busy={true}
 				onAccept={vi.fn()}
 				onReject={vi.fn()}
+				onRestore={vi.fn()}
 			/>,
 		);
 
@@ -94,6 +99,60 @@ describe("TriageRequestCard", () => {
 		).toBeDisabled();
 		expect(
 			screen.getByRole("button", { name: "Reject flibber" }),
+		).toBeDisabled();
+	});
+
+	it("offers to put a Google Tasks item back, and passes the request", async () => {
+		const user = userEvent.setup();
+		const onRestore = vi.fn();
+		const request = heldRequest({ source: "tasks" });
+		render(
+			<TriageRequestCard
+				request={request}
+				busy={false}
+				onAccept={vi.fn()}
+				onReject={vi.fn()}
+				onRestore={onRestore}
+			/>,
+		);
+
+		expect(screen.getByText("Google Tasks")).toBeInTheDocument();
+		await user.click(
+			screen.getByRole("button", { name: "Put flibber back in Google Tasks" }),
+		);
+
+		expect(onRestore).toHaveBeenCalledWith(request);
+	});
+
+	it("has nothing to put back for a channel with no list", () => {
+		render(
+			<TriageRequestCard
+				request={heldRequest({ source: "alexa" })}
+				busy={false}
+				onAccept={vi.fn()}
+				onReject={vi.fn()}
+				onRestore={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.queryByRole("button", { name: /back in Google Tasks/ }),
+		).toBeNull();
+	});
+
+	it("disables putting back while a decision is being saved", () => {
+		render(
+			<TriageRequestCard
+				request={heldRequest({ source: "tasks" })}
+				busy={true}
+				onAccept={vi.fn()}
+				onReject={vi.fn()}
+				onRestore={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("button", { name: "Put flibber back in Google Tasks" }),
 		).toBeDisabled();
 	});
 });

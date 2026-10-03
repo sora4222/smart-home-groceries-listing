@@ -2,9 +2,8 @@
 
 Status: **implemented** — every intake item is checked by a classifier
 ("would a supermarket sell this?") before the household sees it, and the
-`/triage` page shows what it held or rejected. **Restore to source** is not
-built: no channel that keeps a source list (Google Tasks, Google Keep) exists
-yet. Steps for people: `docs/human-setup.md` §5 and §6 and `docs/using-the-app.md`
+`/triage` page shows what it held or rejected. **Restore to source** is built
+for Google Tasks items (`FEATURE_GOOGLE_TASKS.md`). Steps for people: `docs/human-setup.md` §5 and §6 and `docs/using-the-app.md`
 ("Check the Triage page") — keep those in step with this spec.
 
 ## What this feature does
@@ -48,6 +47,7 @@ retry (same `external_id`) is never checked twice.
 | `GET` | `/api/triage?tab=held\|rejected` | Clerk | 200 undecided requests in that tab, newest first; 400 unknown tab |
 | `POST` | `/api/triage/{id}/accept` | Clerk | 200, the request is now `skipped` (in Pending Requests); 404; 409 not held/rejected or already decided |
 | `POST` | `/api/triage/{id}/reject` | Clerk | 200, the request is `rejected` for good; 404; 409 already decided |
+| `POST` | `/api/triage/{id}/restore` | Clerk | 200, a Google Tasks item is back on its list and this request is `rejected`; 404; 409 not held/rejected, decided, not from Google Tasks, or Tasks not connected; 503 Google unavailable (nothing changes) |
 
 `GET /api/voice-requests` (Pending Requests) now lists only `approved` and
 `skipped` requests. Every intake request in an answer carries
@@ -106,8 +106,9 @@ names leave the home server for OpenAI when `openai` is chosen; nothing else
 does. The key is never logged (`TriageSettings` has a redacting `Debug`).
 
 ## Known gaps
-- **Restore to source** (spec: recreate the item in Google Tasks / Keep with
-  `force_accept`) waits for those channels.
+- **Restore to source** works for Google Tasks only; Keep is paused. The
+  spec's `force_accept` flag is a row in `intake_restores` keyed by the new
+  task's id, so a person cannot skip triage by typing a marker into a task.
 - The spec asks for the OpenAI key to be stored encrypted in PostgreSQL and set
   on `/settings/intake`. It is an environment variable for now, like the other
   secrets; there is no intake settings page yet.

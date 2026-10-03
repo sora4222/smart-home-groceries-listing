@@ -11,13 +11,13 @@
 
 #![allow(dead_code)]
 
+pub mod google_tasks;
 pub mod purchases;
 pub mod settings;
 pub mod triage;
 pub mod trolley;
 
-use grocery_backend::config::{Settings, TriageSettings};
-use settings::test_settings;
+use grocery_backend::config::{GoogleTasksSettings, Settings, TriageSettings};
 
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
@@ -30,6 +30,11 @@ use tower::ServiceExt;
 use grocery_backend::build_app;
 use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
+
+#[allow(unused_imports)] // each test file uses some of these
+pub use settings::{
+    fake_store_settings, google_tasks_settings, test_settings, triage_settings, TEST_ENCRYPTION_KEY,
+};
 
 /// The shared secrets the tests authenticate with. Test-only values.
 pub const TEST_WEBHOOK_SECRET: &str = "test-webhook-secret";
@@ -63,6 +68,26 @@ impl TestApp {
             router: build_app(
                 pool,
                 Settings {
+                    triage,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
+    /// Builds the real application with an encryption key and the Google
+    /// Tasks client `google_tasks` describes, triage as `triage` says.
+    pub fn with_google_tasks(
+        pool: PgPool,
+        google_tasks: GoogleTasksSettings,
+        triage: TriageSettings,
+    ) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    credential_encryption_key: TEST_ENCRYPTION_KEY.to_string(),
+                    google_tasks,
                     triage,
                     ..test_settings()
                 },

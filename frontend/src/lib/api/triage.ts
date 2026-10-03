@@ -15,4 +15,7 @@ export const triageApi = {
 		request<VoiceRequest>(`/api/triage/${id}/accept`, { method: "POST" }),
 	reject: (id: string) =>
 		request<VoiceRequest>(`/api/triage/${id}/reject`, { method: "POST" }),
+	/** Puts a Google Tasks item back on its list (spec: "Restore to source"). */
+	restore: (id: string) =>
+		request<VoiceRequest>(`/api/triage/${id}/restore`, { method: "POST" }),
 };

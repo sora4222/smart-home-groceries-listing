@@ -17,6 +17,7 @@ import { Route as PendingRouteImport } from './routes/pending'
 import { Route as TriageRouteImport } from './routes/triage'
 import { Route as SettingsDeliveryRouteImport } from './routes/settings/delivery'
 import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
+import { Route as SettingsIntakeRouteImport } from './routes/settings/intake'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const SettingsDislikesRoute = SettingsDislikesRouteImport.update({
   path: '/settings/dislikes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIntakeRoute = SettingsIntakeRouteImport.update({
+  id: '/settings/intake',
+  path: '/settings/intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   id: '/settings/item-rules',
   path: '/settings/item-rules',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/triage': typeof TriageRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/triage': typeof TriageRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/triage': typeof TriageRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/triage'
     | '/settings/delivery'
     | '/settings/dislikes'
+    | '/settings/intake'
     | '/settings/item-rules'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/triage'
     | '/settings/delivery'
     | '/settings/dislikes'
+    | '/settings/intake'
     | '/settings/item-rules'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/triage'
     | '/settings/delivery'
     | '/settings/dislikes'
+    | '/settings/intake'
     | '/settings/item-rules'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   TriageRoute: typeof TriageRoute
   SettingsDeliveryRoute: typeof SettingsDeliveryRoute
   SettingsDislikesRoute: typeof SettingsDislikesRoute
+  SettingsIntakeRoute: typeof SettingsIntakeRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsDislikesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/intake': {
+      id: '/settings/intake'
+      path: '/settings/intake'
+      fullPath: '/settings/intake'
+      preLoaderRoute: typeof SettingsIntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/item-rules': {
       id: '/settings/item-rules'
       path: '/settings/item-rules'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   TriageRoute: TriageRoute,
   SettingsDeliveryRoute: SettingsDeliveryRoute,
   SettingsDislikesRoute: SettingsDislikesRoute,
+  SettingsIntakeRoute: SettingsIntakeRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
 }
 export const routeTree = rootRouteImport

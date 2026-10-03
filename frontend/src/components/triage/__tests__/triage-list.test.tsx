@@ -13,6 +13,7 @@ describe("TriageList", () => {
 				busyId={null}
 				onAccept={vi.fn()}
 				onReject={vi.fn()}
+				onRestore={vi.fn()}
 			/>,
 		);
 
@@ -32,6 +33,7 @@ describe("TriageList", () => {
 				busyId={first.id}
 				onAccept={vi.fn()}
 				onReject={vi.fn()}
+				onRestore={vi.fn()}
 			/>,
 		);
 

@@ -117,3 +117,21 @@ where
     .fetch_optional(executor)
     .await?)
 }
+
+/// Closes a request a person put back in its source list: it leaves the
+/// Triage view as rejected. The new item in the source is a new request.
+pub async fn close_restored<'e, E>(executor: E, request_id: Uuid) -> Result<VoiceRequest, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    Ok(sqlx::query_as::<_, VoiceRequest>(
+        "UPDATE voice_requests SET status = 'rejected'
+         WHERE id = $1
+         RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
+                   grocery_item_id, created_at, triage_status, triage_reason,
+                   triage_confidence",
+    )
+    .bind(request_id)
+    .fetch_one(executor)
+    .await?)
+}

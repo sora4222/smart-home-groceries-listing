@@ -1,55 +1,15 @@
-# Git Commits
+---
+name: git-commits
+description: Create focused Conventional Commits for changes in this repository. Use when staging or committing work; not for general Git recovery.
+---
 
-## Format
-```
-feat: <short description>      # new feature or behaviour
-fix: <short description>       # bug fix
-refactor: <short description>  # no behaviour change
-test: <short description>      # tests only
-docs: <short description>      # documentation / skill files
-chore: <short description>     # build, deps, config, Makefile
-```
+# Focused commits
 
-## Rule: one commit per feature
-When a task contains multiple features, **commit after each one** — do not
-batch. This allows individual rollbacks and keeps CI meaningful.
-
-## How to commit
-```bash
-# Stage only the files for this feature
-git add backend/src/routes/voice.rs backend/src/services/voice/ backend/tests/voice_requests.rs
-git commit -m "feat: voice request confirmation queue"
-
-# Then move to the next feature
-git add frontend/src/routes/pending.tsx frontend/src/components/pending/
-git commit -m "feat: pending requests UI with accept/reject"
-```
-
-Never `git add .` across multiple features.
-
-Watch what `git add backend/` sweeps in: `backend/target/` is gitignored, but
-`Cargo.lock` is not and **must** be committed — the Docker build runs
-`cargo build --locked` and fails without it.
-
-## After finishing a task
-```bash
-git add skills/<relevant>.md
-git commit -m "docs: update <area> skill after <feature>"
-```
-
-Skill file updates always get their own `docs:` commit.
-
-## Examples
-```
-feat: rust axum backend replacing fastapi
-feat: alexa intake endpoint with retry deduplication
-feat: alexa bridge sidecar using ask-sdk
-feat: woolworths internal XHR price fetch
-feat: split-store cost optimisation
-fix: duplicate item check on voice confirmation
-fix: cap merged quantity at the column's maximum
-refactor: split voice service into rules and repository
-test: websocket event fan-out over a real socket
-chore: pin oscrypto to the commit that supports openssl 3
-docs: update store-integration skill for chromiumoxide
-```
+- Commit each completed feature separately. Stage only its implementation,
+  tests, docs, and relevant skill update; never use `git add .` for a
+  multi-feature task.
+- Use `feat`, `fix`, `refactor`, `test`, `docs`, or `chore` followed by a
+  concise imperative description. Use `docs` for skill-only changes.
+- Include a changed `Cargo.lock`; Docker builds with `cargo build --locked`.
+- Before committing, inspect the staged diff and run the validation appropriate
+  to the changed area. Do not commit unrelated existing changes.

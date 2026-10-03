@@ -86,7 +86,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 7. **React** — no global context unless required. Compound components. Limit prop drilling.
 8. **Docs** — document all public functions, modules and files.
 9. **Dependencies** — can get any needed. Use Context7 MCP for current versions and APIs.
-10. **Skills** — update the relevant `skills/` file after a change to that area.
+10. **Skills** — update the relevant `.claude/<skill-name>/SKILL.md` after a
+    change to that area.
 11. **No Python in the backend** — if a task seems to need it, it belongs in a
     sidecar, and only when no maintained Rust crate exists. Say so and ask first.
 12. **No dynamic SQL** — every query is a literal string with bind parameters.
@@ -94,7 +95,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 13. **Steps for a person** — anything only a person can do (sign up, paste a
     value, log in, run a bookmarklet, allow a prompt) goes in
     `docs/human-setup.md` or `docs/using-the-app.md`, written with the
-    `human-instructions` skill (`.claude/skills/human-instructions/`):
+    `human-instructions` skill (`.claude/human-instructions/`):
     grouped by place, in the order the values are needed. **All docs are
     written for software developers, in their terminology.** Not for
     telling the developer to run tests.

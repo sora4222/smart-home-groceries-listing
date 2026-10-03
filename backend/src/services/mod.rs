@@ -5,6 +5,7 @@ pub mod access_log;
 pub mod dislikes;
 pub mod encryption;
 pub mod filter_terms;
+pub mod google_tasks;
 pub mod grocery;
 pub mod item_rules;
 pub mod order_review;

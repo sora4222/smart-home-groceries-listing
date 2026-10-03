@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use crate::auth::AuthProvider;
 use crate::config::Settings;
 use crate::services::encryption::Encryptor;
+use crate::services::google_tasks::GoogleTasks;
 use crate::services::stores::StoreClients;
 use crate::services::triage::TriageQueue;
 use crate::services::ws_hub::WsHub;
@@ -28,4 +29,6 @@ pub struct AppState {
     /// Classifies intake requests in the background, as
     /// `INTAKE_LLM_PROVIDER` chose.
     pub triage: TriageQueue,
+    /// The Google Tasks client, real or fake as `GOOGLE_TASKS_CLIENT` chose.
+    pub google_tasks: GoogleTasks,
 }

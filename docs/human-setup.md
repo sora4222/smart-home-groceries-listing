@@ -337,6 +337,56 @@ delivery address.
 
 ---
 
+## Optional: Google Tasks
+
+Typed items in a Google Tasks list become intake requests: the backend polls
+the list, records each open task, then deletes it. Spec:
+[`features/FEATURE_GOOGLE_TASKS.md`](features/FEATURE_GOOGLE_TASKS.md).
+
+- "Hey Google, add milk to my shopping list" does **not** reach Google Tasks;
+  Google keeps that list to itself, with no API. This channel is for typed
+  items only.
+- Use a list for groceries only: **every** open task on it is consumed.
+- The OAuth redirect is `http://localhost:3000/settings/intake`, so connect
+  from a browser on the home server.
+
+1. **Google Tasks** (phone app or [tasks.google.com](https://tasks.google.com)):
+   create a list named `Groceries`.
+2. **[console.cloud.google.com](https://console.cloud.google.com)**, signed
+   in as the account that owns the list:
+   1. Create a project `Grocery list` and select it.
+   2. **APIs & Services → Library → Google Tasks API → Enable.**
+   3. **Google Auth Platform → Get started:** app name `Grocery list`,
+      audience **External**, your email as contact. Then **Audience →
+      Publish app** (in *Testing*, refresh tokens expire after 7 days; the
+      unverified-app warning is fine for a household).
+   4. **Clients → Create client:** type **Web application**, authorized
+      redirect URI `http://localhost:3000/settings/intake`.
+3. **`.env`:** copy the new client's values:
+
+| Console field | `.env` key |
+|---|---|
+| Client ID (`….apps.googleusercontent.com`) | `GOOGLE_CLIENT_ID` |
+| Client secret (`GOCSPX-…`) | `GOOGLE_CLIENT_SECRET` |
+
+4. **Home server shell:** `make up` to restart with the new values.
+5. **Web app on the home server** ([localhost:3000](http://localhost:3000)):
+   **Intake → Connect Google Tasks**, pick the account, accept the
+   unverified-app warning (**Advanced → Go to Grocery list**) and allow Tasks
+   access. Back in the app, set **Grocery list** to `Groceries`, turn on
+   **Check this list**, **Save**.
+
+**Verify:** the Google Tasks card shows **On**. Add `milk` to the list, press
+**Check now**; it appears in **Pending Requests** and leaves Google Tasks.
+
+| Symptom | Fix |
+|---|---|
+| Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make up`. |
+| Google says `redirect_uri_mismatch` | The client's redirect URI must be exactly `http://localhost:3000/settings/intake`. |
+| Card says "connect Google Tasks again" | **Disconnect**, then repeat step 5. |
+
+---
+
 ## Optional: generic intake webhook
 
 For Home Assistant, IFTTT or `curl`. Not needed if Alexa works.

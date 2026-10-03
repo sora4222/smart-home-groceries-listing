@@ -23,16 +23,17 @@ suggests or upsells an item on its own.
 |---|---|---|---|
 | Alexa | `POST /api/intake/alexa` | `X-Bridge-Secret` (from the sidecar) | **implemented** |
 | Generic webhook | `POST /api/voice-requests` | `X-Webhook-Secret` | **implemented** |
-| Google Tasks | — | Google OAuth | not built |
+| Google Tasks | polled (`FEATURE_GOOGLE_TASKS.md`) | Google OAuth | **implemented** |
 | Google Keep | — | `gkeepapi` master token | not built |
 | Google Home Smart Home Action | — | — | **won't do** |
 
 ### Google Home: won't do
 Google Home cannot be integrated directly. The Smart Home Action / OAuth
 account-linking design was dropped. Despite the repository name, the working
-voice channel is Alexa. Google Assistant may still reach the list indirectly
-once the Google Tasks or Google Keep sources are built, since Assistant writes
-spoken shopping-list items to Keep.
+voice channel is Alexa. Checked 2026-10-02: "Hey Google, add X to my shopping
+list" goes to Google's own shopping list (Google Home / Express), not to Keep
+or Tasks, and that list has no public API. Typing into Google Tasks works
+(`FEATURE_GOOGLE_TASKS.md`).
 
 ### Alexa
 ```
@@ -241,10 +242,10 @@ Cloudflare Tunnel.
 - Frontend Clerk provider + `getAuthToken()` wiring (auth section of the
   spec, not part of this goal).
 - LLM triage is built — see `FEATURE_TRIAGE.md`.
-- **Google Tasks and Google Keep sources are not built.** Tasks is a plain
-  OAuth REST API and belongs in Rust; Keep would need a Python sidecar
-  (`gkeepapi` is unofficial and authenticates with a master token — treat that
-  risk explicitly before building it).
+- **Google Tasks is built** — see `FEATURE_GOOGLE_TASKS.md`. **Google Keep is
+  paused** (Jesse, 2026-10-02); it would need a Python sidecar (`gkeepapi` is
+  unofficial and authenticates with a master token — treat that risk
+  explicitly before building it).
 - Alexa uses custom intents (`AddItemIntent`, `RemoveItemIntent`,
   `ReduceItemIntent`, `UndoIntent`). Amazon's household list events
   (`AlexaHouseholdListEvent.ItemsCreated`) would remove the custom invocation

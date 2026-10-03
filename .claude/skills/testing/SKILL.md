@@ -9,6 +9,9 @@ Start with focused coverage, then run `make lint` and `make test` when the
 change warrants the full suite. Report any unavailable infrastructure or
 skipped coverage rather than treating it as passing.
 
+For repository tooling, add a matching `scripts/*.test.sh` test and include
+it in `make test-tooling`; workflow-only rules should use the same script.
+
 ## Backend
 
 Use nearby `#[cfg(test)]` modules for pure rules and `#[sqlx::test]` for

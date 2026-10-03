@@ -86,7 +86,11 @@ export function DeliverySettingsForm({
 				</p>
 			)}
 
-			<Button type="submit" disabled={saving} className="w-full sm:w-auto">
+			<Button
+				type="submit"
+				disabled={saving}
+				className="w-full sm:w-auto sm:self-start"
+			>
 				{saving ? "Saving…" : "Save"}
 			</Button>
 		</form>

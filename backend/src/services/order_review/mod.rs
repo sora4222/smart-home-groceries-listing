@@ -12,7 +12,7 @@ mod line;
 mod log;
 mod summary;
 
-pub use line::{LineStatus, OrderLine, PriceChange};
+pub use line::{reprice, LineStatus, OrderLine, PriceChange};
 pub use summary::{OrderReview, StoreOrder};
 
 #[cfg(test)]

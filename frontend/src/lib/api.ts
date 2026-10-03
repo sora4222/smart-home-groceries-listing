@@ -12,6 +12,7 @@ import { deliverySettingsApi } from "#/lib/api/delivery-settings";
 import { dislikesApi } from "#/lib/api/dislikes";
 import { groceryApi } from "#/lib/api/grocery";
 import { itemRulesApi } from "#/lib/api/item-rules";
+import { orderOptionsApi } from "#/lib/api/order-options";
 import { orderReviewApi } from "#/lib/api/order-review";
 import { productsApi } from "#/lib/api/products";
 import { purchasesApi } from "#/lib/api/purchases";
@@ -27,6 +28,7 @@ export * from "#/lib/api/delivery-settings";
 export * from "#/lib/api/dislikes";
 export * from "#/lib/api/grocery";
 export * from "#/lib/api/item-rules";
+export * from "#/lib/api/order-options";
 export * from "#/lib/api/order-review";
 export * from "#/lib/api/products";
 export * from "#/lib/api/purchases";
@@ -45,6 +47,7 @@ export const api = {
 	selections: selectionsApi,
 	trolleyHandoffs: trolleyHandoffsApi,
 	orderReview: orderReviewApi,
+	orderOptions: orderOptionsApi,
 	dislikes: dislikesApi,
 	purchases: purchasesApi,
 	spending: spendingApi,

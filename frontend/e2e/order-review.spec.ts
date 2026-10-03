@@ -71,7 +71,7 @@ test.describe("order review", () => {
 		await commitAnOrder(request);
 		await gotoList(page, "/order");
 
-		const woolworths = page.getByRole("region", { name: "Woolworths" });
+		const woolworths = page.getByRole("region", { name: "Woolworths", exact: true });
 		await expect(woolworths.getByRole("listitem", { name: "bananas" })).toContainText(
 			"× 5",
 		);
@@ -80,7 +80,7 @@ test.describe("order review", () => {
 			woolworths.getByRole("button", { name: "Send to Woolworths (1 item)" }),
 		).toBeEnabled();
 
-		const coles = page.getByRole("region", { name: "Coles" });
+		const coles = page.getByRole("region", { name: "Coles", exact: true });
 		await expect(coles.getByRole("listitem", { name: "milk" })).toContainText(
 			"Coles Full Cream Milk",
 		);

@@ -57,7 +57,7 @@ File-based routing — one file per route:
 | `routes/index.tsx` | `/` — Grocery list |
 | `routes/pending.tsx` | `/pending` — Confirmation queue |
 | `routes/triage.tsx` | `/triage` — Held for review / Rejected tabs (`?tab=rejected`) |
-| `routes/order.tsx` | `/order` — Order review |
+| `routes/order.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
 | `routes/analysis.tsx` | `/analysis` — Spending analysis |
 | `routes/settings/index.tsx` | `/settings` |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |

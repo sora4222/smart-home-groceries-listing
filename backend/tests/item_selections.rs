@@ -1,4 +1,4 @@
-//! Choosing one product for a list item, through the real router.
+//! Choosing a product for a list item, through the real router.
 //!
 //! `PUT /api/grocery-items/{id}/selection`, `DELETE` on the same path and
 //! `GET /api/item-selections`. The stores are the fake catalogue
@@ -75,19 +75,21 @@ async fn the_total_is_priced_for_the_items_quantity_with_deals(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn an_item_has_one_product_choosing_again_replaces_it(pool: PgPool) {
+async fn choosing_again_at_the_same_store_replaces_it(pool: PgPool) {
     let app = TestApp::new(pool);
     let id = app.add_item(&json!({ "name": "milk" })).await;
     app.put_json(&uri(&id), &choice("woolworths", "w-milk-2l"))
         .await;
 
-    let (status, body) = app.put_json(&uri(&id), &choice("coles", "c-milk-3l")).await;
+    let (status, body) = app
+        .put_json(&uri(&id), &choice("woolworths", "w-milk-3l"))
+        .await;
 
     assert_eq!(status, StatusCode::OK, "{body}");
     let saved = selections(&app).await;
     assert_eq!(saved.len(), 1, "{saved:?}");
-    assert_eq!(saved[0]["store"], "coles");
-    assert_eq!(saved[0]["product_id"], "c-milk-3l");
+    assert_eq!(saved[0]["product_id"], "w-milk-3l");
+    assert_eq!(saved[0]["also_chosen"], json!([]));
 }
 
 #[sqlx::test]

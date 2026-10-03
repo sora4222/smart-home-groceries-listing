@@ -139,7 +139,7 @@ describe("PriceComparison", () => {
 		render(
 			<PriceComparison
 				item={itemFixture()}
-				chosen={{ store: "coles", product_id: "a" }}
+				chosen={[{ store: "coles", product_id: "a" }]}
 				onChoose={onChoose}
 			>
 				<PriceComparison.Trigger />

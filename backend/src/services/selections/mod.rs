@@ -1,16 +1,21 @@
-//! Choosing one product for each list item.
+//! Choosing products for each list item, one per store.
 //!
 //! A household member opens an item's price comparison and picks a product.
 //! The choice is checked against the store's own answer for the item (the
 //! search is re-run, usually from the 10-minute cache) and saved with the
 //! store's details, so the order screen knows what to buy for every item.
 //!
-//! One product per item: choosing again replaces the choice. Renaming an item
-//! or changing its chips drops it ([`forget_if_stale`]); removing the item
-//! removes it. Ordered items are history and cannot be re-chosen.
+//! One product per store: choosing again at the same store replaces that
+//! store's choice, and the newest choice is the one the order buys. The other
+//! store's choice is kept, so the order planner can compare the stores and
+//! switch the item between them ([`SelectionService::buy_at`]). Renaming an
+//! item or changing its chips drops its choices ([`forget_if_stale`]);
+//! removing the item removes them. Ordered items cannot be re-chosen.
 //!
-//! SQL lives in [`repository`]; finding the product in a search in [`offer`].
+//! SQL lives in [`repository`]; finding the product in a search in [`offer`];
+//! pairing each item's choices in [`grouping`].
 
+mod grouping;
 mod log;
 mod offer;
 pub mod repository;
@@ -24,6 +29,7 @@ use crate::models::db::{GroceryItem, GroceryItemStatus, ItemSelection};
 use crate::services::grocery::repository as items;
 use crate::services::product_search::ProductSearchService;
 use crate::services::stores::{Store, StoreClients};
+pub use grouping::ItemChoices;
 use repository::NewSelection;
 
 /// Reads and writes item choices.
@@ -38,13 +44,14 @@ impl<'a> SelectionService<'a> {
         Self { pool, stores }
     }
 
-    /// Every saved choice, oldest first.
-    pub async fn list(&self) -> Result<Vec<ItemSelection>, ApiError> {
-        repository::list_all(self.pool).await
+    /// Every item's choices: the one the order buys, with the item's choice
+    /// at the other store beside it. Oldest choice first.
+    pub async fn list(&self) -> Result<Vec<ItemChoices>, ApiError> {
+        Ok(grouping::by_item(repository::list_every(self.pool).await?))
     }
 
     /// Chooses `product_id` at `store` for the item, replacing any earlier
-    /// choice.
+    /// choice at that store, and makes it the one the order buys.
     ///
     /// The stores are searched first, outside any transaction, so a slow
     /// store never holds a row lock. The item is then locked and must still
@@ -79,7 +86,7 @@ impl<'a> SelectionService<'a> {
         let product = &priced.product;
         let unit = product.unit_price.as_ref();
         let selection = repository::upsert(
-            &mut *tx,
+            &mut tx,
             &NewSelection {
                 grocery_item_id: item.id,
                 store,
@@ -105,14 +112,43 @@ impl<'a> SelectionService<'a> {
         Ok(selection)
     }
 
-    /// Clears the item's choice. Clearing an item with no choice is harmless;
-    /// an unknown item is a 404.
-    pub async fn clear(&self, item_id: Uuid) -> Result<(), ApiError> {
+    /// Clears the item's choice at `store`, or at every store when `store` is
+    /// `None`. Clearing the choice the order buys hands that role to the
+    /// item's other choice. Clearing nothing is harmless; an unknown item is
+    /// a 404.
+    pub async fn clear(&self, item_id: Uuid, store: Option<Store>) -> Result<(), ApiError> {
         if items::find_item(self.pool, item_id).await?.is_none() {
             return Err(ApiError::NotFound("Grocery item not found".into()));
         }
-        let had_choice = repository::delete_for_item(self.pool, item_id).await?;
+        let had_choice = match store {
+            None => repository::delete_for_item(self.pool, item_id).await?,
+            Some(store) => {
+                let mut tx = self.pool.begin().await?;
+                let had = repository::delete_at_store(&mut tx, item_id, store).await?;
+                tx.commit().await?;
+                had
+            }
+        };
         log::cleared(item_id, had_choice);
+        Ok(())
+    }
+
+    /// Makes each item's choice at the paired store the one the order buys,
+    /// all together. Refused with 422, changing nothing, when an item has no
+    /// choice at its store.
+    pub async fn buy_at(&self, picks: &[(Uuid, Store)]) -> Result<(), ApiError> {
+        let mut tx = self.pool.begin().await?;
+        for &(item_id, store) in picks {
+            if !repository::buy_at_store(&mut tx, item_id, store).await? {
+                tx.rollback().await?;
+                return Err(ApiError::UnprocessableEntity(format!(
+                    "That item has no product chosen at {} — compare prices first.",
+                    store.display_name()
+                )));
+            }
+        }
+        tx.commit().await?;
+        log::bought_at(picks);
         Ok(())
     }
 }

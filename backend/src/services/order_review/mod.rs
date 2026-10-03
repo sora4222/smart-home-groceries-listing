@@ -15,6 +15,9 @@ mod summary;
 pub use line::{LineStatus, OrderLine, PriceChange};
 pub use summary::{OrderReview, StoreOrder};
 
+#[cfg(test)]
+pub(crate) use line::fixtures;
+
 use std::collections::HashMap;
 
 use sqlx::PgPool;
@@ -48,7 +51,7 @@ impl<'a> OrderReviewService<'a> {
             .await?
             .into_iter()
             .filter(|item| item.status == GroceryItemStatus::Committed);
-        let mut choices: HashMap<_, _> = selections::list_all(self.pool)
+        let mut choices: HashMap<_, _> = selections::list_for_order(self.pool)
             .await?
             .into_iter()
             .map(|choice| (choice.grocery_item_id, choice))

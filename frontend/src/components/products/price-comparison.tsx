@@ -42,17 +42,17 @@ function useComparedItem(): GroceryItem {
  *
  * The stores are searched only once the sheet opens. Pass `onChoose` to let
  * the household choose the item's product from the sheet; `chosen` marks the
- * product chosen already. Without `onChoose` the sheet only compares.
+ * products chosen already (one per store at most). Without `onChoose` the sheet only compares.
  * Every product can be disliked, and a disliked one shows who disliked it.
  */
 function PriceComparisonRoot({
 	item,
-	chosen = null,
+	chosen = [],
 	onChoose,
 	children,
 }: {
 	item: GroceryItem;
-	chosen?: ProductChoice | null;
+	chosen?: ProductChoice[];
 	onChoose?: (choice: ProductChoice) => Promise<void>;
 	children: ReactNode;
 }) {

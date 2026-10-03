@@ -1,4 +1,4 @@
-//! Bodies for choosing one product per list item.
+//! Bodies for choosing products for list items, one per store.
 //!
 //! The request names only the store and the store's product id; every other
 //! detail in the response came from the store's search answer. Money is a
@@ -11,6 +11,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::models::db::ItemSelection;
+use crate::services::selections::ItemChoices;
 use crate::services::stores::{Basis, Store};
 
 /// Longest store product id accepted, matching the `product_id` CHECK.
@@ -23,6 +24,50 @@ pub struct ItemSelectionChoose {
     pub store: Store,
     #[validate(length(min = 1, max = MAX_PRODUCT_ID_LEN))]
     pub product_id: String,
+}
+
+/// Most items one `PUT /api/order-stores` may switch.
+pub const MAX_ORDER_STORE_PICKS: u64 = 500;
+
+/// `PUT /api/order-stores`: which store each item's order buys from. Every
+/// item must already have a product chosen at its store.
+#[derive(Debug, Deserialize, Validate)]
+pub struct OrderStoresSet {
+    #[validate(length(min = 1, max = MAX_ORDER_STORE_PICKS))]
+    pub picks: Vec<OrderStorePick>,
+}
+
+/// One item and the store its order buys from.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrderStorePick {
+    pub grocery_item_id: Uuid,
+    pub store: Store,
+}
+
+/// `DELETE /api/grocery-items/{id}/selection?store=`: which store's choice
+/// to clear. No store clears the item's choices at every store.
+#[derive(Debug, Default, Deserialize, Validate)]
+pub struct ItemSelectionClear {
+    pub store: Option<Store>,
+}
+
+/// One item's choices in `GET /api/item-selections`: the one the order buys,
+/// with the item's choices at the other stores.
+#[derive(Debug, Serialize)]
+pub struct ItemChoicesResponse {
+    #[serde(flatten)]
+    pub chosen: ItemSelectionResponse,
+    /// The item's choices at other stores, which the order does not buy now.
+    pub also_chosen: Vec<ItemSelectionResponse>,
+}
+
+impl From<ItemChoices> for ItemChoicesResponse {
+    fn from(choices: ItemChoices) -> Self {
+        Self {
+            chosen: choices.for_order.into(),
+            also_chosen: choices.others.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
 /// A saved choice, as the web app and the order screen read it.

@@ -12,6 +12,7 @@ import type {
 	GroceryItemEdit,
 	ItemSelection,
 	ProductChoice,
+	StoreId,
 } from "#/lib/api";
 
 interface GroceryItemCardProps {
@@ -23,7 +24,7 @@ interface GroceryItemCardProps {
 	/** Chooses the item's product; leave out to only compare prices. */
 	onChoose?: (id: string, choice: ProductChoice) => Promise<void>;
 	/** Forgets the item's chosen product; leave out to hide "Clear". */
-	onClearChoice?: (id: string) => Promise<void>;
+	onClearChoice?: (id: string, store: StoreId) => Promise<void>;
 }
 
 /**
@@ -101,7 +102,7 @@ export function GroceryItemCard({
 				<ChosenProduct
 					itemName={item.name}
 					selection={selection}
-					onClear={onClearChoice && (() => onClearChoice(item.id))}
+					onClear={onClearChoice && ((store) => onClearChoice(item.id, store))}
 				/>
 
 				<div className="flex flex-wrap items-center justify-between gap-2">
@@ -112,7 +113,9 @@ export function GroceryItemCard({
 					<div className="flex flex-wrap gap-2">
 						<PriceComparison
 							item={item}
-							chosen={selection}
+							chosen={
+								selection ? [selection, ...(selection.also_chosen ?? [])] : []
+							}
 							onChoose={onChoose && ((choice) => onChoose(item.id, choice))}
 						>
 							<PriceComparison.Trigger />

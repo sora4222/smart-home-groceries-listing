@@ -1,7 +1,7 @@
-# Feature: Product Choice (one product per item)
+# Feature: Product Choice (one product per store for each item)
 
-Status: **implemented** — the household picks one product for each list item
-from the item's price comparison. The order review (`/order`,
+Status: **implemented** — the household picks a product for each list item
+from the item's price comparison, and may pick one at each store. The order review (`/order`,
 `FEATURE_ORDER_OPTIMISATION.md`) reads these choices to know what to buy.
 
 ## What this feature does
@@ -11,7 +11,16 @@ Choosing saves that product as the item's product; the item's card shows it
 ("Coles Full Cream Milk · 3L · Coles · $4.95 each") with a **Clear** button,
 or "No product chosen yet".
 
-- **One product per item.** Choosing again replaces the choice.
+- **One product per store.** Choosing again at the same store replaces that
+  store's choice. Choosing at the other store keeps the first choice as
+  well, so the order screen can compare the stores
+  (`FEATURE_ORDER_OPTIMISATION.md`).
+- **One of them is bought.** The newest choice is the one the order buys
+  (`for_order`), until the order screen switches the item to its other store.
+  The card shows the other store's choice under it as "Also at …".
+- **Undo.** Choosing and clearing each show a toast with **Undo**, which puts
+  back the store's earlier product and the store the order bought from
+  (`lib/choice-undo.ts`).
 - **Works on a committed list.** Choosing is what the order needs, so it is
   not locked by "Ready to order". Ordered items cannot be re-chosen (409).
 - **Nothing is chosen for the household.** No default, no suggestion — the
@@ -21,9 +30,10 @@ or "No product chosen yet".
 
 | Method | Path | Auth | Answer |
 |---|---|---|---|
-| `GET` | `/api/item-selections` | Clerk session | 200, every saved choice |
-| `PUT` | `/api/grocery-items/{id}/selection` | Clerk session | 200 the saved choice |
-| `DELETE` | `/api/grocery-items/{id}/selection` | Clerk session | 204 (also when there was none) |
+| `GET` | `/api/item-selections` | Clerk session | 200, each item's choice to buy with `also_chosen` (its other stores' choices) |
+| `PUT` | `/api/grocery-items/{id}/selection` | Clerk session | 200 the saved choice, now the one to buy |
+| `DELETE` | `/api/grocery-items/{id}/selection[?store=]` | Clerk session | 204 (also when there was none). With `store`, only that store's choice; clearing the one to buy hands that role to the other |
+| `PUT` | `/api/order-stores` `{picks: [{grocery_item_id, store}]}` | Clerk session | 204; 422 (nothing changed) when an item has no choice at its store |
 
 `PUT` body: `{ "store": "woolworths" | "coles", "product_id": "<store's id>" }`.
 Only these two are sent — **the price and every other detail come from the
@@ -61,7 +71,9 @@ before buying, because prices and the item's quantity can change.
 2. The product must be in that store's results — so it must still match the
    item's chips — and be available (`services/selections/offer.rs`).
 3. The item row is locked; if its name or chips changed since the search,
-   409. Then one `INSERT … ON CONFLICT (grocery_item_id) DO UPDATE`.
+   409. Then the item's other choice stops being the one to buy, and one
+   `INSERT … ON CONFLICT (grocery_item_id, store) DO UPDATE` saves this one
+   as the one to buy.
 
 ## When a choice goes away
 | Change to the item | Choice |
@@ -74,8 +86,9 @@ before buying, because prices and the item's quantity can change.
 The rule is `services/selections/staleness.rs::choice_still_fits`.
 
 ## Data
-`item_selections` (migration `0004`): one row per item at most
-(`grocery_item_id UNIQUE`). Columns: store, product_id, product_name, brand,
+`item_selections` (migration `0004`; `20261003070000` allows one row per
+store, `UNIQUE (grocery_item_id, store)`, and adds `for_order` with a partial
+unique index so exactly one row per item is bought). Columns: store, product_id, product_name, brand,
 package_size, price, unit_price + unit_price_per, total_price,
 priced_quantity, url, selected_by, selected_at. Prices are unscaled `NUMERIC`.
 

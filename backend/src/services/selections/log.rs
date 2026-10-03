@@ -6,6 +6,7 @@
 use uuid::Uuid;
 
 use crate::models::db::ItemSelection;
+use crate::services::stores::Store;
 
 /// A product was chosen for an item, or a new one replaced the old.
 pub fn chosen(selection: &ItemSelection) {
@@ -48,4 +49,14 @@ pub fn forgotten_after_edit(item_id: Uuid, item: &str) {
 /// The item changed between the store search and saving the choice.
 pub fn item_changed_while_choosing(item_id: Uuid) {
     tracing::warn!(item_id = %item_id, "item changed while a product was being chosen");
+}
+
+/// The order now buys each item at the paired store (the order planner's
+/// option was used, or undone).
+pub fn bought_at(picks: &[(Uuid, Store)]) {
+    let picks: Vec<String> = picks
+        .iter()
+        .map(|(item_id, store)| format!("{item_id}={store}"))
+        .collect();
+    tracing::info!(picks = ?picks, "order stores set for items");
 }

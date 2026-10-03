@@ -148,7 +148,7 @@ outcome, problem). Lines are a snapshot; deleting the list item keeps them.
 - Reserving a Coles delivery time (find its calls in DevTools first).
 - Showing the store's real windows and fees in the app before sending (the
   app cannot see them without the household's Woolworths login).
-- A saved default in Settings › Delivery; checkout steps (`FEATURE_CHECKOUT.md`).
+- A saved delivery day default. Checkout is a confirm step after the fill (`FEATURE_CHECKOUT.md`).
 - A server-only route with imported cookies (see the access doc).
 
 ## Tests

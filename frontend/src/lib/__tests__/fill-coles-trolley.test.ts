@@ -249,8 +249,8 @@ describe("the Coles bookmarklet", () => {
 
 	it("is a javascript: link that runs on its own and shows the result", async () => {
 		const { calls } = fakeNetwork();
-		const alert = vi.fn();
-		vi.stubGlobal("alert", alert);
+		const confirm = vi.fn().mockReturnValue(false);
+		vi.stubGlobal("confirm", confirm);
 
 		const href = COLES_TAB.buildBookmarklet({
 			...config,
@@ -263,8 +263,9 @@ describe("the Coles bookmarklet", () => {
 		// Run the link's program exactly as a browser would: nothing from this
 		// module is in scope, so it proves the script is self-contained.
 		new Function(decodeURIComponent(program))();
-		await vi.waitFor(() => expect(alert).toHaveBeenCalled());
-		expect(alert.mock.calls[0][0]).toContain("Added 2 products");
+		await vi.waitFor(() => expect(confirm).toHaveBeenCalled());
+		expect(confirm.mock.calls[0][0]).toContain("Added 2 products");
+		expect(confirm.mock.calls[0][0]).toContain("pay on Coles");
 		expect(calls.find((c) => c.url.endsWith("/claim"))?.url).toBe(
 			"https://grocery.test/api/store-tab/trolley-handoffs/claim",
 		);

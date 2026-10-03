@@ -42,7 +42,38 @@ describe("ChosenProduct", () => {
 			screen.getByRole("button", { name: "Clear the chosen product for milk" }),
 		);
 
-		expect(onClear).toHaveBeenCalledOnce();
+		expect(onClear).toHaveBeenCalledWith("coles");
+	});
+
+	it("shows the item's product at the other store beside the one to buy", async () => {
+		const onClear = vi.fn().mockResolvedValue(undefined);
+		const atWoolworths = selectionFixture({
+			store: "woolworths",
+			store_name: "Woolworths",
+			product_id: "w-milk-2l",
+			brand: "Woolworths",
+			package_size: "2L",
+			price: "3.10",
+		});
+		render(
+			<ChosenProduct
+				itemName="milk"
+				selection={selectionFixture({ also_chosen: [atWoolworths] })}
+				onClear={onClear}
+			/>,
+		);
+
+		const other = screen.getByLabelText("Also chosen at Woolworths for milk");
+		expect(other).toHaveTextContent("Also at Woolworths");
+		expect(other).toHaveTextContent("Woolworths Full Cream Milk");
+		expect(other).toHaveTextContent("$3.10 each");
+
+		await userEvent.click(
+			screen.getByRole("button", {
+				name: "Clear the Woolworths product for milk",
+			}),
+		);
+		expect(onClear).toHaveBeenCalledWith("woolworths");
 	});
 
 	it("offers no clear button when clearing is not allowed", () => {

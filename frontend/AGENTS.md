@@ -60,7 +60,7 @@ File-based routing — one file per route:
 | `routes/sign-in.$.tsx` | `/sign-in` — Clerk's sign-in box (goes home with sign-in off) |
 | `routes/sign-up.$.tsx` | `/sign-up` — Clerk's sign-up box (goes home with sign-in off) |
 | `routes/triage.tsx` | `/triage` — Held for review / Rejected tabs (`?tab=rejected`) |
-| `routes/order.tsx` | `/order` — Order review |
+| `routes/order.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
 | `routes/analysis.tsx` | `/analysis` — Spending analysis |
 | `routes/settings/index.tsx` | `/settings` |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |

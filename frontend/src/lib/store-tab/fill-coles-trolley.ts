@@ -49,6 +49,7 @@ export async function fillColesTrolley(
 		failed: [],
 		delivery: null,
 		message,
+		checkout: null,
 	});
 	const cookie = (name: string): string => {
 		const found = document.cookie
@@ -222,5 +223,14 @@ export async function fillColesTrolley(
 		failed,
 		delivery,
 		message: `${products}\nNow pick a delivery time on Coles, then check your trolley.`,
+		// Not checked live: the build workspace cannot reach coles.com.au.
+		checkout:
+			added.length > 0
+				? {
+						path: "/checkout",
+						question:
+							"Go to checkout now? You pick a delivery time, check the order and pay on Coles. Nothing is bought until you do.",
+					}
+				: null,
 	};
 }

@@ -17,7 +17,7 @@ interface GroceryFixtures {
  * The shared test setup.
  *
  * Every test starts from an empty list, an empty confirmation queue, no
- * item rules, no saved shops and no dislikes, and
+ * item rules, no saved shops, no dislikes and no delivery fees, and
  * every test fails if the browser threw, logged an error, or got a 5xx from the
  * backend — a feature that "works" while React complains in the console is not
  * working.
@@ -71,6 +71,21 @@ export const test = base.extend<GroceryFixtures>({
 				`${API_BASE_URL}/api/product-dislikes/${d.store}/${encodeURIComponent(d.product_id)}`,
 			);
 		}
+
+		// Delivery fees and the order mode back to "nothing set", so the
+		// order screen's totals do not depend on an earlier test.
+		await request.put(`${API_BASE_URL}/api/delivery-settings`, {
+			data: {
+				stores: ["woolworths", "coles"].map((store) => ({
+					store,
+					delivery_fee: null,
+					free_delivery_over: null,
+					minimum_order: null,
+				})),
+				mode: "minimise_total",
+				max_delivery_spend: null,
+			},
+		});
 
 		const problems: string[] = [];
 		page.on("console", (message) => {

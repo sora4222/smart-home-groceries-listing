@@ -11,10 +11,12 @@
 
 mod access_logs;
 mod common;
+mod delivery_settings;
 mod dislikes;
 mod grocery;
 mod intake;
 mod item_rules;
+mod order_plan;
 mod order_review;
 mod products;
 mod purchases;
@@ -26,10 +28,12 @@ mod voice_changes;
 
 pub use access_logs::*;
 pub use common::*;
+pub use delivery_settings::*;
 pub use dislikes::*;
 pub use grocery::*;
 pub use intake::*;
 pub use item_rules::*;
+pub use order_plan::*;
 pub use order_review::*;
 pub use products::*;
 pub use purchases::*;

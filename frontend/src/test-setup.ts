@@ -15,7 +15,8 @@ if (!Element.prototype.hasPointerCapture) {
 if (!Element.prototype.scrollIntoView) {
 	Element.prototype.scrollIntoView = () => {};
 }
-// Radix measures a switch inside a <form>; jsdom has no ResizeObserver.
+// Radix measures a switch inside a <form> and a radio group; jsdom has no
+// ResizeObserver.
 if (!("ResizeObserver" in globalThis)) {
 	globalThis.ResizeObserver = class {
 		observe() {}

@@ -4,7 +4,7 @@ Status: **implemented for Woolworths.** Puts every chosen Woolworths product
 into the household's own online trolley. Payment stays on woolworths.com.au.
 Why it works this way: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 Steps for people: `docs/using-the-app.md` ("Do a Woolworths shop") and
-`docs/human-setup.md` part 8 — keep those in step with this spec.
+`docs/human-setup.md` §8 — keep those in step with this spec.
 
 ## What this feature does
 1. On the grocery list, or in the Woolworths card on `/order`,
@@ -20,6 +20,9 @@ Steps for people: `docs/using-the-app.md` ("Do a Woolworths shop") and
    then adds each product **on top of** what is already in the trolley, then
    reports back. The sheet shows each
    product as Added / Not added (it re-reads every 3 s).
+6. The report also saves the shop as bought, in the background
+   (`FEATURE_PURCHASE_HISTORY.md`). The sheet then shows **Saved as bought**
+   with **Undo**. Closing the sheet refreshes the list page.
 
 Nothing is bought and no Woolworths login or cookie is ever stored.
 

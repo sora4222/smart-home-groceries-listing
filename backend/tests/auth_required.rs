@@ -11,6 +11,7 @@ mod common;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
 use common::TestApp;
+use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use sqlx::PgPool;
 
 /// A path whose id segments need any well-formed UUID.
@@ -44,6 +45,12 @@ fn household_routes() -> Vec<(Method, String)> {
         (Method::POST, "/api/trolley-handoffs".into()),
         (Method::GET, "/api/trolley-handoffs/store-tab-secret".into()),
         (Method::GET, format!("/api/trolley-handoffs/{ID}")),
+        (Method::GET, "/api/purchase-orders".into()),
+        (Method::DELETE, format!("/api/purchase-orders/{ID}")),
+        (Method::POST, "/api/purchase-history/products".into()),
+        (Method::POST, "/api/purchase-history/recategorise".into()),
+        (Method::GET, "/api/spending".into()),
+        (Method::GET, "/api/spending/item-prices?name=milk".into()),
     ]
 }
 
@@ -103,4 +110,23 @@ async fn intake_endpoints_take_their_shared_secret_not_a_session(pool: PgPool) {
         .post_webhook(&serde_json::json!({ "item": "eggs", "quantity": 1 }))
         .await;
     assert_eq!(status, StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn alexa_remove_and_undo_take_the_bridge_secret_not_a_session(pool: PgPool) {
+    let app = TestApp::with_auth(pool);
+
+    for uri in ["/api/intake/alexa/remove", "/api/intake/alexa/undo"] {
+        let request = Request::builder()
+            .method(Method::POST)
+            .uri(uri)
+            .header("content-type", "application/json")
+            .header(BRIDGE_SECRET_HEADER, common::TEST_BRIDGE_SECRET)
+            .body(Body::from(r#"{"item":"milk"}"#))
+            .unwrap();
+        let (status, body) = app.send(request).await;
+        // Nothing is on the list, so remove says 404 and undo has nothing to
+        // undo; what matters is that no session was asked for.
+        assert_ne!(status, StatusCode::UNAUTHORIZED, "{uri}: {body}");
+    }
 }

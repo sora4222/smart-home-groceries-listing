@@ -16,8 +16,8 @@ interface GroceryFixtures {
 /**
  * The shared test setup.
  *
- * Every test starts from an empty list, an empty confirmation queue and no
- * item rules, and
+ * Every test starts from an empty list, an empty confirmation queue, no
+ * item rules and no saved shops, and
  * every test fails if the browser threw, logged an error, or got a 5xx from the
  * backend — a feature that "works" while React complains in the console is not
  * working.
@@ -29,6 +29,12 @@ interface GroceryFixtures {
  */
 export const test = base.extend<GroceryFixtures>({
 	page: async ({ page, request }, use) => {
+		// Undo every saved shop first: Undo puts its items back on the list,
+		// which is cleared next. The Spending page then starts empty too.
+		const shops = await request.get(`${API_BASE_URL}/api/purchase-orders`);
+		for (const shop of (await shops.json()) as Array<{ id: string }>) {
+			await request.delete(`${API_BASE_URL}/api/purchase-orders/${shop.id}`);
+		}
 		// Release anything a previous run committed, then clear the list.
 		await request.post(`${API_BASE_URL}/api/grocery-items/release`);
 		const existing = await request.get(`${API_BASE_URL}/api/grocery-items`);

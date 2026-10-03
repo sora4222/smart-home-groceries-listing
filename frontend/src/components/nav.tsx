@@ -9,7 +9,13 @@ import { usePendingCount } from "#/hooks/usePendingCount";
 type BadgeKind = "pending" | "held";
 
 const links: ReadonlyArray<{
-	to: "/" | "/pending" | "/triage" | "/order" | "/settings/item-rules";
+	to:
+		| "/"
+		| "/pending"
+		| "/triage"
+		| "/order"
+		| "/analysis"
+		| "/settings/item-rules";
 	label: string;
 	badge?: BadgeKind;
 }> = [
@@ -17,6 +23,7 @@ const links: ReadonlyArray<{
 	{ to: "/pending", label: "Pending Requests", badge: "pending" },
 	{ to: "/triage", label: "Triage", badge: "held" },
 	{ to: "/order", label: "Order" },
+	{ to: "/analysis", label: "Spending" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
 ];
 

@@ -46,13 +46,7 @@ async fn create_alexa_request(
     headers: HeaderMap,
     ValidatedJson(body): ValidatedJson<AlexaIntakeCreate>,
 ) -> Result<(StatusCode, Json<VoiceRequestResponse>), ApiError> {
-    verify_shared_secret(
-        &state.settings.alexa_bridge_secret,
-        headers
-            .get(BRIDGE_SECRET_HEADER)
-            .and_then(|v| v.to_str().ok()),
-        "ALEXA_BRIDGE_SECRET",
-    )?;
+    verify_bridge(&state, &headers)?;
 
     let (request, delivery) = VoiceService::new(&state.pool, &state.hub)
         .create_alexa_request(&body, &state.triage)
@@ -63,4 +57,16 @@ async fn create_alexa_request(
         Delivery::AlreadySeen => StatusCode::OK,
     };
     Ok((status, Json(request.into())))
+}
+
+/// Checks the bridge sidecar's shared secret. Every `/api/intake/alexa*`
+/// route calls this first.
+pub(crate) fn verify_bridge(state: &AppState, headers: &HeaderMap) -> Result<(), ApiError> {
+    verify_shared_secret(
+        &state.settings.alexa_bridge_secret,
+        headers
+            .get(BRIDGE_SECRET_HEADER)
+            .and_then(|v| v.to_str().ok()),
+        "ALEXA_BRIDGE_SECRET",
+    )
 }

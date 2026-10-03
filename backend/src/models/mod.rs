@@ -4,5 +4,7 @@
 //! intake channels exchange. Neither module contains business logic.
 
 pub mod db;
+pub mod purchase_rows;
 pub mod schemas;
 pub mod trolley_handoff_rows;
+pub mod voice_change_rows;

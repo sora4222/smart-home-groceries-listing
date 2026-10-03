@@ -2,8 +2,8 @@
 
 Status: **implemented** — the web app signs people in with Clerk (Google, or
 email and password), and the backend checks a Clerk session token on every
-household route. Steps for people: `docs/human-setup.md` parts 2 and 6, and
-`docs/using-the-app.md` ("Let someone new sign in") — keep those in step
+household route. Steps for people: `docs/human-setup.md` §2 and §6, and
+`docs/using-the-app.md` ("Add a household member") — keep those in step
 with this spec.
 
 ## Household model (from the spec)

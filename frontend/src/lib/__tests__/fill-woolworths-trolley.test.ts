@@ -209,10 +209,12 @@ describe("the Woolworths bookmarklet", () => {
 			apiBaseUrl: "https://grocery.test/",
 		});
 
-		expect(href.startsWith("javascript:")).toBe(true);
+		// Only a test's assertion on our own link, not a URL safety check.
+		const [scheme, program] = [href.slice(0, 11), href.slice(11)];
+		expect(scheme).toBe("javascript:");
 		// Run the link's program exactly as a browser would: nothing from this
 		// module is in scope, so it proves the script is self-contained.
-		new Function(decodeURIComponent(href.slice("javascript:".length)))();
+		new Function(decodeURIComponent(program))();
 		await vi.waitFor(() => expect(alert).toHaveBeenCalled());
 		expect(alert.mock.calls[0][0]).toContain("Delivery: 2026-10-03, 4am - 7am");
 		expect(calls.some((c) => c.url === "/apis/ui/Fulfilment")).toBe(true);

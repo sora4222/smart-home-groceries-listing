@@ -11,6 +11,7 @@
 
 mod access_logs;
 mod common;
+mod dislikes;
 mod grocery;
 mod item_rules;
 mod order_review;
@@ -24,6 +25,7 @@ mod voice_changes;
 
 pub use access_logs::*;
 pub use common::*;
+pub use dislikes::*;
 pub use grocery::*;
 pub use item_rules::*;
 pub use order_review::*;

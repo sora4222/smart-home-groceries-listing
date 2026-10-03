@@ -2,6 +2,7 @@
 //! its own database pool — a service borrows what a route hands it.
 
 pub mod access_log;
+pub mod dislikes;
 pub mod encryption;
 pub mod filter_terms;
 pub mod grocery;

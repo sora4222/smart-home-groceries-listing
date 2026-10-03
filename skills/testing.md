@@ -148,8 +148,9 @@ import `test` from there rather than from `@playwright/test`:
 
 1. **Resets state** — undoes every saved shop (so bought items are not left
    as `ordered`), releases a committed list, deletes every item, rejects
-   every pending intake request, and deletes every item rule (a leftover rule
-   would put chips on another test's items). Tests then start from nothing without
+   every pending intake request, deletes every item rule (a leftover rule
+   would put chips on another test's items) and removes every dislike (a
+   leftover one would put a warning on another test's products). Tests then start from nothing without
    touching the database directly.
 2. **Fails on browser trouble** — a `pageerror`, a console error, or any 5xx
    from the backend fails the test. Chrome logs a console line for every 4xx

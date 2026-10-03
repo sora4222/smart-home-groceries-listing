@@ -15,6 +15,7 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as TriageRouteImport } from './routes/triage'
+import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +48,11 @@ const TriageRoute = TriageRouteImport.update({
   path: '/triage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsDislikesRoute = SettingsDislikesRouteImport.update({
+  id: '/settings/dislikes',
+  path: '/settings/dislikes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   id: '/settings/item-rules',
   path: '/settings/item-rules',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/dislikes'
     | '/settings/item-rules'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/dislikes'
     | '/settings/item-rules'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/dislikes'
     | '/settings/item-rules'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   OrderRoute: typeof OrderRoute
   PendingRoute: typeof PendingRoute
   TriageRoute: typeof TriageRoute
+  SettingsDislikesRoute: typeof SettingsDislikesRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
 }
 
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/dislikes': {
+      id: '/settings/dislikes'
+      path: '/settings/dislikes'
+      fullPath: '/settings/dislikes'
+      preLoaderRoute: typeof SettingsDislikesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/item-rules': {
       id: '/settings/item-rules'
       path: '/settings/item-rules'
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrderRoute: OrderRoute,
   PendingRoute: PendingRoute,
   TriageRoute: TriageRoute,
+  SettingsDislikesRoute: SettingsDislikesRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
 }
 export const routeTree = rootRouteImport

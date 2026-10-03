@@ -14,6 +14,7 @@ and API details are in [`features/`](features/).
 | [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
 | [Undo a recorded purchase](#undo-a-recorded-purchase) | Web app |
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
+| [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
 | [Access log review](#access-log-review) | Web app `/logs` |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
@@ -167,6 +168,24 @@ item-name search (**Find**). Views:
 Totals include delivery fees. Categories are assigned when a purchase is
 recorded; after a categoriser change, use **Sort categories again** on **By
 category** to recompute them.
+
+---
+
+## Product dislikes
+
+Dislikes are per member and visible to the whole household
+(`FEATURE_DISLIKES.md`). They never block a manual choice.
+
+1. In **Compare prices**, press **Dislike** on a product. It now shows
+   *"You disliked this item previously."*; other members see your name.
+2. **Buy it this time** sets the dislike aside for this list item only
+   (`dislike_overrides`). **Undo** brings it back.
+3. **Remove my dislike** (in the comparison, or **Dislikes → Remove**)
+   deletes your own dislike for good. Other members' dislikes can't be
+   removed.
+
+**Verify:** **Dislikes** in the nav lists every member's dislikes, yours
+first.
 
 ---
 

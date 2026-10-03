@@ -17,7 +17,7 @@ interface GroceryFixtures {
  * The shared test setup.
  *
  * Every test starts from an empty list, an empty confirmation queue, no
- * item rules and no saved shops, and
+ * item rules, no saved shops and no dislikes, and
  * every test fails if the browser threw, logged an error, or got a 5xx from the
  * backend — a feature that "works" while React complains in the console is not
  * working.
@@ -58,6 +58,18 @@ export const test = base.extend<GroceryFixtures>({
 		const rules = await request.get(`${API_BASE_URL}/api/item-rules`);
 		for (const rule of (await rules.json()) as Array<{ id: string }>) {
 			await request.delete(`${API_BASE_URL}/api/item-rules/${rule.id}`);
+		}
+
+		// Dislikes would otherwise put warnings on products other tests show.
+		// Every e2e request is the same dev user, so each dislike is "mine".
+		const dislikes = await request.get(`${API_BASE_URL}/api/product-dislikes`);
+		for (const d of (await dislikes.json()) as Array<{
+			store: string;
+			product_id: string;
+		}>) {
+			await request.delete(
+				`${API_BASE_URL}/api/product-dislikes/${d.store}/${encodeURIComponent(d.product_id)}`,
+			);
 		}
 
 		const problems: string[] = [];

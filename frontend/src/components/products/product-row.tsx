@@ -13,18 +13,21 @@ import { cn } from "#/lib/utils";
  *
  * Deliberately plain — no images or marketing copy — so products are
  * compared on price, size and name. `children` are actions on the product
- * (choosing it), shown beside the store link.
+ * (choosing it, disliking it), shown beside the store link. `notice` is a
+ * line under them, such as a dislike warning.
  */
 export function ProductRow({
 	product,
 	quantity,
 	storeName,
 	children,
+	notice,
 }: {
 	product: StoreProduct;
 	quantity: number;
 	storeName: string;
 	children?: ReactNode;
+	notice?: ReactNode;
 }) {
 	const title = [product.brand, product.name].filter(Boolean).join(" ");
 
@@ -72,6 +75,7 @@ export function ProductRow({
 				</a>
 				{children}
 			</div>
+			{notice}
 		</article>
 	);
 }

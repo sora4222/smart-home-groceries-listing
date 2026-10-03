@@ -7,6 +7,7 @@
 pub mod access_logs;
 pub mod alexa;
 pub mod alexa_list_changes;
+pub mod dislikes;
 pub mod extract;
 pub mod grocery;
 pub mod health;
@@ -37,6 +38,7 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(voice::router())
         .merge(alexa::router())
         .merge(alexa_list_changes::router())
+        .merge(dislikes::router())
         .merge(grocery::router())
         .merge(item_rules::router())
         .merge(order_review::router())

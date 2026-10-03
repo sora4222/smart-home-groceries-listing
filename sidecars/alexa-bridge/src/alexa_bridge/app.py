@@ -25,6 +25,8 @@ from alexa_bridge.handlers import (
     LaunchRequestHandler,
     SessionEndedRequestHandler,
 )
+from alexa_bridge.list_change_handlers import RemoveItemIntentHandler, UndoIntentHandler
+from alexa_bridge.list_changes import ListChangeClient
 
 #: Path Alexa is pointed at in the skill's endpoint configuration.
 SKILL_ROUTE = "/alexa"
@@ -32,10 +34,12 @@ SKILL_ROUTE = "/alexa"
 logger = logging.getLogger(__name__)
 
 
-def build_skill(client: BackendClient) -> SkillBuilder:
+def build_skill(client: BackendClient, changes: ListChangeClient) -> SkillBuilder:
     """Registers every handler. The order is the dispatch order."""
     builder = SkillBuilder()
     builder.add_request_handler(AddItemIntentHandler(client))
+    builder.add_request_handler(RemoveItemIntentHandler(changes))
+    builder.add_request_handler(UndoIntentHandler(changes))
     builder.add_request_handler(LaunchRequestHandler())
     builder.add_request_handler(HelpIntentHandler())
     builder.add_request_handler(CancelAndStopIntentHandler())
@@ -53,7 +57,7 @@ def create_app(settings: Settings | None = None) -> Flask:
     resolved = settings or load_settings()
     app = Flask(__name__)
 
-    skill = build_skill(BackendClient(resolved)).create()
+    skill = build_skill(BackendClient(resolved), ListChangeClient(resolved)).create()
     adapter = SkillAdapter(skill=skill, skill_id=resolved.skill_id, app=app)
     adapter.register(app=app, route=SKILL_ROUTE)
 

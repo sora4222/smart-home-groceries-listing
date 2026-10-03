@@ -2,7 +2,7 @@
 
 Status: **implemented** — every request the backend answers is written to a
 daily log file and to the `access_logs` table, and the `/logs` page shows the
-table. Steps for people: `docs/using-the-app.md` ("See who used the app") —
+table. Steps for people: `docs/using-the-app.md` ("Access log review") —
 keep it in step with this spec.
 
 ## What is recorded

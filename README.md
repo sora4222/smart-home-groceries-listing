@@ -37,9 +37,9 @@ Ordering, checkout and spending analysis are not built yet; their
 > `docs/features/FEATURE_VOICE.md`.
 
 ## First-time setup
-**Start with [`docs/human-setup.md`](docs/human-setup.md).** It lists every
-step a person has to do (accounts, values for `.env`, Alexa, Woolworths), in
-order, grouped by website. `make setup-env` fills in the random secrets.
+**Start with [`docs/human-setup.md`](docs/human-setup.md).** It covers every
+manual provisioning step (Clerk, Cloudflare Tunnel, the Alexa skill and its
+interaction model, `.env`, Woolworths), ordered by dependency. `make setup-env` fills in the random secrets.
 
 For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
 [`docs/using-the-app.md`](docs/using-the-app.md).
@@ -108,8 +108,8 @@ sidecars/
 docs/
   features/       One spec-and-status doc per major goal
   README.md       Which doc is for whom
-  human-setup.md  Setup steps a person does once (signups, .env, Alexa, Woolworths)
-  using-the-app.md  Everyday steps for people (a shop, fixes)
+  human-setup.md  One-time provisioning (Clerk, Cloudflare, Alexa skill, .env)
+  using-the-app.md  Recurring workflows (voice intake, a shop, undo, fixes)
 skills/           Reference notes for agents working in this repo — read before
                   touching migrations, the Makefile, git conventions, or
                   store integrations

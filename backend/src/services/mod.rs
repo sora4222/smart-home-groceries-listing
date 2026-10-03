@@ -15,4 +15,5 @@ pub mod stores;
 pub mod triage;
 pub mod trolley_handoffs;
 pub mod voice;
+pub mod voice_changes;
 pub mod ws_hub;

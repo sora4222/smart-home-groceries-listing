@@ -40,7 +40,7 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 # aws_lc_rs: without a crypto backend jsonwebtoken panics on the first RS256
 # verification. aws-lc-rs is already in the tree through other crates.
 jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
-reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "http2", "charset"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "form", "query", "rustls", "http2", "charset"] }
 aes-gcm = "0.11.1"
 base64 = "0.23.1"
 subtle = "2.6"
@@ -51,6 +51,9 @@ rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"
 futures-util = "0.3.34"
 chrono-tz = "0.10"
+tracing-appender = "0.2.5"
+sha2 = "0.10.9"
+url = "2.5.8"
 
 [dev-dependencies]
 http-body-util = "0.1.5"

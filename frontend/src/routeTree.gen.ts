@@ -11,9 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalysisRouteImport } from './routes/analysis'
+import { Route as LogsRouteImport } from './routes/logs'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as TriageRouteImport } from './routes/triage'
+import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
+import { Route as SettingsIntakeRouteImport } from './routes/settings/intake'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 
@@ -25,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const AnalysisRoute = AnalysisRouteImport.update({
   id: '/analysis',
   path: '/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogsRoute = LogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderRoute = OrderRouteImport.update({
@@ -42,6 +50,16 @@ const TriageRoute = TriageRouteImport.update({
   path: '/triage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsDislikesRoute = SettingsDislikesRouteImport.update({
+  id: '/settings/dislikes',
+  path: '/settings/dislikes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsIntakeRoute = SettingsIntakeRouteImport.update({
+  id: '/settings/intake',
+  path: '/settings/intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   id: '/settings/item-rules',
   path: '/settings/item-rules',
@@ -56,18 +74,24 @@ const SignInSplatRoute = SignInSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
+  '/logs': typeof LogsRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/sign-in/$': typeof SignInSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
+  '/logs': typeof LogsRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/sign-in/$': typeof SignInSplatRoute
 }
@@ -75,9 +99,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
+  '/logs': typeof LogsRoute
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/sign-in/$': typeof SignInSplatRoute
 }
@@ -86,27 +113,36 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analysis'
+    | '/logs'
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/dislikes'
+    | '/settings/intake'
     | '/settings/item-rules'
     | '/sign-in/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/analysis'
+    | '/logs'
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/dislikes'
+    | '/settings/intake'
     | '/settings/item-rules'
     | '/sign-in/$'
   id:
     | '__root__'
     | '/'
     | '/analysis'
+    | '/logs'
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/dislikes'
+    | '/settings/intake'
     | '/settings/item-rules'
     | '/sign-in/$'
   fileRoutesById: FileRoutesById
@@ -114,9 +150,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalysisRoute: typeof AnalysisRoute
+  LogsRoute: typeof LogsRoute
   OrderRoute: typeof OrderRoute
   PendingRoute: typeof PendingRoute
   TriageRoute: typeof TriageRoute
+  SettingsDislikesRoute: typeof SettingsDislikesRoute
+  SettingsIntakeRoute: typeof SettingsIntakeRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
   SignInSplatRoute: typeof SignInSplatRoute
 }
@@ -135,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/analysis'
       fullPath: '/analysis'
       preLoaderRoute: typeof AnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logs': {
+      id: '/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof LogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order': {
@@ -158,6 +204,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/dislikes': {
+      id: '/settings/dislikes'
+      path: '/settings/dislikes'
+      fullPath: '/settings/dislikes'
+      preLoaderRoute: typeof SettingsDislikesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/intake': {
+      id: '/settings/intake'
+      path: '/settings/intake'
+      fullPath: '/settings/intake'
+      preLoaderRoute: typeof SettingsIntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/item-rules': {
       id: '/settings/item-rules'
       path: '/settings/item-rules'
@@ -178,9 +238,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalysisRoute: AnalysisRoute,
+  LogsRoute: LogsRoute,
   OrderRoute: OrderRoute,
   PendingRoute: PendingRoute,
   TriageRoute: TriageRoute,
+  SettingsDislikesRoute: SettingsDislikesRoute,
+  SettingsIntakeRoute: SettingsIntakeRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
   SignInSplatRoute: SignInSplatRoute,
 }

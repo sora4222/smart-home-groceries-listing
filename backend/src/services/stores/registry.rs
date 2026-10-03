@@ -48,8 +48,8 @@ fn live(store: Store, settings: &StoreSettings) -> Arc<dyn StoreClient> {
         }
     };
     match store {
-        Store::Woolworths => Arc::new(WoolworthsClient::new(http, &settings.woolworths_base_url)),
-        Store::Coles => Arc::new(ColesClient::new(http, &settings.coles_base_url)),
+        Store::Woolworths => Arc::new(WoolworthsClient::new(http, settings.base_url(store))),
+        Store::Coles => Arc::new(ColesClient::new(http, settings.base_url(store))),
     }
 }
 

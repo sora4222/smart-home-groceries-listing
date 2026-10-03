@@ -1,35 +1,38 @@
 /**
- * Builds the "Fill Woolworths trolley" bookmarklet: a `javascript:` link the
- * household drags to the bookmarks bar once, then presses on
- * woolworths.com.au after "Send to Woolworths" in the app.
+ * Turns a store's fill script into a `javascript:` bookmarklet: a link the
+ * household drags to the bookmarks bar once, then presses on the store's
+ * website after "Send to …" in the app.
  *
- * The link carries the source of {@link fillWoolworthsTrolley} and its
- * helpers (choosing and reserving the delivery window) plus the backend URL
- * and the store-tab secret, and shows the result in an alert.
- * Rebuild it (drag it again) if the backend URL or `STORE_TAB_SECRET` changes.
+ * The link carries the script's source text plus the backend URL and the
+ * store-tab secret, and shows the result in an alert. Rebuild it (drag it
+ * again) if the backend URL or `STORE_TAB_SECRET` changes.
  */
-import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
-import {
-	type FillTrolleyConfig,
-	fillWoolworthsTrolley,
-} from "#/lib/store-tab/fill-woolworths-trolley";
-import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
+import type { FillTrolleyConfig } from "#/lib/store-tab/store-tab";
 
-/** The bookmarklet's `href`. */
-export function buildFillWoolworthsTrolleyBookmarklet(
+/** A self-contained function: the bookmarklet carries its source text. */
+// biome-ignore lint/suspicious/noExplicitAny: any script and helper shape is carried as text.
+type SelfContained = (...args: any[]) => unknown;
+
+/**
+ * The bookmarklet's `href` for `fill`, called as `fill(settings, helpers)`.
+ *
+ * Each helper is self-contained too. They are handed in as an argument, so a
+ * minifier renaming them cannot break the link.
+ */
+export function buildBookmarklet(
+	fill: SelfContained,
 	config: FillTrolleyConfig,
+	helpers: Record<string, SelfContained> = {},
 ): string {
 	const settings = JSON.stringify({
 		apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ""),
 		secret: config.secret,
 	});
-	// Each function is self-contained; the helpers are handed in as an
-	// argument, so a minifier renaming them cannot break the link.
-	const helpers =
-		`{chooseWindow:${chooseWoolworthsWindow.toString()},` +
-		`reserveDeliveryWindow:${reserveWoolworthsDeliveryWindow.toString()}}`;
+	const helperSource = `{${Object.entries(helpers)
+		.map(([name, helper]) => `${name}:${helper.toString()}`)
+		.join(",")}}`;
 	const program =
-		`(${fillWoolworthsTrolley.toString()})(${settings},${helpers})` +
+		`(${fill.toString()})(${settings},${helperSource})` +
 		".then(function(r){alert(r.message)}," +
 		"function(e){alert('Fill trolley failed: '+e.message)});void 0";
 	return `javascript:${encodeURIComponent(program)}`;

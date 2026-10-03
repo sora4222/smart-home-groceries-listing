@@ -27,7 +27,7 @@ with `lib/money.ts`. Choosing a product sends only `{ store, product_id }`
 (`PUT /api/grocery-items/{id}/selection`); the backend takes the price from
 the store.
 
-`VoiceRequest` carries a `source` field (`"webhook" | "alexa"`) saying which
+`VoiceRequest` carries a `source` field (`"webhook" | "alexa" | "tasks"`) saying which
 intake channel delivered the item, and `triage_status`, `triage_reason` and
 `triage_confidence` from the LLM triage step (`docs/features/FEATURE_TRIAGE.md`).
 
@@ -63,6 +63,8 @@ File-based routing — one file per route:
 | `routes/analysis.tsx` | `/analysis` — Spending analysis |
 | `routes/settings/index.tsx` | `/settings` |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |
+| `routes/settings/dislikes.tsx` | `/settings/dislikes` — every member's dislikes |
+| `routes/settings/intake.tsx` | `/settings/intake` — Google Tasks connect + other channels; Google's sign-in returns here |
 | `routes/settings/stores.tsx` | `/settings/stores` |
 | `routes/settings/delivery.tsx` | `/settings/delivery` |
 | `routes/logs.tsx` | `/logs` |
@@ -87,6 +89,8 @@ Clerk, through `@clerk/tanstack-react-start`. Full map:
 
 ## Components
 - Use Shadcn components from `components/ui/` — run `pnpm dlx shadcn@latest add <component>` to add new ones. Do not modify ui/ files.
+  If `ui.shadcn.com` is blocked, copy the component's new-york-v4 source by hand (that is how `ui/select.tsx` arrived).
+- Radix Select/Switch need jsdom stand-ins (`hasPointerCapture`, `scrollIntoView`, `ResizeObserver`) — they are in `src/test-setup.ts`.
 - Feature UI uses compound components:
   ```tsx
   <GroceryList>

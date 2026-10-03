@@ -24,6 +24,9 @@ docs.
   Woolworths trolley through a bookmark you press on woolworths.com.au; you
   pay on Woolworths (`FEATURE_TROLLEY_HANDOFF.md`,
   `docs/FEAT_WOOLWORTHS_ACCESS.md`).
+- **Access logs** — every request is logged to a daily file and the
+  database; the `/logs` page shows who asked for what
+  (`FEATURE_ACCESS_LOGS.md`).
 
 Ordering, checkout and spending analysis are not built yet; their
 `FEATURE_*.md` files are placeholders.

@@ -8,9 +8,14 @@ use std::env;
 use std::time::Duration;
 
 use crate::error::ConfigError;
+use crate::services::stores::Store;
 
+mod access_log;
+mod google_tasks;
 mod triage;
 
+pub use access_log::access_log_dir;
+pub use google_tasks::{GoogleTasksMode, GoogleTasksSettings};
 pub use triage::{TriageProvider, TriageSettings};
 
 /// How long a fetched Clerk JWKS document is reused before being re-fetched.
@@ -53,6 +58,9 @@ pub struct Settings {
 
     /// How intake requests are screened before the household sees them.
     pub triage: TriageSettings,
+
+    /// How the backend reaches Google Tasks.
+    pub google_tasks: GoogleTasksSettings,
 }
 
 /// Which store clients the backend uses.
@@ -79,6 +87,15 @@ pub struct StoreSettings {
 }
 
 impl StoreSettings {
+    /// The website of `store`, as configured. A new [`Store`] variant fails to
+    /// compile here until it has a base URL.
+    pub fn base_url(&self, store: Store) -> &str {
+        match store {
+            Store::Woolworths => &self.woolworths_base_url,
+            Store::Coles => &self.coles_base_url,
+        }
+    }
+
     /// Reads the store settings from the environment.
     fn from_env() -> Result<Self, ConfigError> {
         let mode = match optional("STORE_CLIENTS").map(|v| v.trim().to_ascii_lowercase()) {
@@ -135,6 +152,8 @@ impl Settings {
             stores: StoreSettings::from_env()?,
 
             triage: TriageSettings::from_env()?,
+
+            google_tasks: GoogleTasksSettings::from_env()?,
         })
     }
 }

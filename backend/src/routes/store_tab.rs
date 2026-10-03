@@ -26,6 +26,7 @@ use crate::models::schemas::{
 };
 use crate::routes::extract::AnyContentTypeJson;
 use crate::services::purchases;
+use crate::services::stores::Store;
 use crate::services::trolley_handoffs::delivery::ReportedDelivery;
 use crate::services::trolley_handoffs::store_tab::ReportedLine;
 use crate::services::trolley_handoffs::TrolleyHandoffService;
@@ -107,8 +108,8 @@ async fn allow_store_origins(
 
 /// The origin is one of the stores' configured websites.
 fn is_store_website(state: &AppState, origin: &HeaderValue) -> bool {
-    let stores = &state.settings.stores;
-    [&stores.woolworths_base_url, &stores.coles_base_url]
-        .into_iter()
-        .any(|base| origin.as_bytes() == base.trim_end_matches('/').as_bytes())
+    Store::ALL.into_iter().any(|store| {
+        let base = state.settings.stores.base_url(store);
+        origin.as_bytes() == base.trim_end_matches('/').as_bytes()
+    })
 }

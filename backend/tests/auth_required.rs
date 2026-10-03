@@ -51,6 +51,31 @@ fn household_routes() -> Vec<(Method, String)> {
         (Method::POST, "/api/purchase-history/recategorise".into()),
         (Method::GET, "/api/spending".into()),
         (Method::GET, "/api/spending/item-prices?name=milk".into()),
+        (Method::GET, "/api/access-logs".into()),
+        (Method::GET, "/api/product-dislikes".into()),
+        (Method::PUT, "/api/product-dislikes".into()),
+        (
+            Method::DELETE,
+            "/api/product-dislikes/woolworths/123".into(),
+        ),
+        (Method::GET, "/api/dislike-overrides".into()),
+        (Method::PUT, format!("{item}/dislike-override")),
+        (
+            Method::DELETE,
+            format!("{item}/dislike-override/woolworths/123"),
+        ),
+        (Method::POST, format!("/api/triage/{ID}/restore")),
+        (Method::GET, "/api/intake/settings".into()),
+        (Method::PUT, "/api/intake/google-tasks".into()),
+        (Method::POST, "/api/intake/google-tasks/sign-in".into()),
+        (Method::DELETE, "/api/intake/google-tasks/sign-in".into()),
+        (
+            Method::POST,
+            "/api/intake/google-tasks/sign-in/finish".into(),
+        ),
+        (Method::GET, "/api/intake/google-tasks/lists".into()),
+        (Method::POST, "/api/intake/google-tasks/poll".into()),
+        (Method::POST, "/api/dev/google-tasks/tasks".into()),
     ]
 }
 

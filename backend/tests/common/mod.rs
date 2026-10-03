@@ -12,10 +12,13 @@
 #![allow(dead_code)]
 
 pub mod clerk;
+pub mod google_tasks;
 pub mod purchases;
 pub mod settings;
 pub mod triage;
 pub mod trolley;
+
+use grocery_backend::config::{GoogleTasksSettings, Settings, TriageSettings};
 
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
@@ -26,14 +29,13 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 use grocery_backend::build_app;
-use grocery_backend::config::{Settings, TriageSettings};
 use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
 
-use settings::test_settings;
-// Not every test binary uses these, like the rest of this module.
-#[allow(unused_imports)]
-pub use settings::{fake_store_settings, triage_settings};
+#[allow(unused_imports)] // each test file uses some of these
+pub use settings::{
+    fake_store_settings, google_tasks_settings, test_settings, triage_settings, TEST_ENCRYPTION_KEY,
+};
 
 /// The shared secrets the tests authenticate with. Test-only values.
 pub const TEST_WEBHOOK_SECRET: &str = "test-webhook-secret";
@@ -46,42 +48,32 @@ pub struct TestApp {
 }
 
 impl TestApp {
-    /// Builds the real application with Clerk verification left switched on,
-    /// so a request with no credential is answered the way a browser without a
-    /// session would be.
-    pub fn with_auth(pool: PgPool) -> Self {
-        Self {
-            router: build_app(
-                pool,
-                Settings {
-                    dev_auth_bypass: false,
-                    ..test_settings()
-                },
-            ),
-        }
-    }
-
-    /// Builds the real application verifying session tokens against the
-    /// JWKS at `jwks_url` (see [`clerk::serve_jwks`]).
-    pub fn with_clerk(pool: PgPool, jwks_url: &str) -> Self {
-        Self {
-            router: build_app(
-                pool,
-                Settings {
-                    dev_auth_bypass: false,
-                    clerk_jwks_url: jwks_url.to_string(),
-                    ..test_settings()
-                },
-            ),
-        }
-    }
-
     /// Builds the real application with triage switched on, as `triage` says.
     pub fn with_triage(pool: PgPool, triage: TriageSettings) -> Self {
         Self {
             router: build_app(
                 pool,
                 Settings {
+                    triage,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
+    /// Builds the real application with an encryption key and the Google
+    /// Tasks client `google_tasks` describes, triage as `triage` says.
+    pub fn with_google_tasks(
+        pool: PgPool,
+        google_tasks: GoogleTasksSettings,
+        triage: TriageSettings,
+    ) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    credential_encryption_key: TEST_ENCRYPTION_KEY.to_string(),
+                    google_tasks,
                     triage,
                     ..test_settings()
                 },

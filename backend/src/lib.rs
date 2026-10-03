@@ -10,6 +10,8 @@ pub mod auth;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod logging;
+pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod services;
@@ -73,16 +75,25 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
         triage,
         auth: auth::build_provider(&settings),
         stores: services::stores::registry::build(&settings.stores),
+        google_tasks: services::google_tasks::registry::build(&settings.google_tasks),
         settings: Arc::new(settings),
         hub,
         encryptor,
     };
+
+    if state.settings.google_tasks.poll_in_background {
+        services::google_tasks::schedule::spawn(state.clone());
+    }
 
     let cors = cors_layer(&state.settings);
 
     routes::api_router(&state)
         .layer(
             ServiceBuilder::new()
+                .layer(axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    middleware::access_log::record_access,
+                ))
                 .layer(TraceLayer::new_for_http().make_span_with(request_span))
                 .layer(TimeoutLayer::with_status_code(
                     StatusCode::REQUEST_TIMEOUT,

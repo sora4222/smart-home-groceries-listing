@@ -99,7 +99,8 @@ review; `order line needs attention` (warn) for a line with a problem;
   see them without the household's store login (`FEAT_WOOLWORTHS_ACCESS.md`).
 - Delivery constraints from Settings › Delivery (need-by, max delivery spend,
   allowed days, perishable timing).
-- Dislike warnings (spec "Purchase History and Preferences").
+- Skipping disliked products, and the warning before confirming. The rule
+  is ready to call: `services/dislikes/skip.rs` (`FEATURE_DISLIKES.md`).
 
 ## Tests
 - `backend/src/services/order_review/line/tests.rs`, `summary.rs` — every

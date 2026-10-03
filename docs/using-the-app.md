@@ -8,11 +8,15 @@ and API details are in [`features/`](features/).
 |---|---|
 | [Voice intake: add](#voice-intake-add) | Echo, then the web app |
 | [Voice intake: remove, reduce, undo](#voice-intake-remove-reduce-undo) | Echo |
+| [Google Tasks intake](#google-tasks-intake) | Google Tasks, then the web app |
 | [Triage review](#triage-review) | Web app `/triage` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
+| [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
 | [Undo a recorded purchase](#undo-a-recorded-purchase) | Web app |
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
+| [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
+| [Access log review](#access-log-review) | Web app `/logs` |
 | [Add a household member](#add-a-household-member) | Clerk dashboard |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
@@ -60,6 +64,18 @@ shrink the order. Each one is recorded so it can be reverted. Spec:
 
 ---
 
+## Google Tasks intake
+
+Needs [`human-setup.md` → Optional: Google Tasks](human-setup.md#optional-google-tasks).
+Add a task such as `2 oat milk` to the watched list (quantity first; `2 x`,
+`x2` also parse). The backend polls every `poll_seconds` (default 60), records
+each open task as a **pending** request and deletes it from Google. **Intake
+→ Check now** polls immediately.
+
+1. Open **Pending Requests** and **Accept** as for voice.
+
+---
+
 ## Triage review
 
 The intake classifier holds low-confidence items and rejects non-grocery
@@ -69,6 +85,9 @@ items (`FEATURE_TRIAGE.md`). The **Triage** nav badge counts held items.
 2. **Accept** moves the item to Pending Requests (it still needs a second
    **Accept** there). **Reject** discards it.
 3. Optionally scan **Rejected** for false negatives.
+4. Google Tasks items also get **Put back in Google Tasks**: the task is
+   re-created on the list and the next poll brings it straight to Pending
+   Requests, skipping the classifier.
 
 ---
 
@@ -115,12 +134,37 @@ slot before the store's cut-off. The app does not track this.
 
 ---
 
+## Coles shop
+
+Same as the Woolworths shop, with these differences:
+
+**Web app**
+1. **Send to Coles**, then **Send and open Coles**. There is no delivery
+   choice: the Coles bookmarklet cannot reserve a window yet.
+
+**Store tab**
+2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
+   signed in and a store is selected **before** claiming the handoff, so a
+   refusal leaves the handoff waiting; fix it and run it again.
+3. Reload the page and open the trolley to review it.
+4. Pick a delivery window on coles.com.au, then pay there.
+
+**Verify:** the **Send to Coles** panel lists each line as **Added**, then
+**Saved as bought**.
+
+The Coles trolley calls were not verified live before release
+(`FEATURE_TROLLEY_HANDOFF.md`, "Coles"). If the first run fails, report the
+exact message.
+
+---
+
 ## Undo a recorded purchase
 
 Deletes the purchase order (and its spending data) and restores each item
 to the status it had before. The Woolworths trolley is not touched.
 
-- Right after a fill: **Undo** in the **Send to Woolworths** panel.
+- Right after a fill: **Undo** in the **Send to Woolworths** (or **Send to
+  Coles**) panel.
 - Later: **Spending → Saved shops → Undo** on the order.
 
 **Verify:** the items are back on **Grocery List**.
@@ -144,6 +188,39 @@ category** to recompute them.
 
 ---
 
+## Product dislikes
+
+Dislikes are per member and visible to the whole household
+(`FEATURE_DISLIKES.md`). They never block a manual choice.
+
+1. In **Compare prices**, press **Dislike** on a product. It now shows
+   *"You disliked this item previously."*; other members see your name.
+2. **Buy it this time** sets the dislike aside for this list item only
+   (`dislike_overrides`). **Undo** brings it back.
+3. **Remove my dislike** (in the comparison, or **Dislikes → Remove**)
+   deletes your own dislike for good. Other members' dislikes can't be
+   removed.
+
+**Verify:** **Dislikes** in the nav lists every member's dislikes, yours
+first.
+
+---
+
+## Access log review
+
+**Logs** lists every request the backend answered, newest first: time,
+user, source IP, method, path, status and duration (`FEATURE_ACCESS_LOGS.md`).
+
+1. Open **Logs**. **Load older** pages back; **Show health checks** adds the
+   container's `/api/health` probes, hidden by default.
+2. **Not signed in** is expected for intake (Alexa, webhook) and health
+   checks. Bursts of 401/404 from an unknown address suggest probing.
+
+The same lines are in `access.YYYY-MM-DD.log` in the backend's `access_logs`
+volume (`/var/log/grocery`), kept 30 days.
+
+---
+
 ## Add a household member
 
 In [dashboard.clerk.com](https://dashboard.clerk.com), open the application's
@@ -156,8 +233,8 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 
 | Change | Action |
 |---|---|
-| Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths**; delete the old bookmark. |
-| `STORE_TAB_SECRET` or the app origin changed | Re-drag the bookmarklet (it embeds both). |
+| Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
+| `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
 | Clerk sign-in arrived (stack ran with `DEV_AUTH_BYPASS=true`) | Rename `CLERK_PUBLISHABLE_KEY` to `VITE_CLERK_PUBLISHABLE_KEY` in `.env`, set `DEV_AUTH_BYPASS=false`, enable the Clerk allowlist ([`human-setup.md` §2](human-setup.md#2-clerk)), then `make down && make up` and restart `pnpm dev`. |
 | New migration | None; migrations run on backend start. |
 | New `.env` key | `make setup-env`, fill any non-generated value, then `make down && make up`. |
@@ -169,14 +246,18 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 
 | Symptom | Cause / fix |
 |---|---|
-| "Open woolworths.com.au first" | Bookmarklet run outside the store tab. |
+| "Open woolworths.com.au first" / "Open coles.com.au first" | Bookmarklet run outside that store's tab. |
 | "Nothing to add" | No open handoff: press **Send and open Woolworths**, then run the bookmarklet within 30 minutes. |
 | "The grocery app refused (HTTP 401)" | Stale bookmarklet secret; re-drag it. |
 | "Fill trolley failed" (network error) | Backend down, or Chrome's local-network prompt was denied. |
-| "No delivery time reserved" | Pick a slot manually on woolworths.com.au. |
+| "No delivery time reserved" | Pick a slot manually on the store's site (always the case for Coles). |
+| "Log in to Coles first" | Coles trolley read returned 401/403; sign in and re-run. Nothing was claimed. |
+| "Choose your delivery address on Coles first" | No Coles store selected; set a delivery address and re-run. |
+| "Coles is still loading" | Coles page config not ready; reload and re-run. |
 | **Saved as bought** never appears | Backend unreachable when the report was posted; items stay on the list. |
 | A line shows **Not added** | Not deliverable from your store right now; choose another product. |
 | Triage says "The checker could not be reached" | Model server down: `make up` (Ollama: also `docker compose exec ollama ollama pull llama3.2`), then **Accept** in Triage. |
 | Alexa: "I couldn't find … on the list" | No `active` item matched; check the exact name on **Grocery List**. |
 | Alexa: "The list is locked for purchase" | The list is committed; release it in the web app first. |
+| Google Tasks card: "connect Google Tasks again" | Access was revoked or expired: **Intake → Disconnect**, then connect again. |
 | Alexa adds/removes nothing | [`human-setup.md` §7](human-setup.md#7-smoke-test-the-skill). |

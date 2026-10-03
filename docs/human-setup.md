@@ -16,6 +16,7 @@ dependency, so the stack is started once, at the end. Every value written to
 | [6. Start the stack](#6-start-the-stack) | Home server shell, Cloudflare | Running services, healthy tunnel | 10 min |
 | [7. Smoke-test the skill](#7-smoke-test-the-skill) | Echo device, web app | End-to-end check | 5 min |
 | [8. Woolworths bookmarklet](#8-woolworths-bookmarklet) | Chrome | Bookmarklet installed, store session | 10 min |
+| [9. Coles bookmarklet](#9-coles-bookmarklet) | Chrome | Bookmarklet installed, store session | 10 min |
 
 Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 
@@ -26,6 +27,7 @@ Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 - A domain whose DNS is managed by Cloudflare (Cloudflare Registrar works).
 - The Amazon account the target Echo device is registered to.
 - Woolworths credentials (passkey or password manager).
+- Coles credentials (saved in Chrome is fine; the app never sees them).
 
 ---
 
@@ -324,6 +326,78 @@ backend on the LAN.
 
 **Verify:** the bookmarklet is installed and the Woolworths header shows
 your delivery address.
+
+---
+
+## 9. Coles bookmarklet
+
+**Browser:** Chrome, as in §8 (bookmarks bar already shown). Same handoff,
+run on coles.com.au. It does not reserve a delivery window; pick one on
+Coles after the fill.
+
+1. In the web app, choose a Coles product for at least one item, then press
+   **Send to Coles**.
+2. Drag **Fill Coles trolley** onto the bookmarks bar.
+3. In a new tab, sign in at [coles.com.au](https://www.coles.com.au) (Chrome
+   autofills a saved login).
+4. Choose **Delivery** to your address if the header asks for a location
+   (it may read **Set your location**). The bookmarklet needs a selected
+   store and refuses to start without one.
+
+First run: allow Chrome's local-network access prompt for coles.com.au.
+
+**Verify:** the bookmarklet is installed and the Coles header shows your
+delivery address.
+
+---
+
+## Optional: Google Tasks
+
+Typed items in a Google Tasks list become intake requests: the backend polls
+the list, records each open task, then deletes it. Spec:
+[`features/FEATURE_GOOGLE_TASKS.md`](features/FEATURE_GOOGLE_TASKS.md).
+
+- "Hey Google, add milk to my shopping list" does **not** reach Google Tasks;
+  Google keeps that list to itself, with no API. This channel is for typed
+  items only.
+- Use a list for groceries only: **every** open task on it is consumed.
+- The OAuth redirect is `http://localhost:3000/settings/intake`, so connect
+  from a browser on the home server.
+
+1. **Google Tasks** (phone app or [tasks.google.com](https://tasks.google.com)):
+   create a list named `Groceries`.
+2. **[console.cloud.google.com](https://console.cloud.google.com)**, signed
+   in as the account that owns the list:
+   1. Create a project `Grocery list` and select it.
+   2. **APIs & Services → Library → Google Tasks API → Enable.**
+   3. **Google Auth Platform → Get started:** app name `Grocery list`,
+      audience **External**, your email as contact. Then **Audience →
+      Publish app** (in *Testing*, refresh tokens expire after 7 days; the
+      unverified-app warning is fine for a household).
+   4. **Clients → Create client:** type **Web application**, authorized
+      redirect URI `http://localhost:3000/settings/intake`.
+3. **`.env`:** copy the new client's values:
+
+| Console field | `.env` key |
+|---|---|
+| Client ID (`….apps.googleusercontent.com`) | `GOOGLE_CLIENT_ID` |
+| Client secret (`GOCSPX-…`) | `GOOGLE_CLIENT_SECRET` |
+
+4. **Home server shell:** `make up` to restart with the new values.
+5. **Web app on the home server** ([localhost:3000](http://localhost:3000)):
+   **Intake → Connect Google Tasks**, pick the account, accept the
+   unverified-app warning (**Advanced → Go to Grocery list**) and allow Tasks
+   access. Back in the app, set **Grocery list** to `Groceries`, turn on
+   **Check this list**, **Save**.
+
+**Verify:** the Google Tasks card shows **On**. Add `milk` to the list, press
+**Check now**; it appears in **Pending Requests** and leaves Google Tasks.
+
+| Symptom | Fix |
+|---|---|
+| Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make up`. |
+| Google says `redirect_uri_mismatch` | The client's redirect URI must be exactly `http://localhost:3000/settings/intake`. |
+| Card says "connect Google Tasks again" | **Disconnect**, then repeat step 5. |
 
 ---
 

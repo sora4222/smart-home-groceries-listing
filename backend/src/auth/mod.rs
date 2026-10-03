@@ -7,6 +7,7 @@
 //! application changes.
 
 pub mod clerk;
+pub mod request_user;
 pub mod secret;
 pub mod socket;
 
@@ -79,7 +80,16 @@ impl FromRequestParts<AppState> for AuthUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        authenticate(state, bearer_token(parts)).await
+        let user = authenticate(state, bearer_token(parts)).await?;
+        record_for_access_log(parts, &user);
+        Ok(user)
+    }
+}
+
+/// Tells the access log who this request was (`request_user.rs`).
+pub(crate) fn record_for_access_log(parts: &Parts, user: &AuthUser) {
+    if let Some(slot) = parts.extensions.get::<request_user::RequestUser>() {
+        slot.record(&user.id);
     }
 }
 

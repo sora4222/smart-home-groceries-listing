@@ -9,6 +9,12 @@ use serde_json::{json, Value};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use grocery_backend::build_app;
+use grocery_backend::config::Settings;
+use sqlx::PgPool;
+
+use super::{test_settings, TestApp};
+
 /// The key id `jwks.json` publishes the signing key under.
 pub const TEST_KEY_ID: &str = "test-key-1";
 
@@ -68,4 +74,37 @@ pub fn sign_hs256_confusion(claims: &Value) -> String {
     header.kid = Some(TEST_KEY_ID.to_string());
     let key = EncodingKey::from_secret(JWKS.as_bytes());
     encode(&header, claims, &key).expect("signing a test token")
+}
+
+/// `TestApp` constructors with the real sign-in check switched on.
+impl TestApp {
+    /// Builds the real application with Clerk verification left switched on,
+    /// so a request with no credential is answered the way a browser without a
+    /// session would be.
+    pub fn with_auth(pool: PgPool) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    dev_auth_bypass: false,
+                    ..test_settings()
+                },
+            ),
+        }
+    }
+
+    /// Builds the real application verifying session tokens against the
+    /// JWKS at `jwks_url` (see [`serve_jwks`]).
+    pub fn with_clerk(pool: PgPool, jwks_url: &str) -> Self {
+        Self {
+            router: build_app(
+                pool,
+                Settings {
+                    dev_auth_bypass: false,
+                    clerk_jwks_url: jwks_url.to_string(),
+                    ..test_settings()
+                },
+            ),
+        }
+    }
 }

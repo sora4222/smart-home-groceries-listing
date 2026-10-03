@@ -10,7 +10,7 @@ use axum::extract::{FromRequestParts, Query};
 use axum::http::request::Parts;
 use serde::Deserialize;
 
-use crate::auth::{authenticate, bearer_token, AuthUser};
+use crate::auth::{authenticate, bearer_token, record_for_access_log, AuthUser};
 use crate::error::ApiError;
 use crate::state::AppState;
 
@@ -41,7 +41,9 @@ impl FromRequestParts<AppState> for SocketUser {
     ) -> Result<Self, Self::Rejection> {
         let from_query = query_token(parts);
         let token = bearer_token(parts).or(from_query.as_deref());
-        authenticate(state, token).await.map(SocketUser)
+        let user = authenticate(state, token).await?;
+        record_for_access_log(parts, &user);
+        Ok(SocketUser(user))
     }
 }
 

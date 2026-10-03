@@ -106,6 +106,17 @@ def test_sends_the_bridge_secret_as_a_header():
 ```
 
 ## Frontend unit (vitest)
+
+The frontend uses TypeScript 7. Run `pnpm typecheck` for the native compiler
+check, `pnpm exec biome ci .` for lint/format checks, and `pnpm build` for SSR
+bundling. Keep `moduleResolution: "bundler"` and `verbatimModuleSyntax`;
+do not reintroduce removed options such as `baseUrl`.
+
+After upgrading Biome, run `pnpm exec biome migrate --write`. Biome 2.5 uses
+the `preset` lint configuration. Generated Shadcn files keep their upstream
+export ordering through a scoped `organizeImports` override; linting and
+formatting still apply to them.
+
 ```bash
 cd frontend && pnpm test:run          # single pass
 cd frontend && pnpm test              # watch mode

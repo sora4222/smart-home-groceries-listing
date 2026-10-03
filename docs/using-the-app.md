@@ -9,6 +9,7 @@ and API details are in [`features/`](features/).
 | [Voice intake: add](#voice-intake-add) | Echo, then the web app |
 | [Voice intake: remove, reduce, undo](#voice-intake-remove-reduce-undo) | Echo |
 | [Triage review](#triage-review) | Web app `/triage` |
+| [Delivery fees and store choice](#delivery-fees-and-store-choice) | Web app `/settings/delivery`, `/order` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
 | [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
@@ -74,6 +75,30 @@ items (`FEATURE_TRIAGE.md`). The **Triage** nav badge counts held items.
 
 ---
 
+## Delivery fees and store choice
+
+The app can't read the stores' delivery fees, so enter them once; re-enter
+when a store changes its fees.
+
+**Web app**
+1. **Delivery** (`/settings/delivery`): per store, **Delivery fee**, **Free
+   delivery from** and **Minimum order** (empty = not set). Pick **How to
+   pick stores** and optionally **Most to spend on delivery**, then **Save**
+   (toast has **Undo**).
+2. To let the app compare stores for an item, **Compare prices → Choose** a
+   product at **each** store. The newest choice is the one bought; the other
+   shows as **Also at …** on the item card.
+3. On **Order**, **Ways to buy** ranks the options with delivery included.
+   **Rank by** tries another mode for this visit. **Use this** moves items
+   to that option's stores (toast has **Undo**).
+
+**Verify:** each option shows `items + delivery` per store, and the
+recommended one is badged **Recommended**.
+
+Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION.md).
+
+---
+
 ## Woolworths shop
 
 Use Chrome for both the web app and the store tab.
@@ -91,9 +116,12 @@ Use Chrome for both the web app and the store tab.
 **Store tab**
 4. Sign in if prompted, then run the **Fill Woolworths trolley**
    bookmarklet. First run: allow Chrome's local-network access prompt.
-5. The bookmarklet reports products added and the reserved delivery window.
-6. Review the trolley and pay on woolworths.com.au. The app never handles
-   payment.
+5. The bookmarklet reports products added and the reserved delivery window,
+   and asks **Go to checkout now?** **OK** opens the checkout page;
+   **Cancel** stays on the trolley.
+6. Review the order and pay on woolworths.com.au. The app stops at the
+   checkout page and never handles payment
+   ([`FEATURE_CHECKOUT.md`](features/FEATURE_CHECKOUT.md)).
 
 **Verify:** the **Send to Woolworths** panel lists each line as **Added**
 with a **Delivery:** line, then shows **Saved as bought**.
@@ -129,7 +157,9 @@ Same as the Woolworths shop, with these differences:
 2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
    signed in and a store is selected **before** claiming the handoff, so a
    refusal leaves the handoff waiting; fix it and run it again.
-3. Reload the page and open the trolley to review it.
+3. On **Go to checkout now?**, **OK** opens Coles checkout (path not
+   verified live; if it 404s, open the trolley instead). **Cancel**: reload
+   the page and open the trolley.
 4. Pick a delivery window on coles.com.au, then pay there.
 
 **Verify:** the **Send to Coles** panel lists each line as **Added**, then
@@ -208,6 +238,7 @@ volume (`/var/log/grocery`), kept 30 days.
 
 | Change | Action |
 |---|---|
+| Checkout step added to the bookmarklets (2026-10-03) | Re-drag both bookmarklets, as below. |
 | Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
 | `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
 | New migration | None; migrations run on backend start. |

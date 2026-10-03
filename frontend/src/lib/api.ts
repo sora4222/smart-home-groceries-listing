@@ -8,6 +8,7 @@
  * `#/lib/api` without caring which file a type lives in.
  */
 import { accessLogsApi } from "#/lib/api/access-logs";
+import { deliverySettingsApi } from "#/lib/api/delivery-settings";
 import { dislikesApi } from "#/lib/api/dislikes";
 import { groceryApi } from "#/lib/api/grocery";
 import { itemRulesApi } from "#/lib/api/item-rules";
@@ -22,6 +23,7 @@ import { voiceApi } from "#/lib/api/voice";
 
 export * from "#/lib/api/access-logs";
 export { ApiError } from "#/lib/api/client";
+export * from "#/lib/api/delivery-settings";
 export * from "#/lib/api/dislikes";
 export * from "#/lib/api/grocery";
 export * from "#/lib/api/item-rules";
@@ -47,4 +49,5 @@ export const api = {
 	purchases: purchasesApi,
 	spending: spendingApi,
 	accessLogs: accessLogsApi,
+	deliverySettings: deliverySettingsApi,
 };

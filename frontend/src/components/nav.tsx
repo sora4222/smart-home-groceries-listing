@@ -16,6 +16,7 @@ const links: ReadonlyArray<{
 		| "/analysis"
 		| "/settings/item-rules"
 		| "/settings/dislikes"
+		| "/settings/delivery"
 		| "/logs";
 	label: string;
 	badge?: BadgeKind;
@@ -27,6 +28,7 @@ const links: ReadonlyArray<{
 	{ to: "/analysis", label: "Spending" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
 	{ to: "/settings/dislikes", label: "Dislikes" },
+	{ to: "/settings/delivery", label: "Delivery" },
 	{ to: "/logs", label: "Logs" },
 ];
 

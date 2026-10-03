@@ -36,7 +36,7 @@ jobs:
       - name: Biome (format, lint, imports)
         run: pnpm exec biome ci .
       - name: TypeScript
-        run: pnpm exec tsc --noEmit
+        run: pnpm typecheck
       - name: Vitest
         run: pnpm test:run
       - name: Build

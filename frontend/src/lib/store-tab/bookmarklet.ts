@@ -4,7 +4,10 @@
  * website after "Send to …" in the app.
  *
  * The link carries the script's source text plus the backend URL and the
- * store-tab secret, and shows the result in an alert. Rebuild it (drag it
+ * store-tab secret, and shows the result. When the script offers checkout,
+ * the result is shown as a question instead ("Go to checkout now?"): OK opens
+ * the store's checkout page, where the person reviews and pays. The app
+ * stops there and never places the order. Rebuild it (drag it
  * again) if the backend URL or `STORE_TAB_SECRET` changes.
  */
 import type { FillTrolleyConfig } from "#/lib/store-tab/store-tab";
@@ -33,7 +36,8 @@ export function buildBookmarklet(
 		.join(",")}}`;
 	const program =
 		`(${fill.toString()})(${settings},${helperSource})` +
-		".then(function(r){alert(r.message)}," +
+		".then(function(r){if(!r.checkout){alert(r.message);return}" +
+		"if(confirm(r.message+'\\n\\n'+r.checkout.question))location.assign(r.checkout.path)}," +
 		"function(e){alert('Fill trolley failed: '+e.message)});void 0";
 	return `javascript:${encodeURIComponent(program)}`;
 }

@@ -45,6 +45,7 @@ src/
 ├── lib/
 │   ├── api.ts           # Gathers api/* into `api` and re-exports their types
 │   ├── api/             # client.ts (request, ApiError) + one module per domain
+│   ├── auth*.ts, sign-in-guard.ts # Clerk sign-in — see "Sign-in" below
 │   └── ws.ts            # WebSocket client (pending request events)
 └── hooks/               # Custom hooks (useWebSocket, usePendingCount, etc.)
 ```
@@ -56,8 +57,10 @@ File-based routing — one file per route:
 | `routes/__root.tsx` | Root layout (nav, Sonner toaster) |
 | `routes/index.tsx` | `/` — Grocery list |
 | `routes/pending.tsx` | `/pending` — Confirmation queue |
+| `routes/sign-in.$.tsx` | `/sign-in` — Clerk's sign-in box (goes home with sign-in off) |
+| `routes/sign-up.$.tsx` | `/sign-up` — Clerk's sign-up box (goes home with sign-in off) |
 | `routes/triage.tsx` | `/triage` — Held for review / Rejected tabs (`?tab=rejected`) |
-| `routes/order.tsx` | `/order` — Order review |
+| `routes/order.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
 | `routes/analysis.tsx` | `/analysis` — Spending analysis |
 | `routes/settings/index.tsx` | `/settings` |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |
@@ -74,6 +77,17 @@ import { Link, useNavigate } from '@tanstack/react-router'
 // Params
 import { useParams } from '@tanstack/react-router'
 ```
+
+## Sign-in
+Clerk, through `@clerk/tanstack-react-start`, styled with `@clerk/ui`'s
+`shadcn` theme. Full map:
+`docs/features/FEATURE_AUTH.md`.
+- Never import Clerk outside `lib/auth*.ts`, `start.ts`, `routes/sign-in.$.tsx`,
+  `routes/sign-up.$.tsx` and `components/auth/`. Everything else calls `getAuthToken()` (via
+  `lib/api/client.ts`) or reads `AUTH_MODE`.
+- Sign-in is on when `VITE_CLERK_PUBLISHABLE_KEY` is set in the root `.env`.
+- **e2e runs with sign-in off:** start the app with `VITE_AUTH_MODE=off pnpm dev`
+  and the backend with `DEV_AUTH_BYPASS=true`.
 
 ## Components
 - Use Shadcn components from `components/ui/` — run `pnpm dlx shadcn@latest add <component>` to add new ones. Do not modify ui/ files.

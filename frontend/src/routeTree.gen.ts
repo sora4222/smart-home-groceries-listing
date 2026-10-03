@@ -15,9 +15,12 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as TriageRouteImport } from './routes/triage'
+import { Route as SettingsDeliveryRouteImport } from './routes/settings/delivery'
 import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
 import { Route as SettingsIntakeRouteImport } from './routes/settings/intake'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
+import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -49,6 +52,11 @@ const TriageRoute = TriageRouteImport.update({
   path: '/triage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsDeliveryRoute = SettingsDeliveryRouteImport.update({
+  id: '/settings/delivery',
+  path: '/settings/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsDislikesRoute = SettingsDislikesRouteImport.update({
   id: '/settings/dislikes',
   path: '/settings/dislikes',
@@ -64,6 +72,16 @@ const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   path: '/settings/item-rules',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpSplatRoute = SignUpSplatRouteImport.update({
+  id: '/sign-up/$',
+  path: '/sign-up/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,9 +90,12 @@ export interface FileRoutesByFullPath {
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,9 +104,12 @@ export interface FileRoutesByTo {
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,9 +119,12 @@ export interface FileRoutesById {
   '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
   '/triage': typeof TriageRoute
+  '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,9 +135,12 @@ export interface FileRouteTypes {
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/delivery'
     | '/settings/dislikes'
     | '/settings/intake'
     | '/settings/item-rules'
+    | '/sign-in/$'
+    | '/sign-up/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,9 +149,12 @@ export interface FileRouteTypes {
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/delivery'
     | '/settings/dislikes'
     | '/settings/intake'
     | '/settings/item-rules'
+    | '/sign-in/$'
+    | '/sign-up/$'
   id:
     | '__root__'
     | '/'
@@ -130,9 +163,12 @@ export interface FileRouteTypes {
     | '/order'
     | '/pending'
     | '/triage'
+    | '/settings/delivery'
     | '/settings/dislikes'
     | '/settings/intake'
     | '/settings/item-rules'
+    | '/sign-in/$'
+    | '/sign-up/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -142,9 +178,12 @@ export interface RootRouteChildren {
   OrderRoute: typeof OrderRoute
   PendingRoute: typeof PendingRoute
   TriageRoute: typeof TriageRoute
+  SettingsDeliveryRoute: typeof SettingsDeliveryRoute
   SettingsDislikesRoute: typeof SettingsDislikesRoute
   SettingsIntakeRoute: typeof SettingsIntakeRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
+  SignInSplatRoute: typeof SignInSplatRoute
+  SignUpSplatRoute: typeof SignUpSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -191,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/delivery': {
+      id: '/settings/delivery'
+      path: '/settings/delivery'
+      fullPath: '/settings/delivery'
+      preLoaderRoute: typeof SettingsDeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/dislikes': {
       id: '/settings/dislikes'
       path: '/settings/dislikes'
@@ -212,6 +258,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsItemRulesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up/$': {
+      id: '/sign-up/$'
+      path: '/sign-up/$'
+      fullPath: '/sign-up/$'
+      preLoaderRoute: typeof SignUpSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -222,19 +282,23 @@ const rootRouteChildren: RootRouteChildren = {
   OrderRoute: OrderRoute,
   PendingRoute: PendingRoute,
   TriageRoute: TriageRoute,
+  SettingsDeliveryRoute: SettingsDeliveryRoute,
   SettingsDislikesRoute: SettingsDislikesRoute,
   SettingsIntakeRoute: SettingsIntakeRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
+  SignInSplatRoute: SignInSplatRoute,
+  SignUpSplatRoute: SignUpSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

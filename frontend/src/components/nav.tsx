@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
+import { AccountButton } from "#/components/auth/account-button";
 import { Badge } from "#/components/ui/badge";
 import { useHeldCount } from "#/hooks/useHeldCount";
 import { usePendingCount } from "#/hooks/usePendingCount";
@@ -17,6 +18,7 @@ const links: ReadonlyArray<{
 		| "/settings/item-rules"
 		| "/settings/intake"
 		| "/settings/dislikes"
+		| "/settings/delivery"
 		| "/logs";
 	label: string;
 	badge?: BadgeKind;
@@ -29,6 +31,7 @@ const links: ReadonlyArray<{
 	{ to: "/settings/item-rules", label: "Item Rules" },
 	{ to: "/settings/intake", label: "Intake" },
 	{ to: "/settings/dislikes", label: "Dislikes" },
+	{ to: "/settings/delivery", label: "Delivery" },
 	{ to: "/logs", label: "Logs" },
 ];
 
@@ -76,6 +79,7 @@ export function Nav() {
 					</Link>
 				);
 			})}
+			<AccountButton />
 		</nav>
 	);
 }

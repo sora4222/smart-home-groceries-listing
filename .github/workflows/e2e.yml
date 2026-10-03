@@ -39,6 +39,8 @@ jobs:
       BIND_ADDRESS: 127.0.0.1:8000
       CORS_ORIGINS: http://localhost:3000
       DEV_AUTH_BYPASS: "true"
+      # Read by the web app: no Clerk sign-in screen (FEATURE_AUTH.md).
+      VITE_AUTH_MODE: "off"
       STORE_CLIENTS: fake
       INTAKE_LLM_PROVIDER: fake
       # Matches the secret in frontend/e2e/fixtures.ts.

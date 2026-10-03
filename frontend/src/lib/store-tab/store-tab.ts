@@ -30,6 +30,13 @@ export interface FillTrolleyResult {
 	failed: { productId: string; problem: string }[];
 	delivery: DeliveryReport | null;
 	message: string;
+	/**
+	 * Offered when something was added: the store's checkout page (a path on
+	 * its website) and the question asked before going there. The person
+	 * reviews the order and pays on the store's website; nothing here places
+	 * an order or touches payment.
+	 */
+	checkout: { path: string; question: string } | null;
 }
 
 /** One store's trolley handoff, as the web app uses it. */

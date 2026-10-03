@@ -20,5 +20,5 @@ Manual steps, ordered by dependency and grouped by place.
 | [`FEAT_WOOLWORTHS_ACCESS.md`](FEAT_WOOLWORTHS_ACCESS.md) | How Woolworths is reached, what was tried, the live calls |
 
 Agents: manual steps go in the two setup/operations docs above, written with
-the `human-instructions` skill (`.claude/skills/human-instructions/SKILL.md`).
+the `human-instructions` skill (`.claude/human-instructions/SKILL.md`).
 Feature docs link to those steps; they do not repeat them.

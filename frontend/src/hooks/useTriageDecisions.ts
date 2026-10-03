@@ -11,7 +11,8 @@ export interface TriageLists {
 }
 
 /**
- * The Triage view's two lists and its two actions. A decided card leaves its
+ * The Triage view's two lists and its actions: accept, reject, and put a
+ * Google Tasks item back on its list. A decided card leaves its
  * list as soon as the backend agrees; a failure leaves it in place with a
  * toast, so nothing disappears that was not decided.
  */
@@ -67,5 +68,16 @@ export function useTriageDecisions(initial: TriageLists) {
 			"Could not reject that request — try again.",
 		);
 
-	return { ...lists, busyId, accept, reject };
+	const restore = (request: VoiceRequest) =>
+		decide(
+			request,
+			api.triage.restore,
+			() =>
+				toast.success(
+					`${request.parsed_name} put back in Google Tasks. It comes to Pending Requests on the next check.`,
+				),
+			"Could not put that back in Google Tasks — try again.",
+		);
+
+	return { ...lists, busyId, accept, reject, restore };
 }

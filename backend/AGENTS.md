@@ -36,7 +36,9 @@ src/
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
 │   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
 │   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
-│   ├── triage.rs        # /api/triage — held/rejected tabs, accept to pending, reject
+│   ├── triage.rs        # /api/triage — held/rejected tabs, accept, reject, restore
+│   ├── google_tasks.rs  # /api/intake/google-tasks — sign-in, lists, choices, poll
+│   ├── intake_settings.rs # GET /api/intake/settings — every channel's status
 │   ├── access_logs.rs   # GET /api/access-logs — the /logs page's data
 │   ├── dislikes.rs      # /api/product-dislikes + per-item dislike overrides
 │   ├── purchases.rs     # /api/purchase-orders (list, Undo) + /api/purchase-history
@@ -70,6 +72,8 @@ src/
 │   ├── triage/          # LLM triage: TriageModel trait, OpenAI/Ollama client,
 │   │                    #   fake, prompt + verdict (pure), background queue,
 │   │                    #   Triage view rules — see backend/skills/triage.md
+│   ├── google_tasks/    # Google Tasks: TasksApi trait, live client, fake, poller,
+│   │                    #   schedule, restore, sign-in — see skills/google-tasks.md
 │   ├── voice_changes/   # remove/reduce by voice + Undo: matching.rs (name
 │   │                    #   variants, pure), plan.rs (arithmetic, pure),
 │   │                    #   undo.rs, repository.rs (voice_list_changes)
@@ -274,6 +278,8 @@ its own boundary, forward to a backend intake endpoint with its **own** shared
 secret, and contain no rules about the grocery list.
 
 ## Skills in this directory
+- `skills/google-tasks.md` — Google Tasks polling, sign-in, Restore, testing
+- `skills/triage.md` — LLM triage and the e2e stack
 - `skills/store-integration.md` — store endpoints, `wreq`, bot-protection rules,
   unit prices and deals
 - `skills/dislikes.md` — dislike scopes, overrides, and how the optimiser

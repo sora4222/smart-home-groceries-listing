@@ -3,6 +3,7 @@ import type { IntakeSource } from "#/lib/api";
 const labels: Record<IntakeSource, string> = {
 	alexa: "Alexa",
 	webhook: "Webhook",
+	tasks: "Google Tasks",
 };
 
 /** The name an intake channel is shown under, e.g. "Alexa". */

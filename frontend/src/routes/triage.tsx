@@ -25,9 +25,8 @@ export const Route = createFileRoute("/triage")({
  */
 function TriagePage() {
 	const { tab = "held" } = Route.useSearch();
-	const { held, rejected, busyId, accept, reject } = useTriageDecisions(
-		Route.useLoaderData(),
-	);
+	const { held, rejected, busyId, accept, reject, restore } =
+		useTriageDecisions(Route.useLoaderData());
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -52,6 +51,7 @@ function TriagePage() {
 						busyId={busyId}
 						onAccept={accept}
 						onReject={reject}
+						onRestore={restore}
 					/>
 				</TabsContent>
 				<TabsContent value="rejected">
@@ -61,6 +61,7 @@ function TriagePage() {
 						busyId={busyId}
 						onAccept={accept}
 						onReject={reject}
+						onRestore={restore}
 					/>
 				</TabsContent>
 			</Tabs>

@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::auth::AuthUser;
 use crate::error::ApiError;
 use crate::models::schemas::VoiceRequestResponse;
+use crate::services::google_tasks::TasksRestore;
 use crate::services::triage::{TriageReview, TriageTab};
 use crate::services::voice::VoiceService;
 use crate::state::AppState;
@@ -23,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/triage", get(list_tab))
         .route("/api/triage/{request_id}/accept", post(move_to_pending))
         .route("/api/triage/{request_id}/reject", post(confirm_rejection))
+        .route("/api/triage/{request_id}/restore", post(restore_to_source))
 }
 
 /// `?tab=held|rejected` — which tab to list.
@@ -66,5 +68,23 @@ async fn confirm_rejection(
     let request = VoiceService::new(&state.pool, &state.hub)
         .reject(request_id)
         .await?;
+    Ok(Json(request.into()))
+}
+
+/// `POST /api/triage/{id}/restore` — put a Google Tasks item back on its
+/// list. The next poll brings it straight to Pending Requests.
+async fn restore_to_source(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(request_id): Path<Uuid>,
+) -> Result<Json<VoiceRequestResponse>, ApiError> {
+    let request = TasksRestore::new(
+        &state.pool,
+        &state.hub,
+        &state.google_tasks,
+        state.encryptor.as_ref(),
+    )
+    .restore(request_id, &user.id)
+    .await?;
     Ok(Json(request.into()))
 }

@@ -3,5 +3,6 @@ minimumReleaseAgeExclude:
   - '@vitest/spy@5.0.2'
   - vitest@5.0.2
 allowBuilds:
+  core-js: true
   esbuild: true
   lightningcss: true

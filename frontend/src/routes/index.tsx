@@ -6,7 +6,7 @@ import { AddItemForm } from "#/components/grocery/add-item-form";
 import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { GroceryItemSection } from "#/components/grocery/grocery-item-section";
-import { SendToWoolworths } from "#/components/trolley/send-to-woolworths";
+import { SendToStore } from "#/components/trolley/send-to-store";
 import { useProductChoices } from "#/hooks/useProductChoices";
 import {
 	api,
@@ -58,6 +58,7 @@ function GroceryListPage() {
 	const underReview = items.filter((item) => item.status === "active");
 	const committed = items.filter((item) => item.status === "committed");
 	const chosenAtWoolworths = chosenAtStore(items, selections, "woolworths");
+	const chosenAtColes = chosenAtStore(items, selections, "coles");
 
 	async function addItem(
 		item: NewGroceryItem,
@@ -165,11 +166,15 @@ function GroceryListPage() {
 				onRelease={releaseList}
 			/>
 
-			<div className="flex justify-end">
-				<SendToWoolworths chosenCount={chosenAtWoolworths}>
-					<SendToWoolworths.Trigger />
-					<SendToWoolworths.Content />
-				</SendToWoolworths>
+			<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+				<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
+					<SendToStore.Trigger />
+					<SendToStore.Content />
+				</SendToStore>
+				<SendToStore store="coles" chosenCount={chosenAtColes}>
+					<SendToStore.Trigger />
+					<SendToStore.Content />
+				</SendToStore>
 			</div>
 
 			{committed.length > 0 && (

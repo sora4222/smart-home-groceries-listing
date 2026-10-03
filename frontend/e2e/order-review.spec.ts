@@ -85,6 +85,11 @@ test.describe("order review", () => {
 			"Coles Full Cream Milk",
 		);
 		await expect(coles).toContainText("Subtotal$4.95");
+		await coles.getByRole("button", { name: "Send to Coles (1 item)" }).click();
+		const sheet = page.getByRole("dialog", { name: "Send to Coles" });
+		await expect(sheet.getByRole("link", { name: "Fill Coles trolley" })).toBeVisible();
+		await expect(sheet.getByText(/pick a delivery time on Coles/)).toBeVisible();
+		await page.keyboard.press("Escape");
 
 		const unchosen = page.getByRole("region", { name: "Items with no product" });
 		await expect(unchosen).toContainText("bread");

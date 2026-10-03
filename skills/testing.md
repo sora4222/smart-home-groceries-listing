@@ -68,6 +68,9 @@ splitting into a pure part and a storage part — that is why
   manual only when opted in, merges never) — `tests/item_rules_applied.rs`
 - WebSocket events: one session, several sessions, a dropped session
 - Errors: an internal failure must not leak its cause into the body
+- Anything written on a background task (triage checks, access-log rows):
+  wait for it with a deadline (`tests/common/access_logs.rs`), never read
+  straight after the request
 - Store integration: never a real store. Mappings are unit-tested against
   `backend/tests/fixtures/<store>/` (trimmed real responses); the clients run
   against `wiremock` in `tests/<store>_client.rs`; routes use the fake

@@ -11,9 +11,11 @@ and API details are in [`features/`](features/).
 | [Triage review](#triage-review) | Web app `/triage` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
+| [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
 | [Undo a recorded purchase](#undo-a-recorded-purchase) | Web app |
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
 | [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
+| [Access log review](#access-log-review) | Web app `/logs` |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
 
@@ -115,12 +117,37 @@ slot before the store's cut-off. The app does not track this.
 
 ---
 
+## Coles shop
+
+Same as the Woolworths shop, with these differences:
+
+**Web app**
+1. **Send to Coles**, then **Send and open Coles**. There is no delivery
+   choice: the Coles bookmarklet cannot reserve a window yet.
+
+**Store tab**
+2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
+   signed in and a store is selected **before** claiming the handoff, so a
+   refusal leaves the handoff waiting; fix it and run it again.
+3. Reload the page and open the trolley to review it.
+4. Pick a delivery window on coles.com.au, then pay there.
+
+**Verify:** the **Send to Coles** panel lists each line as **Added**, then
+**Saved as bought**.
+
+The Coles trolley calls were not verified live before release
+(`FEATURE_TROLLEY_HANDOFF.md`, "Coles"). If the first run fails, report the
+exact message.
+
+---
+
 ## Undo a recorded purchase
 
 Deletes the purchase order (and its spending data) and restores each item
 to the status it had before. The Woolworths trolley is not touched.
 
-- Right after a fill: **Undo** in the **Send to Woolworths** panel.
+- Right after a fill: **Undo** in the **Send to Woolworths** (or **Send to
+  Coles**) panel.
 - Later: **Spending → Saved shops → Undo** on the order.
 
 **Verify:** the items are back on **Grocery List**.
@@ -162,12 +189,27 @@ first.
 
 ---
 
+## Access log review
+
+**Logs** lists every request the backend answered, newest first: time,
+user, source IP, method, path, status and duration (`FEATURE_ACCESS_LOGS.md`).
+
+1. Open **Logs**. **Load older** pages back; **Show health checks** adds the
+   container's `/api/health` probes, hidden by default.
+2. **Not signed in** is expected for intake (Alexa, webhook) and health
+   checks. Bursts of 401/404 from an unknown address suggest probing.
+
+The same lines are in `access.YYYY-MM-DD.log` in the backend's `access_logs`
+volume (`/var/log/grocery`), kept 30 days.
+
+---
+
 ## After an update
 
 | Change | Action |
 |---|---|
-| Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths**; delete the old bookmark. |
-| `STORE_TAB_SECRET` or the app origin changed | Re-drag the bookmarklet (it embeds both). |
+| Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
+| `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
 | New migration | None; migrations run on backend start. |
 | New `.env` key | `make setup-env`, fill any non-generated value, then `make down && make up`. |
 | Alexa interaction model changed | Update the JSON in the Alexa console and rebuild ([`human-setup.md` §4](human-setup.md#4-alexa-skill)). |
@@ -178,11 +220,14 @@ first.
 
 | Symptom | Cause / fix |
 |---|---|
-| "Open woolworths.com.au first" | Bookmarklet run outside the store tab. |
+| "Open woolworths.com.au first" / "Open coles.com.au first" | Bookmarklet run outside that store's tab. |
 | "Nothing to add" | No open handoff: press **Send and open Woolworths**, then run the bookmarklet within 30 minutes. |
 | "The grocery app refused (HTTP 401)" | Stale bookmarklet secret; re-drag it. |
 | "Fill trolley failed" (network error) | Backend down, or Chrome's local-network prompt was denied. |
-| "No delivery time reserved" | Pick a slot manually on woolworths.com.au. |
+| "No delivery time reserved" | Pick a slot manually on the store's site (always the case for Coles). |
+| "Log in to Coles first" | Coles trolley read returned 401/403; sign in and re-run. Nothing was claimed. |
+| "Choose your delivery address on Coles first" | No Coles store selected; set a delivery address and re-run. |
+| "Coles is still loading" | Coles page config not ready; reload and re-run. |
 | **Saved as bought** never appears | Backend unreachable when the report was posted; items stay on the list. |
 | A line shows **Not added** | Not deliverable from your store right now; choose another product. |
 | Triage says "The checker could not be reached" | Model server down: `make up` (Ollama: also `docker compose exec ollama ollama pull llama3.2`), then **Accept** in Triage. |

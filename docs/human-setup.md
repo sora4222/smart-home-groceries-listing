@@ -16,6 +16,7 @@ dependency, so the stack is started once, at the end. Every value written to
 | [6. Start the stack](#6-start-the-stack) | Home server shell, Cloudflare | Running services, healthy tunnel | 10 min |
 | [7. Smoke-test the skill](#7-smoke-test-the-skill) | Echo device, web app | End-to-end check | 5 min |
 | [8. Woolworths bookmarklet](#8-woolworths-bookmarklet) | Chrome | Bookmarklet installed, store session | 10 min |
+| [9. Coles bookmarklet](#9-coles-bookmarklet) | Chrome | Bookmarklet installed, store session | 10 min |
 
 Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 
@@ -26,6 +27,7 @@ Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 - A domain whose DNS is managed by Cloudflare (Cloudflare Registrar works).
 - The Amazon account the target Echo device is registered to.
 - Woolworths credentials (passkey or password manager).
+- Coles credentials (saved in Chrome is fine; the app never sees them).
 
 ---
 
@@ -310,6 +312,28 @@ backend on the LAN.
 
 **Verify:** the bookmarklet is installed and the Woolworths header shows
 your delivery address.
+
+---
+
+## 9. Coles bookmarklet
+
+**Browser:** Chrome, as in §8 (bookmarks bar already shown). Same handoff,
+run on coles.com.au. It does not reserve a delivery window; pick one on
+Coles after the fill.
+
+1. In the web app, choose a Coles product for at least one item, then press
+   **Send to Coles**.
+2. Drag **Fill Coles trolley** onto the bookmarks bar.
+3. In a new tab, sign in at [coles.com.au](https://www.coles.com.au) (Chrome
+   autofills a saved login).
+4. Choose **Delivery** to your address if the header asks for a location
+   (it may read **Set your location**). The bookmarklet needs a selected
+   store and refuses to start without one.
+
+First run: allow Chrome's local-network access prompt for coles.com.au.
+
+**Verify:** the bookmarklet is installed and the Coles header shows your
+delivery address.
 
 ---
 

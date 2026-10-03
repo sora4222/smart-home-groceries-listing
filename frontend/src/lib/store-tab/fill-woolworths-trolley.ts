@@ -27,6 +27,7 @@
  * (`Function.prototype.toString`). The helpers it needs arrive as its
  * second argument, each self-contained too (`bookmarklet.ts` wires them). Endpoints are from the live site,
  * checked 2026-10-02 (docs/FEAT_WOOLWORTHS_ACCESS.md).
+ * Its place in the web app is `WOOLWORTHS_TAB` (`store-tabs.ts`).
  */
 
 import type {
@@ -35,14 +36,10 @@ import type {
 	WoolworthsDay,
 } from "#/lib/store-tab/choose-woolworths-window";
 import type { DeliveryReport } from "#/lib/store-tab/reserve-woolworths-delivery-window";
-
-/** What the bookmarklet is built with. */
-export interface FillTrolleyConfig {
-	/** Our backend, e.g. `https://grocery.example.com` (no trailing slash). */
-	apiBaseUrl: string;
-	/** `STORE_TAB_SECRET`, from `GET /api/trolley-handoffs/store-tab-secret`. */
-	secret: string;
-}
+import type {
+	FillTrolleyConfig,
+	FillTrolleyResult,
+} from "#/lib/store-tab/store-tab";
 
 /** The self-contained helpers the script is handed. */
 export interface FillTrolleyHelpers {
@@ -55,16 +52,6 @@ export interface FillTrolleyHelpers {
 		wanted: DeliveryWanted,
 		chooseWindow: FillTrolleyHelpers["chooseWindow"],
 	) => Promise<DeliveryReport>;
-}
-
-/** What one run did, also shown to the person. */
-export interface FillTrolleyResult {
-	/** `null` when nothing was waiting. */
-	handoffId: string | null;
-	added: string[];
-	failed: { productId: string; problem: string }[];
-	delivery: DeliveryReport | null;
-	message: string;
 }
 
 /** Fills the Woolworths trolley from the newest waiting handoff. */

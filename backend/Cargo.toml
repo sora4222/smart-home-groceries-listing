@@ -49,6 +49,7 @@ rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"
 futures-util = "0.3.34"
 chrono-tz = "0.10"
+tracing-appender = "0.2.5"
 
 [dev-dependencies]
 http-body-util = "0.1.5"

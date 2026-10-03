@@ -2,11 +2,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-	SendToWoolworths,
-	WOOLWORTHS_TROLLEY_URL,
-} from "#/components/trolley/send-to-woolworths";
-import { api, type TrolleyHandoff } from "#/lib/api";
+import { SendToStore } from "#/components/trolley/send-to-store";
+import { api, type StoreId, type TrolleyHandoff } from "#/lib/api";
+import { COLES_TAB, WOOLWORTHS_TAB } from "#/lib/store-tab/store-tabs";
 
 function handoff(overrides: Partial<TrolleyHandoff> = {}): TrolleyHandoff {
 	return {
@@ -41,16 +39,16 @@ function handoff(overrides: Partial<TrolleyHandoff> = {}): TrolleyHandoff {
 	};
 }
 
-function renderSheet(chosenCount = 1) {
+function renderSheet(chosenCount = 1, store: StoreId = "woolworths") {
 	render(
-		<SendToWoolworths chosenCount={chosenCount}>
-			<SendToWoolworths.Trigger />
-			<SendToWoolworths.Content />
-		</SendToWoolworths>,
+		<SendToStore store={store} chosenCount={chosenCount}>
+			<SendToStore.Trigger />
+			<SendToStore.Content />
+		</SendToStore>,
 	);
 }
 
-describe("SendToWoolworths", () => {
+describe("SendToStore at Woolworths", () => {
 	afterEach(() => vi.restoreAllMocks());
 
 	it("cannot be opened before any Woolworths product is chosen", () => {
@@ -81,7 +79,7 @@ describe("SendToWoolworths", () => {
 			screen.getByRole("button", { name: "Send and open Woolworths" }),
 		);
 
-		expect(open).toHaveBeenCalledWith(WOOLWORTHS_TROLLEY_URL, "_blank");
+		expect(open).toHaveBeenCalledWith(WOOLWORTHS_TAB.trolleyUrl, "_blank");
 		// Tomorrow, any time, unless the household picks otherwise.
 		expect(create).toHaveBeenCalledWith("woolworths", {
 			date: null,
@@ -178,5 +176,52 @@ describe("SendToWoolworths", () => {
 			"No item on the list has a Woolworths product",
 		);
 		expect(close).toHaveBeenCalled();
+	});
+});
+
+describe("SendToStore at Coles", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it("cannot be opened before any Coles product is chosen", () => {
+		renderSheet(0, "coles");
+		expect(
+			screen.getByRole("button", { name: /Send to Coles \(0 items\)/ }),
+		).toBeDisabled();
+	});
+
+	it("builds the Coles bookmark, sends the list and opens Coles", async () => {
+		vi.spyOn(api.trolleyHandoffs, "storeTabSecret").mockResolvedValue({
+			secret: "s",
+		});
+		const create = vi
+			.spyOn(api.trolleyHandoffs, "create")
+			.mockResolvedValue(
+				handoff({ store: "coles", store_name: "Coles", id: "h2" }),
+			);
+		const open = vi.spyOn(window, "open").mockReturnValue(null);
+		const user = userEvent.setup();
+		renderSheet(2, "coles");
+
+		await user.click(
+			screen.getByRole("button", { name: /Send to Coles \(2 items\)/ }),
+		);
+		const bookmark = await screen.findByText("Fill Coles trolley");
+		expect(bookmark.getAttribute("href")).toMatch(/^javascript:/);
+		// The Coles bookmark cannot reserve a time, so none is asked for.
+		expect(screen.queryByRole("button", { name: /^Tomorrow/ })).toBeNull();
+		expect(screen.getByText(/pick a delivery time on Coles/)).toBeVisible();
+
+		await user.click(
+			screen.getByRole("button", { name: "Send and open Coles" }),
+		);
+
+		expect(open).toHaveBeenCalledWith(COLES_TAB.trolleyUrl, "_blank");
+		expect(create).toHaveBeenCalledWith("coles", {
+			date: null,
+			time_of_day: "any",
+		});
+		expect(await screen.findByRole("status")).toHaveTextContent(
+			"On Coles, press the “Fill Coles trolley” bookmark",
+		);
 	});
 });

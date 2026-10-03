@@ -5,8 +5,9 @@
 mod common;
 
 use axum::http::StatusCode;
+use common::settings::triage_settings;
 use common::triage::Shown;
-use common::{triage_settings, TestApp};
+use common::TestApp;
 use grocery_backend::config::TriageProvider;
 use serde_json::json;
 use sqlx::PgPool;

@@ -6,7 +6,9 @@ from alexa_bridge.parsing import (
     MAX_QUANTITY,
     UnusableRequest,
     parse_item_name,
+    parse_optional_quantity,
     parse_quantity,
+    parse_removal_slots,
     parse_slots,
 )
 
@@ -60,3 +62,27 @@ def test_parse_slots_combines_both():
     parsed = parse_slots("oat milk", "2")
     assert parsed.item == "oat milk"
     assert parsed.quantity == 2
+
+
+@pytest.mark.parametrize("raw", [None, "", "   ", "the usual"])
+def test_an_unsaid_removal_quantity_stays_absent(raw):
+    # "remove milk" means the whole item, not "one milk".
+    assert parse_optional_quantity(raw) is None
+
+
+def test_a_said_removal_quantity_is_read_and_clamped():
+    assert parse_optional_quantity("2") == 2
+    assert parse_optional_quantity("two") == 2
+    assert parse_optional_quantity("100000") == MAX_QUANTITY
+    assert parse_optional_quantity("0") == 1
+
+
+def test_parse_removal_slots_keeps_an_absent_quantity_absent():
+    parsed = parse_removal_slots(" eggs ", None)
+    assert parsed.item == "eggs"
+    assert parsed.quantity is None
+
+
+def test_parse_removal_slots_needs_an_item():
+    with pytest.raises(UnusableRequest):
+        parse_removal_slots(None, "2")

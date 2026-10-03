@@ -90,7 +90,7 @@ Nothing was bought. Your trolley was left as it was (one existing item).
 ## Things to know
 
 - Steps for people (setup, a weekly shop, fixes) are in
-  [`human-setup.md` part 8](human-setup.md#part-8--woolworths-once-about-10-minutes)
+  [`human-setup.md` §8](human-setup.md#8-woolworths-bookmarklet)
   and [`using-the-app.md`](using-the-app.md). Do not repeat them here.
 - The bookmark calls the app at `VITE_API_BASE_URL`. It must be reachable
   from the browser (it already is, if the app works).

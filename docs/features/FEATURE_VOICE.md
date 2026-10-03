@@ -1,8 +1,9 @@
 # Feature: Voice Intake
 
-Status: **implemented** for the generic webhook and Alexa (backend + web UI).
-Amazon developer console and Cloudflare Tunnel wiring is a manual setup step —
-see `docs/human-setup.md`.
+Status: **implemented** for the generic webhook and Alexa (backend + web UI),
+including removing, reducing and undoing items by Alexa. Amazon developer
+console and Cloudflare Tunnel wiring is a manual setup step — see
+`docs/human-setup.md` §3–4.
 
 ## What this feature does
 A household member says *"Alexa, add two oat milk to the shopping list."* The
@@ -57,11 +58,84 @@ with the original request rather than raising a second card.
 `POST /api/voice-requests` remains for Home Assistant, IFTTT, `curl` and
 tests. It carries no `external_id`, so it is not de-duplicated.
 
+## Removing, reducing and undo by voice
+
+```
+"Alexa, ask grocery list to remove two milk"
+  → sidecar: RemoveItemIntent {item: "milk", quantity: 2}
+  → POST /api/intake/alexa/remove {"item": "milk", "quantity": 2, "external_id": <request id>}
+  → milk 3 → 1, change recorded in voice_list_changes
+  ← "milk is down to 1 on the list. Say undo to change it back."   (session left open)
+"Undo"
+  → POST /api/intake/alexa/undo {"external_id": <request id>}
+  ← "Added 2 milk back to the list."
+```
+
+**Why no confirmation queue.** Adds wait in Pending Requests because nothing
+may reach the list unasked. A remove or reduce can only shrink the order, so
+it applies at once; the safety net is Undo instead of a second step. Every
+change is recorded in `voice_list_changes` with a snapshot of the item.
+
+### Intents (sidecar)
+| Intent | Slots | Forwarded `quantity` |
+|---|---|---|
+| `RemoveItemIntent` | `item`, `quantity` (optional) | absent → whole item; said → that many |
+| `ReduceItemIntent` | `item`, `quantity` (optional) | said, else `1` |
+| `UndoIntent` | — | — |
+
+Sample utterances: `docs/human-setup.md` §4. The sidecar keeps the session
+open after a change (`shouldEndSession: false`) so "undo" needs no
+re-invocation. Handlers: `sidecars/alexa-bridge/src/alexa_bridge/list_change_handlers.py`;
+HTTP client: `list_changes.py`; spoken text: `speech.py`.
+
+### Rules (backend)
+- **Matching** (`services/voice_changes/matching.rs`): the normalised name
+  (`lower`, whitespace collapsed, same expression as duplicate detection), or
+  its plain plural/singular (`-s`, `-es`). An exact match beats a plural one,
+  then `active` beats `committed`, then the oldest row wins. No substring or
+  fuzzy matching: "milk" never matches "oat milk". No match → `404`, nothing
+  changes.
+- **Locked list**: a matching `committed` item → `409`, same as web edits.
+  Pending intake requests are not list items and are never matched.
+- **Arithmetic** (`plan.rs`): no quantity → delete; otherwise
+  `max(current − n, 0)`; `0` → delete.
+- **Undo** (`undo.rs`): reverts the newest change from the same source that
+  is not yet undone and is younger than `UNDO_WINDOW` (30 min). Repeat to go
+  further back. A removed item is re-inserted with its original id,
+  `created_at`, quantity, note and chips, as `active`; its chosen product
+  (`item_selections`, deleted by `ON DELETE CASCADE`) is not restored. A
+  reduced item gets the decrement added back to its *current* quantity
+  (capped at 999), so web edits made since are kept; if it was deleted or
+  committed since, `409`. Nothing to undo → `404`.
+- **Idempotency**: `external_id` (Alexa's request id) is unique per source
+  on both the change and the undo (`undo_external_id`). A retry returns the
+  original change with `200` instead of applying again; a retried undo
+  never reverts a second change. All changes and undos take one transaction
+  advisory lock, so retries racing the original serialise.
+
+### Endpoints
+Both authenticate with `X-Bridge-Secret`, like `POST /api/intake/alexa`.
+- `POST /api/intake/alexa/remove` — body
+  `{"item": str, "quantity": int?, "external_id": str?}`. `201` with a
+  `VoiceListChangeResponse`
+  (`{id, kind: "removed"|"reduced", item_name, quantity_before, quantity_after, undone}`),
+  `200` on a retry, `404` no match, `409` committed, `422` bad body.
+- `POST /api/intake/alexa/undo` — body `{"external_id": str?}` (may be
+  empty). `201` with the reverted change (`undone: true`), `200` on a retry,
+  `404` nothing to undo, `409` cannot be reverted.
+
+### Known gaps
+- No WebSocket event for list changes, so an open Grocery List page shows a
+  voice change only after reload.
+- Undo is voice-only; the web app has no view of `voice_list_changes`.
+
 ## Backend
 | Piece | File |
 |---|---|
 | Webhook + confirmation routes | `backend/src/routes/voice.rs` |
 | Alexa intake route | `backend/src/routes/alexa.rs` |
+| Alexa remove/undo routes | `backend/src/routes/alexa_list_changes.rs` |
+| Remove/reduce/undo rules | `backend/src/services/voice_changes/` |
 | Business rules | `backend/src/services/voice/mod.rs` |
 | Log events | `backend/src/services/voice/log.rs` |
 | SQL (`voice_requests`) | `backend/src/services/voice/repository.rs` |
@@ -69,8 +143,8 @@ tests. It carries no `external_id`, so it is not de-duplicated.
 | WebSocket push | `backend/src/services/ws_hub.rs`, `backend/src/routes/ws.rs` |
 | Row types | `backend/src/models/db.rs` (`VoiceRequest`, `GroceryItem`) |
 | Request/response bodies | `backend/src/models/schemas/voice.rs` |
-| Migration | `backend/migrations/0001_initial.sql` |
-| Tests | `backend/tests/voice_requests.rs`, `alexa_intake.rs`, `websocket.rs` |
+| Migrations | `backend/migrations/0001_initial.sql`, `20261002200000_voice_list_changes.sql` |
+| Tests | `backend/tests/voice_requests.rs`, `alexa_intake.rs`, `alexa_list_changes.rs`, `alexa_undo.rs`, `websocket.rs` |
 
 The table is still called `voice_requests` to limit churn; the concept is an
 *intake* request.
@@ -171,7 +245,8 @@ Cloudflare Tunnel.
   OAuth REST API and belongs in Rust; Keep would need a Python sidecar
   (`gkeepapi` is unofficial and authenticates with a master token — treat that
   risk explicitly before building it).
-- Alexa uses a custom `AddItemIntent`. Amazon's household list events
+- Alexa uses custom intents (`AddItemIntent`, `RemoveItemIntent`,
+  `ReduceItemIntent`, `UndoIntent`). Amazon's household list events
   (`AlexaHouseholdListEvent.ItemsCreated`) would remove the custom invocation
   but need the List API and a permissions grant.
 - Verify the intake brief's assumptions before building on them.

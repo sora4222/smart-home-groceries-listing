@@ -17,7 +17,8 @@ trade, at the cost of one small extra process.
 |---|---|
 | Verify Alexa's signature, cert chain, timestamp and skill id (`ask-sdk`) | Decide anything about the grocery list |
 | Extract the `item` and `quantity` slots | Detect duplicates, merge quantities, or accept items |
-| Forward them to `POST /api/intake/alexa` | Touch PostgreSQL — it holds no database credentials |
+| Forward adds to `POST /api/intake/alexa` | Touch PostgreSQL — it holds no database credentials |
+| Forward removes, reduces and undos to `/api/intake/alexa/remove` and `/undo` | Decide which item matches or what Undo reverts |
 | Speak a confirmation | Suggest, recommend or upsell an item |
 
 Items reach the backend as **pending**. Nothing gets onto the household list
@@ -99,17 +100,16 @@ would not change.
 
 ## Skill interaction model
 
-The skill needs one custom intent:
+Four custom intents, all with `item → AMAZON.Food` and
+`quantity → AMAZON.NUMBER` slots except `UndoIntent`:
 
-```
-AddItemIntent
-  "add {quantity} {item} to the shopping list"
-  "add {item} to the shopping list"
-  "put {item} on the shopping list"
-  "add {item}"
+| Intent | Example | Forwards to |
+|---|---|---|
+| `AddItemIntent` | "add {quantity} {item} to the shopping list" | `POST /api/intake/alexa` (pending) |
+| `RemoveItemIntent` | "remove {item}", "remove {quantity} {item}" | `POST /api/intake/alexa/remove` |
+| `ReduceItemIntent` | "reduce {item} by {quantity}" | `POST /api/intake/alexa/remove` (quantity defaults to 1) |
+| `UndoIntent` | "undo", "put it back" | `POST /api/intake/alexa/undo` |
 
-  item     → AMAZON.Food  (or a custom GroceryItem slot type)
-  quantity → AMAZON.NUMBER
-```
-
-`docs/human-setup.md` has the Alexa developer console steps.
+The full JSON to paste into the Alexa console is in `docs/human-setup.md`
+§4. Removes apply immediately and are undoable; the rules are in
+`docs/features/FEATURE_VOICE.md`.

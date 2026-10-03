@@ -5,7 +5,7 @@ optimiser) is not built yet; it has a ready function to call
 (`services/dislikes/skip.rs`). Spec: "Purchase History and Preferences" ›
 "Disliked items" and "Per-user vs household preferences".
 
-How a person uses it: [`using-the-app.md` › Dislike a product](../using-the-app.md#dislike-a-product).
+How a person uses it: [`using-the-app.md` › Product dislikes](../using-the-app.md#product-dislikes).
 
 ## What this feature does
 - **Per member.** Each household member has their own dislikes. A dislike

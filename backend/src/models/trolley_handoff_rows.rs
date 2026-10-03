@@ -69,7 +69,8 @@ pub enum TrolleyLineOutcome {
 pub struct TrolleyHandoffLine {
     pub handoff_id: Uuid,
     pub grocery_item_id: Uuid,
-    /// The store's own id for the product (a Woolworths stockcode).
+    /// The store's own id for the product (a Woolworths stockcode or a
+    /// Coles product id).
     pub product_id: String,
     pub product_name: String,
     /// How many to put in the trolley: the list item's quantity.

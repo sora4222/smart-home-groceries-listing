@@ -2,7 +2,7 @@
 
 Status: **product search implemented** — compare a list item's products at
 Woolworths and Coles, and choose one per item (`FEATURE_PRODUCT_CHOICE.md`).
-Chosen Woolworths products can be sent to the household's own Woolworths
+Chosen products can be sent to the household's own Woolworths or Coles
 trolley (`FEATURE_TROLLEY_HANDOFF.md`). Delivery windows and checkout are not
 built; they belong to Order Optimisation and Checkout.
 

@@ -8,6 +8,7 @@ use std::env;
 use std::time::Duration;
 
 use crate::error::ConfigError;
+use crate::services::stores::Store;
 
 mod access_log;
 mod triage;
@@ -81,6 +82,15 @@ pub struct StoreSettings {
 }
 
 impl StoreSettings {
+    /// The website of `store`, as configured. A new [`Store`] variant fails to
+    /// compile here until it has a base URL.
+    pub fn base_url(&self, store: Store) -> &str {
+        match store {
+            Store::Woolworths => &self.woolworths_base_url,
+            Store::Coles => &self.coles_base_url,
+        }
+    }
+
     /// Reads the store settings from the environment.
     fn from_env() -> Result<Self, ConfigError> {
         let mode = match optional("STORE_CLIENTS").map(|v| v.trim().to_ascii_lowercase()) {

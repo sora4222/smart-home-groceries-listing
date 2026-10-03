@@ -32,8 +32,8 @@ function useReview(): OrderReviewData {
  * <OrderReview review={review}>
  *   <OrderReview.Empty><Link to="/">Go to the list</Link></OrderReview.Empty>
  *   <OrderReview.Unchosen><Link to="/">Choose products</Link></OrderReview.Unchosen>
- *   <OrderReview.Store store="woolworths"><SendToWoolworths … /></OrderReview.Store>
- *   <OrderReview.Store store="coles" />
+ *   <OrderReview.Store store="woolworths"><SendToStore store="woolworths" … /></OrderReview.Store>
+ *   <OrderReview.Store store="coles"><SendToStore store="coles" … /></OrderReview.Store>
  *   <OrderReview.Total />
  * </OrderReview>
  * ```

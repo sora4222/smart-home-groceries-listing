@@ -9,8 +9,9 @@ mod common;
 
 use axum::http::StatusCode;
 use common::purchases::{fill_trolley, orders_once_saved};
+use common::settings::fake_store_settings;
 use common::trolley::chosen_item;
-use common::{fake_store_settings, TestApp};
+use common::TestApp;
 use grocery_backend::services::{purchases, stores};
 use serde_json::{json, Value};
 use sqlx::PgPool;

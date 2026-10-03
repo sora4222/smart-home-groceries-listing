@@ -52,12 +52,13 @@ confusion, no subject, and the WebSocket with and without a token.
 | `lib/auth-mode.ts` | `clerk` or `off`, from `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_AUTH_MODE` |
 | `lib/auth.ts` | `getAuthToken()`: Clerk's token in the browser; `auth().getToken()` during server rendering |
 | `lib/auth-state.ts` | server function: is this request signed in? |
-| `lib/sign-in-guard.ts` | pure rules: who goes to `/sign-in` |
+| `lib/sign-in-guard.ts` | pure rules: who goes to `/sign-in`; `/sign-in` and `/sign-up` stay public |
 | `lib/ws-url.ts` | adds `?token=` to the socket address |
 | `start.ts` | adds `clerkMiddleware()` with sign-in on |
 | `routes/__root.tsx` | `beforeLoad` guard, before any loader asks the backend |
 | `routes/sign-in.$.tsx` | Clerk's `<SignIn />`; goes home with sign-in off |
-| `components/auth/` | provider, nav account button, "Sign-in is off" notice |
+| `routes/sign-up.$.tsx` | Clerk's `<SignUp />` for a first visit; the allowlist decides who finishes it |
+| `components/auth/` | provider (Clerk's `shadcn` theme from `@clerk/ui`), nav account button, "Sign-in is off" notice |
 
 The web app reads the repository's root `.env` (`envDir: ".."` in
 `vite.config.ts`). Clerk's server middleware needs `CLERK_SECRET_KEY` in the

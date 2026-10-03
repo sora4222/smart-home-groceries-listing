@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@clerk/tanstack-react-start": "^1.6.4",
+    "@clerk/ui": "^1.38.1",
     "@radix-ui/react-slot": "^1.3.3",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",

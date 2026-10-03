@@ -21,7 +21,7 @@ import { AUTH_MODE } from "#/lib/auth-mode";
 import { fetchSignedIn } from "#/lib/auth-state";
 import {
 	guardDecision,
-	isSignInPath,
+	isAuthPath,
 	needsSessionCheck,
 	SIGN_IN_PATH,
 } from "#/lib/sign-in-guard";
@@ -64,7 +64,7 @@ function RootComponent() {
 	return (
 		<RootDocument>
 			<SignInOffNotice />
-			{!isSignInPath(pathname) && <Nav />}
+			{!isAuthPath(pathname) && <Nav />}
 			<main className="mx-auto max-w-3xl p-4">
 				<Outlet />
 			</main>

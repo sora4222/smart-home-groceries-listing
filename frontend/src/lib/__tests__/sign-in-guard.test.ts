@@ -2,21 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import {
 	guardDecision,
-	isSignInPath,
+	isAuthPath,
 	needsSessionCheck,
 } from "#/lib/sign-in-guard";
 
-describe("isSignInPath", () => {
+describe("isAuthPath", () => {
 	it("matches the sign-in page and Clerk's steps under it", () => {
-		expect(isSignInPath("/sign-in")).toBe(true);
-		expect(isSignInPath("/sign-in/")).toBe(true);
-		expect(isSignInPath("/sign-in/factor-one")).toBe(true);
+		expect(isAuthPath("/sign-in")).toBe(true);
+		expect(isAuthPath("/sign-in/")).toBe(true);
+		expect(isAuthPath("/sign-in/factor-one")).toBe(true);
+		expect(isAuthPath("/sign-up")).toBe(true);
+		expect(isAuthPath("/sign-up/verify-email-address")).toBe(true);
 	});
 
 	it("does not match pages that only start with the same letters", () => {
-		expect(isSignInPath("/sign-inside")).toBe(false);
-		expect(isSignInPath("/")).toBe(false);
-		expect(isSignInPath("/settings/item-rules")).toBe(false);
+		expect(isAuthPath("/sign-inside")).toBe(false);
+		expect(isAuthPath("/sign-upper")).toBe(false);
+		expect(isAuthPath("/")).toBe(false);
+		expect(isAuthPath("/settings/item-rules")).toBe(false);
 	});
 });
 
@@ -25,8 +28,9 @@ describe("needsSessionCheck", () => {
 		expect(needsSessionCheck("off", "/")).toBe(false);
 	});
 
-	it("does not ask on the sign-in page itself", () => {
+	it("does not ask on the sign-in or sign-up page", () => {
 		expect(needsSessionCheck("clerk", "/sign-in")).toBe(false);
+		expect(needsSessionCheck("clerk", "/sign-up")).toBe(false);
 	});
 
 	it("asks on every other page", () => {

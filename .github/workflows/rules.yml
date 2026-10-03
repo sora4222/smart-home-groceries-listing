@@ -26,3 +26,5 @@ jobs:
         run: git diff --name-only --diff-filter=AM "$BASE_SHA"...HEAD | sh scripts/check-file-length.sh
       - name: Migrations unchanged
         run: git diff --name-status "$BASE_SHA"...HEAD | sh scripts/check-migrations.sh
+      - name: Environment files are not committed
+        run: git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD | sh scripts/check-env-files.sh

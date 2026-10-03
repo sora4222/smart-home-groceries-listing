@@ -17,6 +17,7 @@ wheels/
 .env
 .env.*
 !.env.example
+env
 
 # Node / pnpm
 node_modules/

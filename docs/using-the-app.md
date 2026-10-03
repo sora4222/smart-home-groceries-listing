@@ -13,6 +13,7 @@ and API details are in [`features/`](features/).
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
 | [Undo a recorded purchase](#undo-a-recorded-purchase) | Web app |
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
+| [Access log review](#access-log-review) | Web app `/logs` |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
 
@@ -140,6 +141,21 @@ item-name search (**Find**). Views:
 Totals include delivery fees. Categories are assigned when a purchase is
 recorded; after a categoriser change, use **Sort categories again** on **By
 category** to recompute them.
+
+---
+
+## Access log review
+
+**Logs** lists every request the backend answered, newest first: time,
+user, source IP, method, path, status and duration (`FEATURE_ACCESS_LOGS.md`).
+
+1. Open **Logs**. **Load older** pages back; **Show health checks** adds the
+   container's `/api/health` probes, hidden by default.
+2. **Not signed in** is expected for intake (Alexa, webhook) and health
+   checks. Bursts of 401/404 from an unknown address suggest probing.
+
+The same lines are in `access.YYYY-MM-DD.log` in the backend's `access_logs`
+volume (`/var/log/grocery`), kept 30 days.
 
 ---
 

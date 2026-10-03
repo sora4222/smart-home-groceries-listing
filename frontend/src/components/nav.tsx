@@ -14,7 +14,8 @@ const links: ReadonlyArray<{
 		| "/triage"
 		| "/order"
 		| "/analysis"
-		| "/settings/item-rules";
+		| "/settings/item-rules"
+		| "/logs";
 	label: string;
 	badge?: BadgeKind;
 }> = [
@@ -24,6 +25,7 @@ const links: ReadonlyArray<{
 	{ to: "/order", label: "Order" },
 	{ to: "/analysis", label: "Spending" },
 	{ to: "/settings/item-rules", label: "Item Rules" },
+	{ to: "/logs", label: "Logs" },
 ];
 
 /** What a badge's count is read aloud as. */

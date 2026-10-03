@@ -36,7 +36,9 @@ FROM debian:bookworm-slim AS runtime
 RUN apt-get update -qq \
  && apt-get install -y --no-install-recommends ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
- && useradd --create-home --shell /usr/sbin/nologin grocery
+ && useradd --create-home --shell /usr/sbin/nologin grocery \
+ && mkdir -p /var/log/grocery \
+ && chown grocery:grocery /var/log/grocery
 
 COPY --from=builder /build/target/release/grocery-backend /usr/local/bin/grocery-backend
 

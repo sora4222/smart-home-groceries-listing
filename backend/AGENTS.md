@@ -23,6 +23,9 @@ src/
 ├── lib.rs               # build_app() — state, router, middleware. Thin wiring only.
 ├── config.rs            # Settings::from_env(); every value comes from the environment
 ├── error.rs             # ApiError + IntoResponse. Keeps FastAPI's {"detail": ...} shape.
+├── logging.rs           # console + daily access-log file (ACCESS_LOG_DIR)
+├── middleware/
+│   └── access_log/      # logs every request — see backend/skills/access-logs.md
 ├── state.rs             # AppState: pool, settings, ws hub, auth provider, encryptor
 ├── routes/              # One module per domain — expose `router()`, merge in routes/mod.rs
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
@@ -34,6 +37,7 @@ src/
 │   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
 │   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept to pending, reject
+│   ├── access_logs.rs   # GET /api/access-logs — the /logs page's data
 │   ├── purchases.rs     # /api/purchase-orders (list, Undo) + /api/purchase-history
 │   ├── spending.rs      # GET /api/spending (+ /item-prices) — the Spending page
 │   ├── health.rs        # /api/health
@@ -42,12 +46,14 @@ src/
 ├── auth/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
 │   ├── clerk.rs         # Clerk JWKS verification (current implementation)
+│   ├── request_user.rs  # slot the extractor fills so the access log knows the user
 │   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
 │   ├── db.rs            # row types + status/source enums
 │   └── schemas/         # request/response bodies with `validator` constraints,
 │                        #   one file per domain (+ common.rs limits), re-exported flat
 ├── services/            # Business logic — no HTTP types, no pool creation
+│   ├── access_log/      # record (file line + background row), page rules, SQL
 │   ├── grocery/
 │   │   ├── mod.rs       # GroceryService: list rules, commit/release
 │   │   ├── duplicates.rs# OnDuplicate + the duplicate-item 409

@@ -9,8 +9,10 @@ use std::time::Duration;
 
 use crate::error::ConfigError;
 
+mod access_log;
 mod triage;
 
+pub use access_log::access_log_dir;
 pub use triage::{TriageProvider, TriageSettings};
 
 /// How long a fetched Clerk JWKS document is reused before being re-fetched.

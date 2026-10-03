@@ -24,6 +24,11 @@ services:
     env_file: .env
     environment:
       BIND_ADDRESS: 0.0.0.0:8000
+      # Daily access-log files (docs/features/FEATURE_ACCESS_LOGS.md), kept
+      # in the access_logs volume so they survive a rebuild.
+      ACCESS_LOG_DIR: /var/log/grocery
+    volumes:
+      - access_logs:/var/log/grocery
     # Deliberately NOT published to the host. The backend is reachable only
     # from this network — the Cloudflare Tunnel exposes the Alexa bridge and
     # the generic webhook path, never the whole API.
@@ -120,6 +125,7 @@ services:
 
 volumes:
   pg_data:
+  access_logs:
   ollama_models:
   llamacpp_models:
   vllm_models:

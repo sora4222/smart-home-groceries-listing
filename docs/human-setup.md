@@ -54,16 +54,44 @@ auth provider; the backend verifies its JWTs against the JWKS endpoint
 (`backend/src/auth/clerk.rs`).
 
 1. Create an application (free tier). Enable the **Google** and **Email**
-   (password) sign-in strategies.
+   sign-in strategies, with **Password** on (under **User &
+   authentication**; may be labelled **Email, phone, username**).
 2. Open **API Keys** and copy:
 
 | Clerk value | `.env` key |
 |---|---|
-| Publishable key | `CLERK_PUBLISHABLE_KEY` |
-| Secret key | `CLERK_SECRET_KEY` |
+| Publishable key (`pk_…`) | `VITE_CLERK_PUBLISHABLE_KEY` |
+| Secret key (`sk_…`) | `CLERK_SECRET_KEY` |
 | JWKS URL (ends `/.well-known/jwks.json`; may be under **Advanced**) | `CLERK_JWKS_URL` |
 
-**Verify:** all three keys are non-empty.
+The publishable key is `VITE_`-prefixed because the web app reads it in the
+browser; setting it turns sign-in on (`FEATURE_AUTH.md`).
+
+**Alternative: Clerk CLI** (on a machine with a browser; the login is an
+OAuth redirect to `127.0.0.1`, so it cannot run on a headless host). The
+household's application is `app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl`. From the repo
+root:
+
+```bash
+npm install -g clerk          # or: clerk update --yes
+clerk auth login
+clerk link --app app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl
+clerk env pull --app app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl --file .env.clerk
+```
+
+Copy the two keys from `.env.clerk` into `.env` under the names in the
+table above, then delete `.env.clerk`. The JWKS URL still comes from the
+dashboard. Do not run `clerk init`: the SDK, middleware and sign-in pages
+are already in `frontend/` and init would scaffold them again.
+`cd frontend && clerk doctor` checks the login, the link and the keys.
+
+3. Restrict sign-up to the household. Every signed-in user shares the list,
+   so an open sign-up would expose it. Open **Allowlist** (under **Protect**
+   or **Restrictions**), toggle **Enable allowlist**, add each household
+   email address, and **Save**.
+
+**Verify:** all three keys are non-empty and the allowlist lists the
+household addresses.
 
 ---
 
@@ -235,10 +263,8 @@ providers run as Compose profiles, so item names never leave the server.
 
 ## 6. Start the stack
 
-**Auth caveat:** the web app does not integrate Clerk sign-in yet, so it
-currently requires `DEV_AUTH_BYPASS=true`, which disables auth on every
-route. That is only acceptable while the tunnel's sole route is the Alexa
-one from section 3.
+Keep `DEV_AUTH_BYPASS=false`. The web app signs people in with Clerk
+(section 2); the bypass is for local development and e2e only.
 
 ```bash
 make up
@@ -258,11 +284,18 @@ cd frontend && pnpm install && pnpm dev
 ```
 
 **Verify:** the tunnel reports **Healthy** in Cloudflare, and
-[localhost:3000](http://localhost:3000) serves the Grocery List.
+[localhost:3000](http://localhost:3000) redirects to `/sign-in`. The first
+time, use **Sign up** (`/sign-up`) with an allowlisted address; after that,
+sign in with **Continue with Google** or email and password. The Grocery
+List loads with your avatar top right.
 
 **Troubleshooting:**
 - Tunnel not Healthy → check `CLOUDFLARE_TUNNEL_TOKEN` for stray whitespace,
   then `make down && make up`.
+- No sign-in page, and a **Sign-in is off** banner → `VITE_CLERK_PUBLISHABLE_KEY`
+  is empty; set it and restart `pnpm dev`.
+- "Not allowed to sign up" → add the address to the Clerk allowlist
+  (section 2, step 3).
 - Anything else → `docker compose logs <service>`.
 
 ---

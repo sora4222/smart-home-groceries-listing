@@ -17,6 +17,7 @@ and API details are in [`features/`](features/).
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
 | [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
 | [Access log review](#access-log-review) | Web app `/logs` |
+| [Add a household member](#add-a-household-member) | Clerk dashboard |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
 
@@ -220,12 +221,21 @@ volume (`/var/log/grocery`), kept 30 days.
 
 ---
 
+## Add a household member
+
+In [dashboard.clerk.com](https://dashboard.clerk.com), open the application's
+**Allowlist**, add their email address and **Save**. They then use **Sign
+up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
+
+---
+
 ## After an update
 
 | Change | Action |
 |---|---|
 | Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
 | `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
+| Clerk sign-in arrived (stack ran with `DEV_AUTH_BYPASS=true`) | Rename `CLERK_PUBLISHABLE_KEY` to `VITE_CLERK_PUBLISHABLE_KEY` in `.env`, set `DEV_AUTH_BYPASS=false`, enable the Clerk allowlist ([`human-setup.md` §2](human-setup.md#2-clerk)), then `make down && make up` and restart `pnpm dev`. |
 | New migration | None; migrations run on backend start. |
 | New `.env` key | `make setup-env`, fill any non-generated value, then `make down && make up`. |
 | Alexa interaction model changed | Update the JSON in the Alexa console and rebuild ([`human-setup.md` §4](human-setup.md#4-alexa-skill)). |

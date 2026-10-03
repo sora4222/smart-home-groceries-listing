@@ -94,7 +94,7 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
                     state.clone(),
                     middleware::access_log::record_access,
                 ))
-                .layer(TraceLayer::new_for_http())
+                .layer(TraceLayer::new_for_http().make_span_with(request_span))
                 .layer(TimeoutLayer::with_status_code(
                     StatusCode::REQUEST_TIMEOUT,
                     REQUEST_TIMEOUT,
@@ -103,6 +103,12 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
                 .layer(cors),
         )
         .with_state(state)
+}
+
+/// The tracing span for one request: method and **path only**. The query is
+/// left out because the WebSocket upgrade carries a session token there.
+fn request_span<B>(request: &axum::http::Request<B>) -> tracing::Span {
+    tracing::debug_span!("request", method = %request.method(), path = %request.uri().path())
 }
 
 /// CORS restricted to the configured origins.

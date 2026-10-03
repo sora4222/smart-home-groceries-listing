@@ -19,6 +19,8 @@ database or router behavior. The latter creates a fresh database per test;
 never use a development database. `backend/tests/common::TestApp` exercises
 the real router and middleware. Cover new routes' success, authentication, and
 invalid-input paths; add a CORS preflight test for a new HTTP method.
+Add every new household route to `backend/tests/auth_required.rs`; real
+Clerk tokens are tested in `tests/clerk_tokens.rs` with a mock JWKS.
 
 Mock store clients and use trimmed fixtures or `wiremock`; do not reach real
 stores, accounts, Alexa, or LLM providers. Poll background outcomes with a
@@ -37,3 +39,7 @@ browser coverage in `frontend/e2e/` and import its shared fixture, which resets
 state, catches browser/server failures, and waits for hydration. Cover desktop
 and mobile, use exact accessible labels or existing item helpers, and do not
 interact before hydration completes.
+
+E2E runs with sign-in off: the backend with `DEV_AUTH_BYPASS=true` and the web
+app with `VITE_AUTH_MODE=off pnpm dev`, or a Clerk key in `.env` sends every
+test to the sign-in page.

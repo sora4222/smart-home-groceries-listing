@@ -50,6 +50,7 @@ src/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
 │   ├── clerk.rs         # Clerk JWKS verification (current implementation)
 │   ├── request_user.rs  # slot the extractor fills so the access log knows the user
+│   ├── socket.rs        # SocketUser: the /ws check, token from header or ?token=
 │   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
 │   ├── db.rs            # row types + status/source enums
@@ -155,7 +156,16 @@ All auth goes through `auth/mod.rs` — never call a provider SDK from a route.
 Swapping provider means implementing `AuthProvider` and changing
 `build_provider`; nothing else moves.
 
-`DEV_AUTH_BYPASS=true` turns the `AuthUser` extractor into a fixed dev user.
+`/ws` takes `SocketUser` (`auth/socket.rs`) instead: the same check, but the
+token may come as `?token=`, because browsers cannot set WebSocket headers.
+
+**A new household route goes in `tests/auth_required.rs`**, which checks every
+one answers 401 with no token and with a forged one. `tests/clerk_tokens.rs`
+signs real RS256 tokens with test-only keys against a mock JWKS
+(`tests/common/clerk.rs`, `TestApp::with_clerk`). Details:
+`docs/features/FEATURE_AUTH.md`.
+
+`DEV_AUTH_BYPASS=true` turns both extractors into a fixed dev user.
 It logs a warning at startup. Never set it on a host reachable through the
 Cloudflare Tunnel.
 

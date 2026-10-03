@@ -263,8 +263,8 @@ describe("the Coles bookmarklet", () => {
 		new Function(decodeURIComponent(href.slice("javascript:".length)))();
 		await vi.waitFor(() => expect(alert).toHaveBeenCalled());
 		expect(alert.mock.calls[0][0]).toContain("Added 2 products");
-		expect(
-			calls.find((c) => c.url.endsWith("/claim"))?.url,
-		).toBe("https://grocery.test/api/store-tab/trolley-handoffs/claim");
+		expect(calls.find((c) => c.url.endsWith("/claim"))?.url).toBe(
+			"https://grocery.test/api/store-tab/trolley-handoffs/claim",
+		);
 	});
 });

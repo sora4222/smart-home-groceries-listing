@@ -42,8 +42,7 @@ export const Route = createFileRoute("/order")({
  * from its 10-minute search cache.
  */
 function OrderPage() {
-	const { review, chosenAtWoolworths, chosenAtColes } =
-		Route.useLoaderData();
+	const { review, chosenAtWoolworths, chosenAtColes } = Route.useLoaderData();
 	const router = useRouter();
 	const [checking, setChecking] = useState(false);
 

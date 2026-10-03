@@ -5,8 +5,8 @@ at a store into the household's own online trolley there. Payment stays on
 the store's website. Woolworths was checked live; **Coles is built and
 tested against its known call shapes but not yet run live** (see "Coles").
 Why it works this way: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
-Steps for people: `docs/using-the-app.md` ("Do a Woolworths shop", "Do a
-Coles shop") and `docs/human-setup.md` parts 8 and 9 — keep those in step
+Steps for people: `docs/using-the-app.md` ("Woolworths shop", "Coles
+shop") and `docs/human-setup.md` §8 and §9 — keep those in step
 with this spec.
 
 ## One interface for every store
@@ -36,6 +36,9 @@ The steps below are for Woolworths. Coles differs only where "Coles" says so.
    then adds each product **on top of** what is already in the trolley, then
    reports back. The sheet shows each
    product as Added / Not added (it re-reads every 3 s).
+6. The report also saves the shop as bought, in the background
+   (`FEATURE_PURCHASE_HISTORY.md`). The sheet then shows **Saved as bought**
+   with **Undo**. Closing the sheet refreshes the list page.
 
 Nothing is bought and no Woolworths login or cookie is ever stored.
 

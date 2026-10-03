@@ -1,3 +1,4 @@
+import { SavedPurchase } from "#/components/trolley/saved-purchase";
 import { Badge } from "#/components/ui/badge";
 import { isExpired } from "#/hooks/useTrolleyHandoff";
 import type { TrolleyHandoff, TrolleyHandoffDelivery } from "#/lib/api";
@@ -40,7 +41,8 @@ export function handoffSummary(handoff: TrolleyHandoff): string {
 	}
 }
 
-/** Where the handoff is, and what happened to each product. */
+/** Where the handoff is, what happened to each product, and — once filled —
+ * the shop saved as bought, with Undo. */
 export function HandoffStatus({ handoff }: { handoff: TrolleyHandoff }) {
 	const delivery = deliverySummary(handoff.delivery, handoff.store_name);
 	return (
@@ -76,6 +78,7 @@ export function HandoffStatus({ handoff }: { handoff: TrolleyHandoff }) {
 					</li>
 				))}
 			</ul>
+			<SavedPurchase handoff={handoff} />
 		</section>
 	);
 }

@@ -1,3 +1,4 @@
+import { useRouter } from "@tanstack/react-router";
 import { createContext, type ReactNode, useContext, useState } from "react";
 
 import { DeliveryTimeChooser } from "#/components/trolley/delivery-time-chooser";
@@ -16,7 +17,11 @@ import {
 	type TrolleyHandoffState,
 	useTrolleyHandoff,
 } from "#/hooks/useTrolleyHandoff";
-import type { DeliveryWanted, StoreId } from "#/lib/api";
+import {
+	type DeliveryWanted,
+	isHandoffFinished,
+	type StoreId,
+} from "#/lib/api";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 import { STORE_TABS } from "#/lib/store-tab/store-tabs";
 
@@ -72,6 +77,15 @@ function SendToStoreRoot({
 }) {
 	const handoff = useTrolleyHandoff(store);
 	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
+	const router = useRouter({ warn: false });
+	// A filled trolley is saved as bought and its items leave the list (or
+	// come back after Undo). Re-read the page once the sheet closes — not
+	// while it is open, which could remove the card the sheet belongs to.
+	function onOpenChange(open: boolean) {
+		if (!open && handoff.handoff && isHandoffFinished(handoff.handoff)) {
+			router?.invalidate();
+		}
+	}
 	return (
 		<Context.Provider
 			value={{
@@ -82,7 +96,7 @@ function SendToStoreRoot({
 				setDelivery,
 			}}
 		>
-			<Sheet>{children}</Sheet>
+			<Sheet onOpenChange={onOpenChange}>{children}</Sheet>
 		</Context.Provider>
 	);
 }

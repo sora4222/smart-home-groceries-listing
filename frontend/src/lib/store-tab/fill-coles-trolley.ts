@@ -72,7 +72,9 @@ export async function fillColesTrolley(
 		.__RUNTIME_CONFIG__ as { BFF_API_SUBSCRIPTION_KEY?: string } | undefined;
 	const apiKey = runtime?.BFF_API_SUBSCRIPTION_KEY;
 	if (!apiKey) {
-		return nothing("Coles is still loading. Reload the page, then press again.");
+		return nothing(
+			"Coles is still loading. Reload the page, then press again.",
+		);
 	}
 	let storeId = "";
 	try {

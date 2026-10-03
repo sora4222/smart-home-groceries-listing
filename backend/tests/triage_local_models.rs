@@ -7,8 +7,9 @@
 
 mod common;
 
+use common::settings::triage_settings;
 use common::triage::Shown;
-use common::{triage_settings, TestApp};
+use common::TestApp;
 use grocery_backend::config::{TriageProvider, TriageSettings};
 use serde_json::Value;
 use sqlx::PgPool;

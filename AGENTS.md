@@ -54,8 +54,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ├── skills/                  # Agent reference files ← read before acting
 ├── docs/
 │   ├── features/            # FEATURE_*.md specs
-│   ├── human-setup.md       # Steps a person does once — plain words
-│   └── using-the-app.md     # Steps a person repeats — plain words
+│   ├── human-setup.md       # One-time manual provisioning (developer audience)
+│   └── using-the-app.md     # Recurring manual workflows (developer audience)
 ├── Makefile
 ├── docker-compose.yml
 ├── .env.example
@@ -92,10 +92,11 @@ contains no business logic and holds no database credentials. See "Sidecars".
 12. **No dynamic SQL** — every query is a literal string with bind parameters.
     Never reach for sqlx's `AssertSqlSafe`.
 13. **Steps for a person** — anything only a person can do (sign up, paste a
-    value, log in, press a bookmark, allow a prompt) goes in
+    value, log in, run a bookmarklet, allow a prompt) goes in
     `docs/human-setup.md` or `docs/using-the-app.md`, written with the
-    `human-instructions` skill (`.claude/skills/human-instructions/`): plain
-    words, grouped by place, in the order the values are needed. Not for
+    `human-instructions` skill (`.claude/skills/human-instructions/`):
+    grouped by place, in the order the values are needed. **All docs are
+    written for software developers, in their terminology.** Not for
     telling the developer to run tests.
 
 ## Toolchains
@@ -115,8 +116,9 @@ contains no business logic and holds no database credentials. See "Sidecars".
   Action / OAuth account-linking design is dropped.
   `POST /api/voice-requests` remains as a generic shared-secret webhook (Home
   Assistant, IFTTT, `curl`, tests). `POST /api/intake/alexa` takes items from
-  the Alexa bridge sidecar. Google Tasks and Google Keep are planned, not
-  built — see `docs/features/FEATURE_VOICE.md`.
+  the Alexa bridge sidecar; `/api/intake/alexa/remove` and `/undo` take
+  items off the list (applied at once, undoable by voice). Google Tasks and
+  Google Keep are planned, not built — see `docs/features/FEATURE_VOICE.md`.
   **Verify the assumptions in the intake brief before building on them.**
 - **Nothing reaches the list unasked:** every intake item lands as `pending`
   and needs a household member to accept it, however confident the channel

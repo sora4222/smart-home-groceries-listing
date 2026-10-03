@@ -27,15 +27,18 @@ src/
 ├── routes/              # One module per domain — expose `router()`, merge in routes/mod.rs
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
 │   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
+│   ├── alexa_list_changes.rs # POST /api/intake/alexa/remove, /undo
 │   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
 │   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
 │   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept to pending, reject
+│   ├── purchases.rs     # /api/purchase-orders (list, Undo) + /api/purchase-history
+│   ├── spending.rs      # GET /api/spending (+ /item-prices) — the Spending page
 │   ├── health.rs        # /api/health
 │   ├── ws.rs            # WebSocket /ws
-│   └── extract.rs       # ValidatedJson / OptionalValidatedJson body extractors
+│   └── extract.rs       # ValidatedJson / OptionalValidatedJson / ValidatedQuery extractors
 ├── auth/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
 │   ├── clerk.rs         # Clerk JWKS verification (current implementation)
@@ -60,6 +63,9 @@ src/
 │   ├── triage/          # LLM triage: TriageModel trait, OpenAI/Ollama client,
 │   │                    #   fake, prompt + verdict (pure), background queue,
 │   │                    #   Triage view rules — see backend/skills/triage.md
+│   ├── voice_changes/   # remove/reduce by voice + Undo: matching.rs (name
+│   │                    #   variants, pure), plan.rs (arithmetic, pure),
+│   │                    #   undo.rs, repository.rs (voice_list_changes)
 │   ├── item_rules/
 │   │   ├── mod.rs       # ItemRuleService: list, add, edit, delete
 │   │   ├── apply.rs     # filter_terms_for(): the chips a new item gets
@@ -76,6 +82,11 @@ src/
 │   │                    #   on rename/re-chip, repository.rs owns the table
 │   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),
 │   │                    #   summary.rs (by store + totals, pure), log.rs
+│   ├── purchases/       # a filled trolley saved as bought (background), Undo,
+│   │                    #   price/fee/category rules (pure), history, read +
+│   │                    #   write repositories — docs/features/FEATURE_PURCHASE_HISTORY.md
+│   ├── spending/        # the Spending page: period.rs, range.rs (time zones),
+│   │                    #   breakdown.rs (four views, pure)
 │   ├── filter_terms.rs  # clean()/merge() for chip lists, shared by list and rules
 │   ├── ws_hub.rs        # broadcast fan-out
 │   └── encryption.rs    # AES-256-GCM

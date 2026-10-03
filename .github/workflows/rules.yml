@@ -1,0 +1,28 @@
+# AGENTS.md rules a machine can check, on the files a pull request touches:
+# file length (rule 1) and no edits to a migration that already exists.
+name: Repo rules
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    name: file length and migrations
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: File length
+        run: git diff --name-only --diff-filter=AM "$BASE_SHA"...HEAD | sh scripts/check-file-length.sh
+      - name: Migrations unchanged
+        run: git diff --name-status "$BASE_SHA"...HEAD | sh scripts/check-migrations.sh

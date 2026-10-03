@@ -92,8 +92,8 @@ priced_quantity, url, selected_by, selected_at. Prices are unscaled `NUMERIC`.
 ## Not built yet
 - Delivery windows and split-store totals on the order screen
   (`FEATURE_ORDER_OPTIMISATION.md`). Re-pricing is built.
-- Purchase history and dislike badges in the comparison (spec "Purchase
-  History and Preferences").
+- Dislike badges in the comparison (spec "Purchase History and
+  Preferences"). Past purchases are built: `FEATURE_PURCHASE_HISTORY.md`.
 - Live update of choices between open tabs (the list does not sync live yet
   either).
 

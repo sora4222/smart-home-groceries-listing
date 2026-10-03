@@ -10,7 +10,7 @@ import { formatMoney } from "#/lib/money";
  * After the bookmark filled the trolley: "Saved as bought", with an Undo
  * button for a fill that was a mistake. Undo puts the items back on the
  * list. Nothing shows until the backend has saved the shop. The page behind
- * re-reads the list when the sheet closes (`SendToWoolworths`).
+ * re-reads the list when the sheet closes (`SendToStore`).
  */
 export function SavedPurchase({ handoff }: { handoff: TrolleyHandoff }) {
 	const reported =

@@ -23,6 +23,9 @@ src/
 ├── lib.rs               # build_app() — state, router, middleware. Thin wiring only.
 ├── config.rs            # Settings::from_env(); every value comes from the environment
 ├── error.rs             # ApiError + IntoResponse. Keeps FastAPI's {"detail": ...} shape.
+├── logging.rs           # console + daily access-log file (ACCESS_LOG_DIR)
+├── middleware/
+│   └── access_log/      # logs every request — see backend/skills/access-logs.md
 ├── state.rs             # AppState: pool, settings, ws hub, auth provider, encryptor
 ├── routes/              # One module per domain — expose `router()`, merge in routes/mod.rs
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
@@ -36,6 +39,8 @@ src/
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept, reject, restore
 │   ├── google_tasks.rs  # /api/intake/google-tasks — sign-in, lists, choices, poll
 │   ├── intake_settings.rs # GET /api/intake/settings — every channel's status
+│   ├── access_logs.rs   # GET /api/access-logs — the /logs page's data
+│   ├── dislikes.rs      # /api/product-dislikes + per-item dislike overrides
 │   ├── purchases.rs     # /api/purchase-orders (list, Undo) + /api/purchase-history
 │   ├── spending.rs      # GET /api/spending (+ /item-prices) — the Spending page
 │   ├── health.rs        # /api/health
@@ -44,12 +49,14 @@ src/
 ├── auth/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
 │   ├── clerk.rs         # Clerk JWKS verification (current implementation)
+│   ├── request_user.rs  # slot the extractor fills so the access log knows the user
 │   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
 │   ├── db.rs            # row types + status/source enums
 │   └── schemas/         # request/response bodies with `validator` constraints,
 │                        #   one file per domain (+ common.rs limits), re-exported flat
 ├── services/            # Business logic — no HTTP types, no pool creation
+│   ├── access_log/      # record (file line + background row), page rules, SQL
 │   ├── grocery/
 │   │   ├── mod.rs       # GroceryService: list rules, commit/release
 │   │   ├── duplicates.rs# OnDuplicate + the duplicate-item 409
@@ -84,6 +91,8 @@ src/
 │   ├── selections/      # choosing one product per item: offer.rs checks it
 │   │                    #   against the store's answer, staleness.rs drops it
 │   │                    #   on rename/re-chip, repository.rs owns the table
+│   ├── dislikes/        # per-member dislikes, per-item overrides; skip.rs is
+│   │                    #   the pure rule the optimiser calls — skills/dislikes.md
 │   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),
 │   │                    #   summary.rs (by store + totals, pure), log.rs
 │   ├── purchases/       # a filled trolley saved as bought (background), Undo,
@@ -273,3 +282,5 @@ secret, and contain no rules about the grocery list.
 - `skills/triage.md` — LLM triage and the e2e stack
 - `skills/store-integration.md` — store endpoints, `wreq`, bot-protection rules,
   unit prices and deals
+- `skills/dislikes.md` — dislike scopes, overrides, and how the optimiser
+  asks which product it may buy

@@ -1,6 +1,5 @@
 //! The settings every integration test runs with: auth bypassed, known
-//! secrets, fake stores, fake Google Tasks, triage off. Nothing here reaches
-//! a real service.
+//! secrets, fake stores, fake Google Tasks, triage off, and no external calls.
 
 use grocery_backend::config::{
     GoogleTasksMode, GoogleTasksSettings, Settings, StoreMode, StoreSettings, TriageProvider,
@@ -67,7 +66,7 @@ pub fn fake_store_settings() -> StoreSettings {
     StoreSettings {
         mode: StoreMode::Fake,
         woolworths_base_url: "http://127.0.0.1:9".to_string(),
-        coles_base_url: "http://127.0.0.1:9".to_string(),
+        coles_base_url: "http://127.0.0.1:8".to_string(),
         timeout: std::time::Duration::from_secs(2),
         cache_ttl: std::time::Duration::from_secs(60),
     }

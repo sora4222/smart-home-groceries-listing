@@ -61,6 +61,7 @@ File-based routing — one file per route:
 | `routes/analysis.tsx` | `/analysis` — Spending analysis |
 | `routes/settings/index.tsx` | `/settings` |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |
+| `routes/settings/dislikes.tsx` | `/settings/dislikes` — every member's dislikes |
 | `routes/settings/intake.tsx` | `/settings/intake` — Google Tasks connect + other channels; Google's sign-in returns here |
 | `routes/settings/stores.tsx` | `/settings/stores` |
 | `routes/settings/delivery.tsx` | `/settings/delivery` |

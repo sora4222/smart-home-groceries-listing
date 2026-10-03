@@ -13,9 +13,11 @@
 
 pub mod google_tasks;
 pub mod purchases;
-mod settings;
+pub mod settings;
 pub mod triage;
 pub mod trolley;
+
+use grocery_backend::config::{GoogleTasksSettings, Settings, TriageSettings};
 
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
@@ -26,7 +28,6 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 use grocery_backend::build_app;
-use grocery_backend::config::{GoogleTasksSettings, Settings, TriageSettings};
 use grocery_backend::routes::alexa::BRIDGE_SECRET_HEADER;
 use grocery_backend::routes::voice::WEBHOOK_SECRET_HEADER;
 

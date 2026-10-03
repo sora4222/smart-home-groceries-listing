@@ -12,17 +12,17 @@ use std::process::ExitCode;
 
 use anyhow::Context;
 use tokio::net::TcpListener;
-use tracing_subscriber::{fmt, EnvFilter};
 
-use grocery_backend::config::Settings;
-use grocery_backend::{build_app, db};
+use grocery_backend::config::{access_log_dir, Settings};
+use grocery_backend::{build_app, db, logging};
 
 /// How long the health probe waits before declaring the server unhealthy.
 const HEALTH_CHECK_TIMEOUT_SECS: u64 = 5;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    init_tracing();
+    // Held until `main` returns: dropping it stops the access-log file writer.
+    let _log_guard = logging::init(access_log_dir().as_deref());
 
     let mode = match Mode::from_args(std::env::args().skip(1)) {
         Ok(mode) => mode,
@@ -130,14 +130,6 @@ async fn health_check(settings: &Settings) -> anyhow::Result<()> {
         response.status()
     );
     Ok(())
-}
-
-/// Structured logging, filtered by `RUST_LOG` (default: this crate at info).
-fn init_tracing() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("grocery_backend=info,tower_http=info,warn"));
-    // `try_init` rather than `init`: a second call must not abort the process.
-    let _ = fmt().with_env_filter(filter).try_init();
 }
 
 /// Resolves on Ctrl-C or SIGTERM so Compose can stop the container cleanly.

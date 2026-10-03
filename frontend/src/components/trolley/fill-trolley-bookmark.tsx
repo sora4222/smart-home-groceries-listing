@@ -2,19 +2,17 @@ import { useEffect, useRef, useState } from "react";
 
 import { api } from "#/lib/api";
 import { API_BASE_URL } from "#/lib/config";
-import {
-	absoluteApiBaseUrl,
-	buildFillWoolworthsTrolleyBookmarklet,
-} from "#/lib/store-tab/bookmarklet";
+import { absoluteApiBaseUrl } from "#/lib/store-tab/bookmarklet";
+import type { StoreTab } from "#/lib/store-tab/store-tab";
 
 /**
- * The "Fill Woolworths trolley" link, to drag to the bookmarks bar once.
+ * A store's "Fill … trolley" link, to drag to the bookmarks bar once.
  *
  * It is built with the store-tab secret from the backend. React refuses
  * `javascript:` URLs in `href`, so the link's address is set on the element
  * directly after it renders.
  */
-export function FillTrolleyBookmark() {
+export function FillTrolleyBookmark({ tab }: { tab: StoreTab }) {
 	const link = useRef<HTMLAnchorElement>(null);
 	const [href, setHref] = useState<string | null>(null);
 	const [failed, setFailed] = useState(false);
@@ -29,7 +27,7 @@ export function FillTrolleyBookmark() {
 					API_BASE_URL,
 					window.location.origin,
 				);
-				setHref(buildFillWoolworthsTrolleyBookmarklet({ apiBaseUrl, secret }));
+				setHref(tab.buildBookmarklet({ apiBaseUrl, secret }));
 			})
 			.catch((err) => {
 				console.error("[trolley-handoff] no store-tab secret", err);
@@ -38,7 +36,7 @@ export function FillTrolleyBookmark() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [tab]);
 
 	useEffect(() => {
 		if (href) link.current?.setAttribute("href", href);
@@ -58,7 +56,7 @@ export function FillTrolleyBookmark() {
 			aria-disabled={!href}
 			className="inline-flex w-fit cursor-grab rounded-md border px-3 py-2 text-sm font-medium"
 		>
-			{href ? "Fill Woolworths trolley" : "Making the bookmark…"}
+			{href ? tab.bookmarkName : "Making the bookmark…"}
 		</a>
 	);
 }

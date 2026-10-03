@@ -3,7 +3,9 @@
 //! `db` mirrors the tables; `schemas` mirrors the JSON the web app and the
 //! intake channels exchange. Neither module contains business logic.
 
+pub mod access_log_rows;
 pub mod db;
+pub mod dislike_rows;
 pub mod google_tasks_rows;
 pub mod purchase_rows;
 pub mod schemas;

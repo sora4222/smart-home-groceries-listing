@@ -9,7 +9,9 @@
 //! `crate::models::schemas::GroceryItemCreate` without caring which file the
 //! type lives in.
 
+mod access_logs;
 mod common;
+mod dislikes;
 mod grocery;
 mod intake;
 mod item_rules;
@@ -22,7 +24,9 @@ mod trolley_handoffs;
 mod voice;
 mod voice_changes;
 
+pub use access_logs::*;
 pub use common::*;
+pub use dislikes::*;
 pub use grocery::*;
 pub use intake::*;
 pub use item_rules::*;

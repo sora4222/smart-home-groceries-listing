@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
 
+import { ProductDislikesProvider } from "#/components/dislikes/product-dislikes";
 import { PastPurchasesProvider } from "#/components/products/past-purchases";
 import { ProductChoiceProvider } from "#/components/products/product-choice";
 import { SpecialsOnlySwitch } from "#/components/products/specials-only-switch";
@@ -14,6 +15,7 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "#/components/ui/sheet";
+import { useItemDislikes } from "#/hooks/useItemDislikes";
 import { useItemProducts } from "#/hooks/useItemProducts";
 import { useProductHistory } from "#/hooks/useProductHistory";
 import type { GroceryItem, ItemProducts, ProductChoice } from "#/lib/api";
@@ -41,6 +43,7 @@ function useComparedItem(): GroceryItem {
  * The stores are searched only once the sheet opens. Pass `onChoose` to let
  * the household choose the item's product from the sheet; `chosen` marks the
  * product chosen already. Without `onChoose` the sheet only compares.
+ * Every product can be disliked, and a disliked one shows who disliked it.
  */
 function PriceComparisonRoot({
 	item,
@@ -106,6 +109,7 @@ function Content() {
 
 /** Runs the search and shows its progress or its results. */
 function Results({ item }: { item: GroceryItem }) {
+	const dislikes = useItemDislikes(item.id);
 	const [specialsOnly, setSpecialsOnly] = useState(false);
 	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}`;
 	const { state, retry } = useItemProducts(item.id, true, searchKey);
@@ -130,22 +134,24 @@ function Results({ item }: { item: GroceryItem }) {
 	}
 
 	return (
-		<div className="flex flex-col gap-4 px-4 pb-4">
-			<SpecialsOnlySwitch
-				checked={specialsOnly}
-				onCheckedChange={setSpecialsOnly}
-			/>
-			<WithPastPurchases search={state.data}>
-				{state.data.stores.map((results) => (
-					<StoreResults
-						key={results.store}
-						results={results}
-						quantity={state.data.item.quantity}
-						specialsOnly={specialsOnly}
-					/>
-				))}
-			</WithPastPurchases>
-		</div>
+		<ProductDislikesProvider value={{ itemId: item.id, ...dislikes }}>
+			<div className="flex flex-col gap-4 px-4 pb-4">
+				<SpecialsOnlySwitch
+					checked={specialsOnly}
+					onCheckedChange={setSpecialsOnly}
+				/>
+				<WithPastPurchases search={state.data}>
+					{state.data.stores.map((results) => (
+						<StoreResults
+							key={results.store}
+							results={results}
+							quantity={state.data.item.quantity}
+							specialsOnly={specialsOnly}
+						/>
+					))}
+				</WithPastPurchases>
+			</div>
+		</ProductDislikesProvider>
 	);
 }
 

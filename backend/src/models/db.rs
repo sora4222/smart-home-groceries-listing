@@ -162,8 +162,9 @@ pub struct ItemSelection {
     pub selected_at: DateTime<Utc>,
 }
 
-// Trolley handoff and Google Tasks rows live in their own files; re-exported
-// so callers keep importing them from `models::db`.
+// Trolley handoff, dislike and Google Tasks rows live in their own files;
+// re-exported so callers keep importing them from `models::db`.
+pub use super::dislike_rows::*;
 pub use super::google_tasks_rows::*;
 pub use super::trolley_handoff_rows::*;
 

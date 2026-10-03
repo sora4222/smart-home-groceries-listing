@@ -10,6 +10,8 @@ pub mod auth;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod logging;
+pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod services;
@@ -88,6 +90,10 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
     routes::api_router(&state)
         .layer(
             ServiceBuilder::new()
+                .layer(axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    middleware::access_log::record_access,
+                ))
                 .layer(TraceLayer::new_for_http())
                 .layer(TimeoutLayer::with_status_code(
                     StatusCode::REQUEST_TIMEOUT,

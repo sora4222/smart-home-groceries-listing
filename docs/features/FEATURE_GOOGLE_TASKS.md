@@ -3,7 +3,7 @@
 Status: **implemented** (backend, `/settings/intake`, Triage "Restore to
 source"). Tested against `wiremock` and an in-memory fake — **not yet against
 a real Google account**. Steps for people:
-`docs/human-setup.md` ("Optional — Google Tasks") and
+`docs/human-setup.md` ("Optional: Google Tasks") and
 `docs/using-the-app.md` ("Add items with Google Tasks").
 
 ## What this feature does

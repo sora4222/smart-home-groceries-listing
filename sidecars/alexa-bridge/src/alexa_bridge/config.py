@@ -34,6 +34,16 @@ class Settings:
         """Full URL of the backend's Alexa intake endpoint."""
         return f"{self.backend_base_url.rstrip('/')}/api/intake/alexa"
 
+    @property
+    def remove_url(self) -> str:
+        """Full URL of the backend's remove-or-reduce endpoint."""
+        return f"{self.intake_url}/remove"
+
+    @property
+    def undo_url(self) -> str:
+        """Full URL of the backend's undo endpoint."""
+        return f"{self.intake_url}/undo"
+
 
 def load_settings(env: dict[str, str] | None = None) -> Settings:
     """Builds settings from the environment, failing fast on anything missing.

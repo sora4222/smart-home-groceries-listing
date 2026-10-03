@@ -3,7 +3,7 @@
 Status: **implemented** — every intake item is checked by a classifier
 ("would a supermarket sell this?") before the household sees it, and the
 `/triage` page shows what it held or rejected. **Restore to source** is built
-for Google Tasks items (`FEATURE_GOOGLE_TASKS.md`). Steps for people: `docs/human-setup.md` parts 5 and 6 and `docs/using-the-app.md`
+for Google Tasks items (`FEATURE_GOOGLE_TASKS.md`). Steps for people: `docs/human-setup.md` §5 and §6 and `docs/using-the-app.md`
 ("Check the Triage page") — keep those in step with this spec.
 
 ## What this feature does

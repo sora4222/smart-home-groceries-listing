@@ -1,19 +1,24 @@
 # Docs — which one to read
 
-## For people using or setting up the app
-Plain words, step by step, grouped by place.
+**Audience:** every doc here is written for software developers and uses
+their terminology (`.env` keys, endpoints, intents, Compose profiles, HTTP
+status codes). Plain-language explanations for the household belong in chat,
+not in these files.
+
+## Setup and operations
+Manual steps, ordered by dependency and grouped by place.
 
 | Doc | Read it when |
 |---|---|
-| [`human-setup.md`](human-setup.md) | Setting the app up the first time |
-| [`using-the-app.md`](using-the-app.md) | Adding items, doing a Woolworths shop, changing a delivery time, after an update, when something goes wrong |
+| [`human-setup.md`](human-setup.md) | Provisioning Clerk, Cloudflare, the Alexa skill, the triage model and the stack for the first time |
+| [`using-the-app.md`](using-the-app.md) | Voice intake (add, remove, reduce, undo), a Woolworths shop, undoing a purchase, after an update, troubleshooting |
 
-## For agents and developers
+## Specs and findings
 | Doc | What it holds |
 |---|---|
 | [`features/`](features/) | One spec per feature: behaviour, API, data, tests |
 | [`FEAT_WOOLWORTHS_ACCESS.md`](FEAT_WOOLWORTHS_ACCESS.md) | How Woolworths is reached, what was tried, the live calls |
 
-Agents: steps a person must do go in the two people docs above, written with
+Agents: manual steps go in the two setup/operations docs above, written with
 the `human-instructions` skill (`.claude/skills/human-instructions/SKILL.md`).
 Feature docs link to those steps; they do not repeat them.

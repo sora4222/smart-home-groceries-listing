@@ -5,6 +5,7 @@
 //! way `app/main.py` did.
 
 pub mod alexa;
+pub mod alexa_list_changes;
 pub mod extract;
 pub mod google_tasks;
 pub mod grocery;
@@ -37,6 +38,7 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(alexa::router())
         .merge(google_tasks::router())
         .merge(intake_settings::router())
+        .merge(alexa_list_changes::router())
         .merge(grocery::router())
         .merge(item_rules::router())
         .merge(order_review::router())

@@ -174,17 +174,16 @@ Same as the Woolworths shop, with these differences:
 2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
    signed in and a store is selected **before** claiming the handoff, so a
    refusal leaves the handoff waiting; fix it and run it again.
-3. On **Go to checkout now?**, **OK** opens Coles checkout (path not
-   verified live; if it 404s, open the trolley instead). **Cancel**: reload
-   the page and open the trolley.
+3. On **Go to checkout now?**, **OK** opens Coles checkout (`/checkout`).
+   **Cancel**: reload the page and open the trolley.
 4. Pick a delivery window on coles.com.au, then pay there.
 
 **Verify:** the **Send to Coles** panel lists each line as **Added**, then
 **Saved as bought**.
 
-The Coles trolley calls were not verified live before release
-(`FEATURE_TROLLEY_HANDOFF.md`, "Coles"). If the first run fails, report the
-exact message.
+The Coles trolley calls were checked live on 2026-10-06
+(`FEATURE_TROLLEY_HANDOFF.md`, "Coles"), but not yet a full run from the
+grocery app. If the first run fails, report the exact message.
 
 ---
 

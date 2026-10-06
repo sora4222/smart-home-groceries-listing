@@ -2,8 +2,9 @@
 
 Status: **implemented for Woolworths and Coles.** Puts every product chosen
 at a store into the household's own online trolley there. Payment stays on
-the store's website. Woolworths was checked live; **Coles is built and
-tested against its known call shapes but not yet run live** (see "Coles").
+the store's website. Woolworths was checked live; Coles' trolley calls were
+checked live on 2026-10-06 (see "Coles"); a full bookmark run against the
+household's own backend is still to come.
 Why it works this way: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 Steps for people: `docs/using-the-app.md` ("Woolworths shop", "Coles
 shop") and `docs/human-setup.md` §8 and §9 — keep those in step
@@ -101,17 +102,29 @@ line may carry a `problem` (a Woolworths warning, e.g. "not available yet").
   Coles store (`localStorage.shoppingMethod.currentFulfilmentStoreId`, else
   the `fulfillmentStoreId` cookie), and that the trolley can be read (401/403
   = not logged in). A page that is not ready leaves the handoff waiting.
-- **Calls:** `GET` and `PATCH /api/bff/trolley/store/{storeId}` with the
-  headers the Coles site sends (`Ocp-Apim-Subscription-Key`,
+- **Calls** (checked live 2026-10-06 in a logged-in tab), with the headers
+  the Coles site sends (`Ocp-Apim-Subscription-Key`,
   `cusp-session-id`/`cusp-visitor-id`/`cusp-user-id` copied from its own
-  cookies, a fresh `cusp-correlation-id`). PATCH body
-  `{ageGateVerified:false, swapBehaviour:false, items:[{actions:[{productId, quantity}]}]}`
-  sets the quantity. `GET` answers `allItems[]` with `productId`, `quantity`.
-  Source: the open-source coles-vs-woolies bookmarklet
-  (`static/cart-bookmarklet.js`). The build workspace cannot reach
-  coles.com.au, so **these were not checked live by this project**.
-- **"Added"** means the trolley, read again after every PATCH, holds at least
-  the new quantity. Otherwise "Coles did not add this product…".
+  cookies, a fresh `cusp-correlation-id`):
+  - Read: `GET /api/bff/trolley/store/{storeId}?sortBy=recentlyAdded` with
+    **`x-api-version: 3`** — without it Coles answers 404. Products are in
+    `items[]` (`productId` a number, `quantity`, `orderItemId`); `allItems`
+    is still read if present. `orderAttributes.slot` is the reserved
+    delivery time.
+  - Add: `PATCH /api/bff/trolley/store/{storeId}` with
+    `{ageGateVerified:false, swapBehaviour:false, items:[{actions:[{productId, quantity}]}]}`
+    plus `slotCutOffTime`/`slotId`/`reservationExpirationTime` from the
+    reserved slot when there is one (the website sends them).
+    **Without `orderItemId`, `quantity` is added to what is there** (1 in
+    the trolley + PATCH 2 = 3), so the script sends only the list's
+    quantity. With `orderItemId`, `quantity` is the new total and `0`
+    removes.
+  - A product Coles will not add still answers 200, with
+    `results[0].failedItems[].error.message` (e.g. "Product is
+    unavailable"); that message is reported as the problem.
+- **"Added"** means the trolley, read again after the PATCHes, holds at
+  least what was there plus the list's quantity. Otherwise "Coles did not
+  add this product…".
 - **Delivery:** not reserved. The Coles delivery-time calls are not known, so
   the sheet asks for no time, and the report says `failed` with "The app
   cannot pick a Coles delivery time yet". The person picks one on Coles.
@@ -144,8 +157,10 @@ outcome, problem). Lines are a snapshot; deleting the list item keeps them.
 - Setting: `STORE_TAB_SECRET`.
 
 ## Not built
-- A live run of the Coles bookmark (first real run is the household's).
-- Reserving a Coles delivery time (find its calls in DevTools first).
+- A full Coles bookmark run against the household's backend (the trolley
+  calls themselves were checked live on 2026-10-06).
+- Reserving a Coles delivery time. The website reserves with
+  `POST /api/bff/slots/{slotId}`; its body is not captured yet.
 - Showing the store's real windows and fees in the app before sending (the
   app cannot see them without the household's Woolworths login).
 - A saved delivery day default. Checkout is a confirm step after the fill (`FEATURE_CHECKOUT.md`).

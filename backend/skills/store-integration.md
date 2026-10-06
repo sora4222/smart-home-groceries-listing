@@ -12,12 +12,14 @@ not built — the sections on them below are the plan. Behaviour and the API are
 ```
 services/stores/
 ├── mod.rs          # re-exports; the only module that calls a store
-├── client.rs       # StoreClient trait (search) + BoxFuture
+├── client.rs       # StoreClient trait (search, product lookup) + BoxFuture
 ├── registry.rs     # build(): live or fake clients, each behind CachedStore
-├── cached.rs       # short TTL cache of successful searches
+├── cached.rs       # short TTL cache of successful searches and lookups
+├── ttl_cache.rs    # TtlCache<V>: bounded map whose entries expire
+├── product_id.rs   # is_valid(): store ids are digits (they go in URL paths)
 ├── http.rs         # wreq client (Chrome emulation, cookies) + error mapping
 ├── woolworths/     # mod.rs (client) · wire.rs (serde) · mapping.rs (→ Product)
-├── coles/          # mod.rs · wire.rs · mapping.rs · build_id.rs
+├── coles/          # mod.rs · data_route.rs (build id, 404 kinds) · wire.rs · mapping.rs · build_id.rs
 ├── fake.rs         # STORE_CLIENTS=fake catalogue
 ├── product.rs      # Product — the one shape every store maps to
 ├── measure.rs      # "1KG", "$4.90/ 1kg" → amount of g / mL / count
@@ -28,6 +30,8 @@ services/stores/
 └── store.rs        # Store enum
 services/product_search/   # one item across all stores: query, filters,
                            # pricing, comparability notes, ordering, logging
+services/product_lookup.rs # one product at one store by id (route:
+                           # GET /api/stores/{store}/products/{id})
 ```
 Add a store: a `wire.rs` + `mapping.rs` + client implementing `StoreClient`,
 a `Store` variant, and one arm in `registry::live`. Nothing else changes.
@@ -59,12 +63,18 @@ plain `reqwest` against a store URL — see "Anti-scraping" below. `reqwest`
 stays in this crate only for Clerk's JWKS endpoint, which has no bot
 protection.
 
-## Endpoints in use (captured 2026-10-01)
+## Endpoints in use (search captured 2026-10-01, lookup 2026-10-06)
 - Woolworths: `POST /apis/ui/Search/products`, body
   `{Filters:[], IsSpecial:false, Location, PageNumber, PageSize, SearchTerm,
   SortType:"TraderRelevance"}` after a `GET /` for cookies.
 - Coles: `GET /_next/data/<buildId>/en/search/products.json?q=`, `buildId`
   from `"buildId":"…"` in the home page's `__NEXT_DATA__`.
+- Woolworths lookup: `GET /apis/ui/product/detail/{stockcode}?isMobile=false`
+  → `{Product: <search-result shape>}`; 404 when not sold.
+- Coles lookup: `GET /_next/data/<buildId>/en/product/x-{id}.json` → a
+  `pageProps.__N_REDIRECT` to `/product/<slug>-{id}`; fetch that once for
+  `pageProps.product` (same shape as a search result). Coles' two 404s:
+  `{}` = stale build id, `{"notFound":true}` = no such product.
 
 To capture a fresh shape, open the store's search page in a real browser and
 read the call from DevTools (or the page's `__NEXT_DATA__` for Coles), then
@@ -89,16 +99,24 @@ trim it into `tests/fixtures/<store>/`.
 - Called from the store's own page (`fill-woolworths-trolley.ts`), so no
   fingerprinting is needed there. Full record: `docs/FEAT_WOOLWORTHS_ACCESS.md`.
 
-## Trolley (Coles, not yet checked live)
-- `GET`/`PATCH /api/bff/trolley/store/{storeId}` from the logged-in page,
-  with `Ocp-Apim-Subscription-Key` (`window.__RUNTIME_CONFIG__.BFF_API_SUBSCRIPTION_KEY`)
-  and `cusp-*` headers copied from the site's cookies. PATCH sets the
-  quantity. Store id: `localStorage.shoppingMethod.currentFulfilmentStoreId`.
-- `fill-coles-trolley.ts`; no delivery time reserved yet. Details:
-  `docs/features/FEATURE_TROLLEY_HANDOFF.md` ("Coles").
+## Trolley (Coles, live 2026-10-06)
+- Read: `GET /api/bff/trolley/store/{storeId}?sortBy=recentlyAdded` with
+  `x-api-version: 3` (404 without it) → `items[]` (`productId` number,
+  `quantity`, `orderItemId`), `orderAttributes.slot`.
+- Write: `PATCH /api/bff/trolley/store/{storeId}`
+  `{ageGateVerified, swapBehaviour:false, [slotCutOffTime, slotId, reservationExpirationTime],
+  items:[{actions:[{productId, quantity[, orderItemId]}]}]}`. **No
+  `orderItemId` → quantity is added**; with it → quantity is the total,
+  `0` deletes. Refusals are HTTP 200 with `results[0].failedItems[].error`.
+- Both need `Ocp-Apim-Subscription-Key` (`window.__RUNTIME_CONFIG__.BFF_API_SUBSCRIPTION_KEY`)
+  and the `cusp-*` headers from the site's cookies (the website's own
+  `prepareHeaders`). Store id: `localStorage.shoppingMethod.currentFulfilmentStoreId`.
+- Delivery: the site reserves with `POST /api/bff/slots/{slotId}` (body not
+  captured). `fill-coles-trolley.ts` reserves none.
 
 ## Adding a store
-1. Rust: a `Store` variant, a `StoreClient` for search (`registry.rs`), a
+1. Rust: a `Store` variant, a `StoreClient` for search and product lookup
+   (`registry.rs`), a
    `StoreSettings::base_url` arm (the store-tab CORS rule uses it).
 2. Web app: a self-contained fill script and a `StoreTab` in
    `frontend/src/lib/store-tab/store-tabs.ts`. `SendToStore` and the
@@ -195,6 +213,8 @@ returning 401, 403, or a redirect to a login page.
 pub trait StoreClient: Send + Sync {
     fn store(&self) -> Store;
     fn search<'a>(&'a self, query: &'a str) -> BoxFuture<'a, Result<Vec<Product>, StoreError>>;
+    /// Ok(None) = not sold there, or not one of its ids (product_id::is_valid).
+    fn product<'a>(&'a self, product_id: &'a str) -> BoxFuture<'a, Result<Option<Product>, StoreError>>;
 }
 ```
 Held as `Arc<dyn StoreClient>` in `AppState.stores`. Chip filtering happens

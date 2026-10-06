@@ -43,8 +43,8 @@ fn is_advert(p: &WireProduct) -> bool {
     has_ad_id || p.featured == Some(true)
 }
 
-/// One product.
-fn product(p: WireProduct, site_url: &str) -> Product {
+/// One product, from a search result or a product page.
+pub fn product(p: WireProduct, site_url: &str) -> Product {
     let pricing = p.pricing.as_ref();
     let price = pricing.and_then(|pr| from_wire(pr.now));
     Product {
@@ -209,6 +209,22 @@ mod tests {
         assert_eq!(
             slugify("Coles Full Cream Milk 3L"),
             "coles-full-cream-milk-3l"
+        );
+    }
+
+    #[test]
+    fn a_product_page_maps_like_a_search_result() {
+        let json = include_str!("../../../../tests/fixtures/coles/product_milk.json");
+        let page: super::super::wire::ProductPage = serde_json::from_str(json).unwrap();
+        let found = product(page.page_props.product.unwrap(), "https://www.coles.com.au");
+        assert_eq!(found.product_id, "8150288");
+        assert_eq!(found.price, Some(dec!(4.95)));
+        assert_eq!(found.was_price, None);
+        assert_eq!(found.category.as_deref(), Some("Milk"));
+        assert!(found.available && !found.on_special);
+        assert_eq!(
+            found.url,
+            "https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288"
         );
     }
 }

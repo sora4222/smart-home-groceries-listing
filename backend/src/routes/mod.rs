@@ -21,6 +21,7 @@ pub mod products;
 pub mod purchases;
 pub mod selections;
 pub mod spending;
+pub mod store_products;
 pub mod store_tab;
 pub mod triage;
 pub mod trolley_handoffs;
@@ -38,6 +39,7 @@ use crate::state::AppState;
 pub fn api_router(state: &AppState) -> Router<AppState> {
     Router::new()
         .merge(health::router())
+        .merge(store_products::router())
         .merge(access_logs::router())
         .merge(voice::router())
         .merge(alexa::router())

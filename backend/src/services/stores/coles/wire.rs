@@ -1,9 +1,10 @@
-//! Coles' search data, as the website's Next.js data route returns it.
+//! Coles' search and product page data, as the website's Next.js data
+//! routes return them.
 //!
 //! `GET /_next/data/<buildId>/en/search/products.json?q=<query>` answers
 //! with the props the search page renders from. Only the fields this
 //! application reads are declared. Field names are verbatim from a response
-//! captured on 2026-10-01 (see `tests/fixtures/coles/`).
+//! captured on 2026-10-01 and 2026-10-06 (see `tests/fixtures/coles/`).
 
 use serde::Deserialize;
 
@@ -21,6 +22,23 @@ pub struct PageProps {
     pub search_results: Option<SearchResults>,
 }
 
+/// A product page's data route envelope
+/// (`/_next/data/<buildId>/en/product/<slug>-<id>.json`).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductPage {
+    pub page_props: ProductProps,
+}
+
+/// A product page's props: the product, or — when the slug was not the
+/// real one — where Coles redirects to.
+#[derive(Debug, Deserialize)]
+pub struct ProductProps {
+    pub product: Option<WireProduct>,
+    #[serde(rename = "__N_REDIRECT")]
+    pub redirect: Option<String>,
+}
+
 /// Results mix products with banner tiles, so each entry is read loosely
 /// and only `"_type": "PRODUCT"` entries are decoded as products.
 #[derive(Debug, Deserialize)]
@@ -29,7 +47,7 @@ pub struct SearchResults {
     pub results: Vec<serde_json::Value>,
 }
 
-/// One product as Coles describes it.
+/// One product as Coles describes it, in search results and on its page.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireProduct {

@@ -16,19 +16,28 @@
  *    the person is logged in. Only then claim the handoff, so a page that is
  *    not ready leaves it waiting for the next press.
  * 2. Claim the newest waiting Coles handoff from our backend.
- * 3. Set each product's new quantity (what is there **plus** the list's
- *    quantity) through `PATCH /api/bff/trolley/store/{storeId}`, one product
- *    per call so one refusal cannot hide the others.
+ * 3. Add each product through `PATCH /api/bff/trolley/store/{storeId}`,
+ *    one product per call so one refusal cannot hide the others. Coles
+ *    **adds** the quantity sent when no `orderItemId` is given, so the
+ *    list's quantity is sent as it is — never "what is there plus more",
+ *    which would add twice. A product Coles will not add comes back in
+ *    `results[0].failedItems` with its own reason, still with HTTP 200.
  * 4. Read the trolley again: a product counts as added only when its
- *    quantity really went up.
+ *    quantity really went up by the list's quantity.
  * 5. Report every product to our backend. The delivery time is reported as
  *    not chosen: the Coles delivery-time calls are not known yet, so the
  *    person picks one on Coles.
  *
- * Endpoints: `GET`/`PATCH /api/bff/trolley/store/{storeId}`, taken from an
- * open-source bookmarklet that uses them (coles-vs-woolies,
- * `static/cart-bookmarklet.js`). **Not yet checked live by this project** —
- * the build workspace cannot reach coles.com.au.
+ * Endpoints, checked live in a logged-in tab on 2026-10-06:
+ * - `GET /api/bff/trolley/store/{storeId}?sortBy=recentlyAdded` with
+ *   `x-api-version: 3` (without it Coles answers 404). The products are in
+ *   `items` (`productId` a number, `quantity`); older answers used
+ *   `allItems`, which is still read if present.
+ * - `PATCH /api/bff/trolley/store/{storeId}` with
+ *   `{ageGateVerified, swapBehaviour, items: [{actions: [{productId,
+ *   quantity}]}]}`, plus the reserved delivery time's `slotCutOffTime`,
+ *   `slotId` and `reservationExpirationTime` when there is one — the
+ *   website sends those so the reservation is kept.
  *
  * `fillColesTrolley` must stay **self-contained** — no imports at run time,
  * no outside variables — because the bookmarklet carries its source text.
@@ -92,30 +101,44 @@ export async function fillColesTrolley(
 	}
 	const trolleyUrl = `/api/bff/trolley/store/${storeId}`;
 	const colesCall = (method: "GET" | "PATCH", body?: unknown) =>
-		fetch(trolleyUrl, {
-			method,
-			credentials: "include",
-			cache: "no-store",
-			headers: {
-				accept: "application/json",
-				"content-type": "application/json",
-				"ocp-apim-subscription-key": apiKey,
-				"cusp-session-id": cookie("sessionId"),
-				"cusp-visitor-id": cookie("visitorId"),
-				"cusp-user-id": cookie("dsch-ccpuserid"),
-				"cusp-correlation-id": crypto.randomUUID(),
+		fetch(
+			method === "GET" ? `${trolleyUrl}?sortBy=recentlyAdded` : trolleyUrl,
+			{
+				method,
+				credentials: "include",
+				cache: "no-store",
+				headers: {
+					accept: "application/json",
+					"content-type": "application/json",
+					"ocp-apim-subscription-key": apiKey,
+					"cusp-session-id": cookie("sessionId"),
+					"cusp-visitor-id": cookie("visitorId"),
+					"cusp-user-id": cookie("dsch-ccpuserid"),
+					"cusp-correlation-id": crypto.randomUUID(),
+					...(method === "GET" ? { "x-api-version": "3" } : {}),
+				},
+				body: body === undefined ? undefined : JSON.stringify(body),
 			},
-			body: body === undefined ? undefined : JSON.stringify(body),
-		});
-	const readTrolley = async (): Promise<Map<string, number> | number> => {
+		);
+	type Slot = {
+		cutoffTime?: string;
+		shiftId?: string;
+		reservationExpirationTime?: string;
+	};
+	type Trolley = { quantities: Map<string, number>; slot: Slot | null };
+	const readTrolley = async (): Promise<Trolley | number> => {
 		const response = await colesCall("GET");
 		if (!response.ok) return response.status;
 		const trolley = await response.json();
 		const quantities = new Map<string, number>();
-		for (const item of trolley?.allItems ?? []) {
-			quantities.set(String(item.productId), Number(item.quantity) || 0);
+		for (const item of trolley?.items ?? trolley?.allItems ?? []) {
+			const id = String(item?.productId ?? "");
+			quantities.set(
+				id,
+				(quantities.get(id) ?? 0) + (Number(item?.quantity) || 0),
+			);
 		}
-		return quantities;
+		return { quantities, slot: trolley?.orderAttributes?.slot ?? null };
 	};
 
 	const before = await readTrolley();
@@ -143,7 +166,16 @@ export async function fillColesTrolley(
 		lines: { product_id: string; name: string; quantity: number }[];
 	};
 
-	// 3. Set each product's new quantity.
+	// 3. Add each product. Coles adds the quantity sent.
+	const slot = before.slot;
+	const keepSlot =
+		slot?.cutoffTime && slot.shiftId && slot.reservationExpirationTime
+			? {
+					slotCutOffTime: slot.cutoffTime,
+					slotId: slot.shiftId,
+					reservationExpirationTime: slot.reservationExpirationTime,
+				}
+			: {};
 	const wanted = new Map<string, number>();
 	const failed: { productId: string; problem: string }[] = [];
 	for (const line of handoff.lines) {
@@ -154,21 +186,41 @@ export async function fillColesTrolley(
 			});
 			continue;
 		}
-		const quantity = (before.get(line.product_id) ?? 0) + line.quantity;
 		try {
 			const response = await colesCall("PATCH", {
 				ageGateVerified: false,
 				swapBehaviour: false,
-				items: [{ actions: [{ productId: line.product_id, quantity }] }],
+				...keepSlot,
+				items: [
+					{
+						actions: [{ productId: line.product_id, quantity: line.quantity }],
+					},
+				],
 			});
-			if (response.ok) {
-				wanted.set(line.product_id, quantity);
-			} else {
+			if (!response.ok) {
 				failed.push({
 					productId: line.product_id,
 					problem: `Coles answered HTTP ${response.status}`,
 				});
+				continue;
 			}
+			const answer = await response.json().catch(() => null);
+			const refusal = answer?.results?.[0]?.failedItems?.[0];
+			if (refusal) {
+				failed.push({
+					productId: line.product_id,
+					problem: String(
+						refusal.error?.message ?? "Coles would not add this product",
+					),
+				});
+				continue;
+			}
+			wanted.set(
+				line.product_id,
+				(wanted.get(line.product_id) ??
+					before.quantities.get(line.product_id) ??
+					0) + line.quantity,
+			);
 		} catch (error) {
 			failed.push({
 				productId: line.product_id,
@@ -178,10 +230,13 @@ export async function fillColesTrolley(
 	}
 
 	// 4. Check what really went in.
-	const after = wanted.size > 0 ? await readTrolley() : new Map();
+	const after = wanted.size > 0 ? await readTrolley() : null;
 	const added: string[] = [];
 	for (const [productId, quantity] of wanted) {
-		const got = typeof after === "number" ? 0 : (after.get(productId) ?? 0);
+		const got =
+			after === null || typeof after === "number"
+				? 0
+				: (after.quantities.get(productId) ?? 0);
 		if (got >= quantity) {
 			added.push(productId);
 		} else {
@@ -223,7 +278,6 @@ export async function fillColesTrolley(
 		failed,
 		delivery,
 		message: `${products}\nNow pick a delivery time on Coles, then check your trolley.`,
-		// Not checked live: the build workspace cannot reach coles.com.au.
 		checkout:
 			added.length > 0
 				? {

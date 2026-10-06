@@ -6,3 +6,10 @@ allowBuilds:
   core-js: true
   esbuild: true
   lightningcss: true
+# solid-js 1.9.x (via TanStack devtools) pins seroval ~1.5, which is
+# vulnerable; the fix is in >=1.6.3. Solid only uses Serializer, Feature,
+# getCrossReferenceHeader and the web plugins, all unchanged in 1.6.
+# Drop once a solid-js release depends on seroval >=1.6.3.
+overrides:
+  seroval: ^1.6.8
+  seroval-plugins: ^1.6.8

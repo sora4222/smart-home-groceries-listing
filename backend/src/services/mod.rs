@@ -11,6 +11,7 @@ pub mod grocery;
 pub mod item_rules;
 pub mod order_plan;
 pub mod order_review;
+pub mod product_lookup;
 pub mod product_search;
 pub mod purchases;
 pub mod selections;

@@ -68,4 +68,8 @@ impl StoreClient for Broken {
     fn search<'a>(&'a self, _query: &'a str) -> BoxFuture<'a, Result<Vec<Product>, StoreError>> {
         Box::pin(async move { Err(self.err.clone()) })
     }
+
+    fn product<'a>(&'a self, _id: &'a str) -> BoxFuture<'a, Result<Option<Product>, StoreError>> {
+        Box::pin(async move { Err(self.err.clone()) })
+    }
 }

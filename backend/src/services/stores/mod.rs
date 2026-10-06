@@ -1,4 +1,5 @@
-//! Store integrations: searching Woolworths and Coles for products.
+//! Store integrations: finding products at Woolworths and Coles, by search
+//! words or by the store's own product id.
 //!
 //! Each store maps its own response into [`Product`], the one shape the rest
 //! of the application reads. Prices are [`rust_decimal::Decimal`] from the
@@ -20,8 +21,10 @@ pub mod http;
 pub mod measure;
 pub mod money;
 pub mod product;
+pub mod product_id;
 pub mod registry;
 pub mod store;
+pub mod ttl_cache;
 pub mod unit_price;
 pub mod woolworths;
 

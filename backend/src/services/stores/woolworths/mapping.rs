@@ -2,7 +2,7 @@
 
 use rust_decimal::Decimal;
 
-use super::wire::{Attributes, SearchResponse, Tag, WireProduct};
+use super::wire::{Attributes, ProductDetail, SearchResponse, Tag, WireProduct};
 use crate::services::stores::deal::Deal;
 use crate::services::stores::measure;
 use crate::services::stores::money::{from_wire, positive_from_wire};
@@ -21,6 +21,11 @@ pub fn products(response: SearchResponse, site_url: &str) -> Vec<Product> {
         .filter(|p| p.is_sponsored_ad != Some(true))
         .map(|p| product(p, site_url))
         .collect()
+}
+
+/// The product on a product page, if the page has one.
+pub fn detail(response: ProductDetail, site_url: &str) -> Option<Product> {
+    response.product.map(|p| product(p, site_url))
 }
 
 /// One product.
@@ -160,5 +165,25 @@ mod tests {
     fn a_response_with_no_products_is_empty() {
         let empty: SearchResponse = serde_json::from_str(r#"{"Products":null}"#).unwrap();
         assert!(products(empty, "https://example.test").is_empty());
+    }
+
+    #[test]
+    fn a_product_page_maps_like_a_search_result() {
+        let json = include_str!("../../../../tests/fixtures/woolworths/product_722.json");
+        let found = detail(
+            serde_json::from_str(json).unwrap(),
+            "https://www.woolworths.com.au",
+        )
+        .unwrap();
+        assert_eq!(found.product_id, "722");
+        assert_eq!(found.brand.as_deref(), Some("Kleenex"));
+        assert_eq!(found.package_size.as_deref(), Some("12 pack"));
+        assert_eq!(found.price, Some(dec!(12)));
+        assert_eq!(found.was_price, Some(dec!(13.5)));
+        assert!(found.on_special && found.available);
+        assert_eq!(
+            found.url,
+            "https://www.woolworths.com.au/shop/productdetails/722/kleenex-complete-clean-double-length-toilet-paper"
+        );
     }
 }

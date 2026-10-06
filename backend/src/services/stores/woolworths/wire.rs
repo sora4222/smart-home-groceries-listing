@@ -1,9 +1,9 @@
-//! Woolworths' search response, as the website's own `Search/products` call
-//! returns it.
+//! Woolworths' search and product-page responses, as the website's own
+//! `Search/products` and `product/detail` calls return them.
 //!
 //! Only the fields this application reads are declared; serde ignores the
 //! other hundred or so. Field names are verbatim from a response captured
-//! on 2026-10-01 (see `tests/fixtures/woolworths/`).
+//! on 2026-10-01 and 2026-10-06 (see `tests/fixtures/woolworths/`).
 
 use serde::Deserialize;
 
@@ -27,6 +27,14 @@ pub struct SearchRequest<'a> {
 pub struct SearchResponse {
     #[serde(default)]
     pub products: Option<Vec<ProductGroup>>,
+}
+
+/// The product page's data (`GET /apis/ui/product/detail/{stockcode}`).
+/// `Product` has the same shape as a search result's product.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ProductDetail {
+    pub product: Option<WireProduct>,
 }
 
 /// Woolworths groups variants of a product; each group holds one or more.

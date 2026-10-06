@@ -6,10 +6,12 @@ const config = { apiBaseUrl: "https://grocery.test", secret: "s3cret" };
 const TROLLEY = "/api/bff/trolley/store/0584";
 
 /**
- * A fake network: our backend plus the Coles website's trolley call. The
- * trolley keeps quantities like the real one: a PATCH sets the quantity,
- * except for products Coles refuses (`refused`) or silently ignores
- * (`ignored`, e.g. unavailable at the household's store).
+ * A fake network: our backend plus the Coles website's trolley call,
+ * behaving as the real one did on 2026-10-06. Reading the trolley needs
+ * `x-api-version: 3` (404 without it) and lists products under `items`. A
+ * PATCH without `orderItemId` **adds** the quantity sent. A product Coles
+ * refuses (`refused`) comes back in `failedItems` with HTTP 200; one it
+ * silently ignores (`ignored`) is reported as added but does not appear.
  */
 function fakeNetwork({
 	claim = {
@@ -27,12 +29,16 @@ function fakeNetwork({
 	trolleyStatus = 200,
 	refused = [] as string[],
 	ignored = [] as string[],
+	status400 = [] as string[],
+	slot = null as Record<string, string> | null,
 }: {
 	claim?: { status: number; body?: unknown };
 	inTrolley?: Record<string, number>;
 	trolleyStatus?: number;
 	refused?: string[];
 	ignored?: string[];
+	status400?: string[];
+	slot?: Record<string, string> | null;
 } = {}) {
 	const trolley = new Map(Object.entries(inTrolley));
 	const calls: {
@@ -52,20 +58,52 @@ function fakeNetwork({
 			});
 		if (url.endsWith("/claim")) return json(claim.status, claim.body);
 		if (url.endsWith("/report")) return json(200, {});
-		if (url === TROLLEY && method === "GET") {
+		if (url === `${TROLLEY}?sortBy=recentlyAdded` && method === "GET") {
 			if (trolleyStatus !== 200) return json(trolleyStatus, {});
+			if (headers["x-api-version"] !== "3") return json(404, {});
 			return json(200, {
-				allItems: [...trolley].map(([productId, quantity]) => ({
+				items: [...trolley].map(([productId, quantity]) => ({
+					orderItemId: `o-${productId}`,
 					productId: Number(productId),
 					quantity,
 				})),
+				orderAttributes: { slot },
 			});
 		}
 		if (url === TROLLEY && method === "PATCH") {
 			const { productId, quantity } = body.items[0].actions[0];
-			if (refused.includes(productId)) return json(400, { message: "No" });
-			if (!ignored.includes(productId)) trolley.set(productId, quantity);
-			return json(200, {});
+			if (status400.includes(productId)) return json(400, { message: "No" });
+			if (refused.includes(productId)) {
+				return json(200, {
+					results: [
+						{
+							actionedItems: [],
+							failedItems: [
+								{
+									productId,
+									quantity,
+									action: "ADD",
+									error: {
+										errorCode: "unavailable",
+										message: "Product is unavailable",
+									},
+								},
+							],
+						},
+					],
+				});
+			}
+			if (!ignored.includes(productId)) {
+				trolley.set(productId, (trolley.get(productId) ?? 0) + quantity);
+			}
+			return json(200, {
+				results: [
+					{
+						actionedItems: [{ productId, quantity, action: "ADD" }],
+						failedItems: [],
+					},
+				],
+			});
 		}
 		return json(404, null);
 	});
@@ -142,7 +180,31 @@ describe("fillColesTrolley", () => {
 		expect(patch?.body).toEqual({
 			ageGateVerified: false,
 			swapBehaviour: false,
-			items: [{ actions: [{ productId: "123011", quantity: 3 }] }],
+			// The list's quantity only: Coles adds it to the 1 already there.
+			items: [{ actions: [{ productId: "123011", quantity: 2 }] }],
+		});
+		const read = calls.find(
+			(c) => c.method === "GET" && c.url.includes("trolley"),
+		);
+		expect(read?.headers["x-api-version"]).toBe("3");
+	});
+
+	it("keeps a reserved delivery time when adding", async () => {
+		const { calls } = fakeNetwork({
+			slot: {
+				cutoffTime: "2026-10-06T20:00:00.0",
+				shiftId: "shift-1",
+				reservationExpirationTime: "2026-10-06T18:13:39.0",
+			},
+		});
+
+		await fillColesTrolley(config);
+
+		const patch = calls.find((c) => c.method === "PATCH");
+		expect(patch?.body).toMatchObject({
+			slotCutOffTime: "2026-10-06T20:00:00.0",
+			slotId: "shift-1",
+			reservationExpirationTime: "2026-10-06T18:13:39.0",
 		});
 	});
 
@@ -156,7 +218,7 @@ describe("fillColesTrolley", () => {
 			{
 				product_id: "123011",
 				outcome: "failed",
-				problem: "Coles answered HTTP 400",
+				problem: "Product is unavailable",
 			},
 			{
 				product_id: "409499",
@@ -165,6 +227,19 @@ describe("fillColesTrolley", () => {
 					"Coles did not add this product. It may be unavailable at your store.",
 			},
 		]);
+	});
+
+	it("reports an HTTP refusal with its status", async () => {
+		const { calls } = fakeNetwork({ status400: ["409499"] });
+
+		const result = await fillColesTrolley(config);
+
+		expect(result.added).toEqual(["123011"]);
+		expect(reportOf(calls).lines[1]).toEqual({
+			product_id: "409499",
+			outcome: "failed",
+			problem: "Coles answered HTTP 400",
+		});
 	});
 
 	it("refuses a product id that is not a Coles number", async () => {

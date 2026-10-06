@@ -34,6 +34,7 @@ fn household_routes() -> Vec<(Method, String)> {
         (Method::PUT, format!("{item}/selection")),
         (Method::DELETE, format!("{item}/selection")),
         (Method::GET, "/api/item-selections".into()),
+        (Method::GET, "/api/stores/coles/products/123".into()),
         (Method::GET, "/api/item-rules".into()),
         (Method::POST, "/api/item-rules".into()),
         (Method::PATCH, format!("/api/item-rules/{ID}")),

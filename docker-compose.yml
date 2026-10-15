@@ -1,6 +1,11 @@
 services:
+  # Development database. Runs only when `db` is in COMPOSE_PROFILES (it is in
+  # .env.example). A server with its own PostgreSQL drops `db` from the
+  # profiles and points DATABASE_URL at host.docker.internal:5432 instead —
+  # docs/human-setup.md, "Optional: PostgreSQL installed on the server".
   db:
     image: postgres:16
+    profiles: ["db"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-grocery}
       POSTGRES_USER: ${POSTGRES_USER:-grocery}
@@ -19,8 +24,11 @@ services:
   backend:
     build: ./backend
     depends_on:
+      # Waits for the Docker database when the `db` profile runs it; without
+      # the profile there is nothing to wait for and the backend starts alone.
       db:
         condition: service_healthy
+        required: false
     env_file: .env
     environment:
       BIND_ADDRESS: 0.0.0.0:8000
@@ -34,8 +42,9 @@ services:
     # the generic webhook path, never the whole API.
     expose:
       - "8000"
-    # Lets INTAKE_LLM_BASE_URL reach an Ollama running on the home server
-    # itself (http://host.docker.internal:11434/v1).
+    # Lets the backend reach services running on the home server itself:
+    # PostgreSQL (DATABASE_URL=…@host.docker.internal:5432/grocery) and an
+    # Ollama outside Docker (http://host.docker.internal:11434/v1).
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

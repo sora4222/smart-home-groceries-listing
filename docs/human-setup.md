@@ -23,7 +23,7 @@ Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 ## Prerequisites
 
 - Shell access to the home server, in a checkout of this repository, with
-  Docker (Compose v2), `make`, `openssl`, Node 22 and `pnpm`.
+  Docker (Compose v2.20 or later, for optional `depends_on`), `make`, `openssl`, Node 22 and `pnpm`.
 - A domain whose DNS is managed by Cloudflare (Cloudflare Registrar works).
 - The Amazon account the target Echo device is registered to.
 - Woolworths credentials (passkey or password manager).
@@ -41,6 +41,11 @@ Copies `.env.example` to `.env` and fills every generated secret
 (`ALEXA_BRIDGE_SECRET`, `VOICE_WEBHOOK_SECRET`, `STORE_TAB_SECRET`,
 `CREDENTIAL_ENCRYPTION_KEY`, the Postgres password). Idempotent: existing
 values are never overwritten. Keep `.env` open; sections 2–5 write to it.
+
+The default `.env` runs PostgreSQL in Docker (`db` in `COMPOSE_PROFILES`).
+On a server with PostgreSQL already installed, do
+[Optional: PostgreSQL installed on the server](#optional-postgresql-installed-on-the-server)
+before section 6.
 
 **Verify:** the script exits printing `Done.`
 **Troubleshooting:** `openssl: not found` → install OpenSSL and re-run.
@@ -246,17 +251,21 @@ providers run as Compose profiles, so item names never leave the server.
 
 | Provider | Use when | `.env` |
 |---|---|---|
-| **Ollama** (default) | Any host | `INTAKE_LLM_PROVIDER=ollama`<br>`COMPOSE_PROFILES=ollama`<br>`INTAKE_LLM_BASE_URL=http://ollama:11434/v1` |
-| **llama.cpp** | Low-spec host | `INTAKE_LLM_PROVIDER=llamacpp`<br>`COMPOSE_PROFILES=llamacpp`<br>`INTAKE_LLM_BASE_URL=http://llamacpp:8080/v1` |
-| **vLLM** | NVIDIA GPU host (needs the driver and NVIDIA Container Toolkit) | `INTAKE_LLM_PROVIDER=vllm`<br>`COMPOSE_PROFILES=vllm`<br>`INTAKE_LLM_BASE_URL=http://vllm:8000/v1` |
+| **Ollama** (default) | Any host | `INTAKE_LLM_PROVIDER=ollama`<br>`COMPOSE_PROFILES=ollama,db`<br>`INTAKE_LLM_BASE_URL=http://ollama:11434/v1` |
+| **llama.cpp** | Low-spec host | `INTAKE_LLM_PROVIDER=llamacpp`<br>`COMPOSE_PROFILES=llamacpp,db`<br>`INTAKE_LLM_BASE_URL=http://llamacpp:8080/v1` |
+| **vLLM** | NVIDIA GPU host (needs the driver and NVIDIA Container Toolkit) | `INTAKE_LLM_PROVIDER=vllm`<br>`COMPOSE_PROFILES=vllm,db`<br>`INTAKE_LLM_BASE_URL=http://vllm:8000/v1` |
 | **Off** | No triage; everything goes straight to Pending Requests | `INTAKE_LLM_PROVIDER=off` |
 
-- **OpenAI** (hosted, paid): `INTAKE_LLM_PROVIDER=openai`, empty
-  `COMPOSE_PROFILES` and `INTAKE_LLM_BASE_URL`, and an API key from
+`db` starts the Docker PostgreSQL; drop it when PostgreSQL is installed on
+the server ([see below](#optional-postgresql-installed-on-the-server)).
+
+- **OpenAI** (hosted, paid): `INTAKE_LLM_PROVIDER=openai`, no model server
+  in `COMPOSE_PROFILES` (only `db`, if used), empty `INTAKE_LLM_BASE_URL`,
+  and an API key from
   [platform.openai.com/api-keys](https://platform.openai.com/api-keys) in
   `OPENAI_API_KEY`.
-- **A model server already running on the host:** leave `COMPOSE_PROFILES`
-  empty and set `INTAKE_LLM_BASE_URL=http://host.docker.internal:<port>/v1`
+- **A model server already running on the host:** leave the model server
+  out of `COMPOSE_PROFILES` and set `INTAKE_LLM_BASE_URL=http://host.docker.internal:<port>/v1`
   (Ollama's default port is `11434`).
 
 ---
@@ -367,6 +376,85 @@ First run: allow Chrome's local-network access prompt for coles.com.au.
 
 **Verify:** the bookmarklet is installed and the Coles header shows your
 delivery address.
+
+---
+
+## Optional: PostgreSQL installed on the server
+
+Run the app against a PostgreSQL installed on the home server (bare metal)
+instead of the `db` container. Do this before the first `make up`
+(section 6). Developer machines keep the default: `db` in
+`COMPOSE_PROFILES` starts PostgreSQL in Docker.
+
+The backend reaches the host through `host.docker.internal`, which
+`docker-compose.yml` maps to the host gateway (`extra_hosts`). Container
+traffic arrives from a Docker bridge network (inside `172.16.0.0/12`), not
+from `localhost`. Migrations run when the backend starts, so the database
+only needs to exist. Use PostgreSQL 16 or later, the version the `db`
+container runs.
+
+1. **Home server shell:** create the role and database. Use the password
+   from `POSTGRES_PASSWORD` in `.env`, so `make test` keeps working.
+
+   ```bash
+   sudo -u postgres createuser --pwprompt grocery
+   sudo -u postgres createdb --owner grocery grocery
+   ```
+
+   Running the backend tests on this server as well? `#[sqlx::test]` creates
+   a database per test, so the role also needs
+   `sudo -u postgres psql -c 'ALTER ROLE grocery CREATEDB'`.
+
+2. **`postgresql.conf`** (`sudo -u postgres psql -c 'SHOW config_file'`):
+   listen on the Docker bridge as well as loopback. `172.17.0.1` is the
+   `docker0` address that `host-gateway` resolves to; check it with
+   `ip -4 addr show docker0`.
+
+   ```
+   listen_addresses = 'localhost,172.17.0.1'
+   ```
+
+3. **`pg_hba.conf`** (`SHOW hba_file`): allow password logins from Docker
+   networks only.
+
+   ```
+   host  grocery  grocery  172.16.0.0/12  scram-sha-256
+   ```
+
+   Host-side tools (`make test`, `pg_restore` below) connect over
+   `localhost`, which the stock `host all all 127.0.0.1/32 scram-sha-256`
+   line already allows, for every database including the test ones.
+
+4. **Home server shell:** `sudo systemctl restart postgresql`. With a host
+   firewall (ufw, firewalld), allow `5432/tcp` from `172.16.0.0/12`.
+
+5. **`.env`:** remove `db` from the profiles and point the backend at the
+   host. Percent-encode any `@ : / # ?` in the password.
+
+| `.env` key | Value |
+|---|---|
+| `COMPOSE_PROFILES` | Without `db`, e.g. `ollama` |
+| `DATABASE_URL` | `postgres://grocery:<POSTGRES_PASSWORD>@host.docker.internal:5432/grocery` |
+
+**Verify:** `make up` starts no `db` container (`docker compose ps`), and
+`docker compose logs backend` shows the migrations applied with no
+connection errors.
+
+**Moving data from the `db` container:** before step 5, with the old stack
+still up:
+
+```bash
+docker compose exec -T db pg_dump -U grocery -Fc grocery > grocery.dump
+pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
+```
+
+| Symptom | Fix |
+|---|---|
+| Backend logs `connection refused` | `listen_addresses` misses `172.17.0.1`, or the firewall blocks 5432 from Docker. |
+| Backend logs `no pg_hba.conf entry` | Add the step 3 line, then restart PostgreSQL. |
+| Backend logs `password authentication failed` | The password in `DATABASE_URL` differs from the role's, or has an unencoded special character. |
+| `make up` stops with "COMPOSE_PROFILES does not include db" | `DATABASE_URL` still names `db`; finish step 5. On a developer machine, add `db` instead (a `.env` made before the `db` profile existed lacks it). |
+| A `db` container still starts | `db` is still in `COMPOSE_PROFILES`, in `.env` or exported in the shell (the shell wins). |
 
 ---
 

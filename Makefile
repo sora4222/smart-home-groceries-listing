@@ -15,7 +15,9 @@ setup-env:
 	@sh scripts/fill-env.sh
 
 ## Lifecycle
+# check-db-profile: an older .env may still lack `db` in COMPOSE_PROFILES.
 up:
+	@sh scripts/check-db-profile.sh
 	@docker compose up -d 2>&1 | grep -E "error|Error|started|healthy" || true
 
 # `docker compose down` has no quiet flag, so only errors are shown.
@@ -39,6 +41,7 @@ test-tooling:
 	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
 	@sh scripts/check-file-length.test.sh | grep -E "FAIL|expected|actual" || echo "check-file-length: ok"
 	@sh scripts/check-migrations.test.sh | grep -E "FAIL|expected|actual" || echo "check-migrations: ok"
+	@sh scripts/check-db-profile.test.sh | grep -E "FAIL|expected|actual" || echo "check-db-profile: ok"
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5
@@ -92,6 +95,7 @@ check:
 
 ## Human-readable variants (hm-*)
 hm-up:
+	sh scripts/check-db-profile.sh
 	docker compose up
 
 hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling

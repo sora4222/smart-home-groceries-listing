@@ -23,7 +23,7 @@ Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 ## Prerequisites
 
 - Shell access to the home server, in a checkout of this repository, with
-  Docker (Compose v2), `make`, `openssl`, Node 22 and `pnpm`.
+  Docker (Compose v2.20 or later, for optional `depends_on`), `make`, `openssl`, Node 22 and `pnpm`.
 - A domain whose DNS is managed by Cloudflare (Cloudflare Registrar works).
 - The Amazon account the target Echo device is registered to.
 - Woolworths credentials (passkey or password manager).
@@ -421,6 +421,10 @@ container runs.
    host  grocery  grocery  172.16.0.0/12  scram-sha-256
    ```
 
+   Host-side tools (`make test`, `pg_restore` below) connect over
+   `localhost`, which the stock `host all all 127.0.0.1/32 scram-sha-256`
+   line already allows, for every database including the test ones.
+
 4. **Home server shell:** `sudo systemctl restart postgresql`. With a host
    firewall (ufw, firewalld), allow `5432/tcp` from `172.16.0.0/12`.
 
@@ -449,6 +453,7 @@ pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
 | Backend logs `connection refused` | `listen_addresses` misses `172.17.0.1`, or the firewall blocks 5432 from Docker. |
 | Backend logs `no pg_hba.conf entry` | Add the step 3 line, then restart PostgreSQL. |
 | Backend logs `password authentication failed` | The password in `DATABASE_URL` differs from the role's, or has an unencoded special character. |
+| `make up` stops with "COMPOSE_PROFILES does not include db" | `DATABASE_URL` still names `db`; finish step 5. On a developer machine, add `db` instead (a `.env` made before the `db` profile existed lacks it). |
 | A `db` container still starts | `db` is still in `COMPOSE_PROFILES`, in `.env` or exported in the shell (the shell wins). |
 
 ---

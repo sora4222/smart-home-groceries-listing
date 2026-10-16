@@ -4,14 +4,16 @@ import { openSync, closeSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 
 /** Start a process in its own group; stop only that group on cancellation. */
-export function startProcess(command, args, { cwd, env, log, signal } = {}) {
+export function startProcess(command, args, { cwd, env, log, stdout, signal } = {}) {
   signal?.throwIfAborted();
   const fd = log ? openSync(log, 'a', 0o600) : null;
+  const out = stdout ? openSync(stdout, 'w', 0o600) : fd;
   const child = spawn(command, args, {
     cwd, env, detached: process.platform !== 'win32',
-    stdio: fd === null ? ['ignore', 'inherit', 'inherit'] : ['ignore', fd, fd],
+    stdio: ['ignore', out ?? 'inherit', fd ?? 'inherit'],
   });
   if (fd !== null) closeSync(fd);
+  if (stdout) closeSync(out);
   let ended = false;
   const completed = new Promise((resolve, reject) => {
     child.once('error', () => { ended = true; reject(new Error(`Cannot start ${command}`)); });

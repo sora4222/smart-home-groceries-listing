@@ -64,3 +64,11 @@ assumes an already isolated test stack and resets its data. Verify resource
 cleanup when changing either runner; never reuse a household application stack.
 Keep Vite's automatic dotenv loading disabled for an explicit
 `GROCERY_ENV_FILE`, including the empty file supplied by the browser runner.
+
+Use `test-results.mjs` as the verdict policy for every output mode. Adapters
+read dedicated Vitest/Playwright JSON, pytest hook JSON, or libtest result
+records. Application stdout is diagnostic only. Missing or malformed reports,
+failures, unexpected skips, and an empty aggregate suite fail the gate.
+Cargo discovers binaries through compiler-artifact JSON and preserves doc tests
+on full runs. Its stable `--logfile` adapter is deprecated upstream; keep it
+isolated until stable Rust offers structured output without nightly flags.

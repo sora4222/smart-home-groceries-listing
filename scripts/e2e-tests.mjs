@@ -6,6 +6,7 @@ import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { withTestDatabase } from './test-database.mjs';
 import { cancellation, runProcess, startProcess, withServers } from './test-process.mjs';
+import { readResults, verifyResults } from './test-results.mjs';
 import { testEnvironment } from './test-environment.mjs';
 
 /** Allocate distinct available ports without assuming a worktree's fixed ports. */
@@ -76,12 +77,10 @@ try {
       await withServers(servers, serverSignal => ready(webUrl, servers, AbortSignal.any([signal, serverSignal])));
       console.log('e2e: isolated PostgreSQL, backend, and frontend ready');
       await withServers(servers, async serverSignal => {
-        await runProcess('pnpm', ['e2e', '--reporter=line', ...process.argv.slice(2)], {
-          cwd: frontend, env, signal: AbortSignal.any([signal, serverSignal]), log: join(dir, 'playwright.log'),
+        await runProcess('pnpm', ['e2e', '--reporter=json', ...process.argv.slice(2)], {
+          cwd: frontend, env: { ...env, PLAYWRIGHT_JSON_OUTPUT_FILE: join(dir, 'results.json') }, signal: AbortSignal.any([signal, serverSignal]), log: join(dir, 'playwright.log'),
         });
-        const result = readFileSync(join(dir, 'playwright.log'), 'utf8');
-        if (/\b[1-9]\d* skipped\b/.test(result)) throw new Error('Browser tests have unexpected skips');
-        console.log(`e2e: ${result.match(/\d+ passed \([^\n]+\)/)?.[0] ?? 'passed'}`);
+        verifyResults('e2e', readResults('playwright', join(dir, 'results.json')));
       });
     } finally {
       await Promise.all(servers.map(server => server.stop()));

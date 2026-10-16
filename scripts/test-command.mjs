@@ -2,7 +2,8 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { stripVTControlCharacters } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import { readResults, verifyResults } from './test-results.mjs';
 import { cancellation, runProcess } from './test-process.mjs';
 
 const [label, cwd, command, ...args] = process.argv.slice(2);
@@ -10,11 +11,16 @@ const dir = mkdtempSync(join(tmpdir(), 'grocery-test-command-'));
 const log = join(dir, 'output.log');
 try {
   if (!label || !cwd || !command) throw new Error('Usage: test-command.mjs LABEL DIRECTORY COMMAND [ARGS...]');
-  await runProcess(command, args, { cwd, log, signal: cancellation() });
-  const output = stripVTControlCharacters(readFileSync(log, 'utf8'));
-  if (/\b[1-9]\d* (skipped|ignored)\b/.test(output)) throw new Error(`${label} has unexpected skipped tests`);
-  const summary = output.match(/^\s*(?:Tests\s+)?\d+ passed\b.*$/gm)?.at(-1)?.trim().replace(/^Tests\s+/, '');
-  console.log(`${label}: ${summary ?? 'passed'}`);
+  const report = join(dir, 'results.json');
+  const env = { ...process.env };
+  if (label === 'vitest') args.push('--reporter=json', `--outputFile=${report}`);
+  else if (label === 'pytest') {
+    args.push('-p', 'grocery_pytest_report');
+    env.GROCERY_TEST_REPORT = report;
+    env.PYTHONPATH = [fileURLToPath(new URL('.', import.meta.url)), env.PYTHONPATH].filter(Boolean).join(':');
+  } else throw new Error('Expected vitest or pytest adapter');
+  await runProcess(command, args, { cwd, env, log, signal: cancellation() });
+  verifyResults(label, readResults(label, report));
   rmSync(dir, { recursive: true });
 } catch (error) {
   console.error(error.message);

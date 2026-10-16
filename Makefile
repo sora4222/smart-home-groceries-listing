@@ -37,7 +37,7 @@ test-backend:
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
 	@sh scripts/environment.test.sh
-	@node --test scripts/compose.test.mjs scripts/process.test.mjs
+	@node --test scripts/compose.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh
 	@sh scripts/check-file-length.test.sh
@@ -45,10 +45,10 @@ test-tooling:
 	@sh scripts/database-profiles.test.sh
 
 test-frontend:
-	@node scripts/test-command.mjs frontend frontend pnpm test:run --reporter=dot
+	@node scripts/test-command.mjs vitest frontend pnpm test:run
 
 test-alexa:
-	@node scripts/test-command.mjs alexa sidecars/alexa-bridge uv run pytest -q --disable-warnings
+	@node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -q --disable-warnings
 
 # Owns its database, backend, and frontend; never uses a running household stack.
 e2e:
@@ -107,10 +107,10 @@ hm-test-tooling:
 	@$(MAKE) test-tooling
 
 hm-test-frontend:
-	cd frontend && pnpm test:run
+	node scripts/test-command.mjs vitest frontend pnpm test:run
 
 hm-test-alexa:
-	cd sidecars/alexa-bridge && uv run pytest -v
+	node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -v
 
 hm-e2e:
 	@node scripts/e2e-tests.mjs

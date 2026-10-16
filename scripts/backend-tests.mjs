@@ -3,7 +3,9 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { withTestDatabase } from './test-database.mjs';
-import { cancellation, runProcess } from './test-process.mjs';
+import { cargoResults } from './cargo-results.mjs';
+import { verifyResults } from './test-results.mjs';
+import { cancellation } from './test-process.mjs';
 import { testEnvironment } from './test-environment.mjs';
 
 const signal = cancellation();
@@ -14,16 +16,12 @@ const compact = args[0] === '--compact';
 if (compact) args.shift();
 try {
   await withTestDatabase(async url => {
-    await runProcess('cargo', ['test', '--locked', ...(compact ? ['--quiet'] : []), ...args], {
-      cwd: new URL('../backend/', import.meta.url),
+    const result = await cargoResults(args, {
+      dir, cwd: new URL('../backend/', import.meta.url),
       env: { ...testEnvironment(), DATABASE_URL: url }, log: compact ? log : undefined, signal,
     });
+    verifyResults('backend', result);
   });
-  if (compact) {
-    const results = [...readFileSync(log, 'utf8').matchAll(/test result: ok\. (\d+) passed; (\d+) failed/g)];
-    const passed = results.reduce((sum, result) => sum + Number(result[1]), 0);
-    console.log(`backend: ${passed} passed`);
-  }
   rmSync(dir, { recursive: true });
 } catch (error) {
   console.error(error.message);

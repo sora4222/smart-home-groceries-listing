@@ -8,7 +8,7 @@ import { cancellation, runProcess } from './test-process.mjs';
 try {
   const [action, ...args] = process.argv.slice(2);
   const file = process.env.GROCERY_ENV_FILE ?? fileURLToPath(new URL('../.env', import.meta.url));
-  const env = loadEnvironment({ file, accepts: key => action !== 'down' || key.startsWith('COMPOSE_') });
+  const env = loadEnvironment({ file, required: process.env.GROCERY_ENV_FILE !== undefined, accepts: key => action !== 'down' || key.startsWith('COMPOSE_') });
   if (action === 'up') env.COMPOSE_PROFILES = databaseProfiles(env.DATABASE_URL, env.COMPOSE_PROFILES);
   const childEnv = { ...process.env, ...env };
   for (const key of Object.keys(childEnv)) if (key.startsWith('OP_')) delete childEnv[key];

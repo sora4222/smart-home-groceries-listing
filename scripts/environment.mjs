@@ -26,11 +26,11 @@ export function readSecret(reference, inherited) {
 }
 
 /** Merge .env with exported overrides, then resolve only the selected keys. */
-export function loadEnvironment({ file, inherited = process.env, accepts = () => true, resolve = readSecret }) {
+export function loadEnvironment({ file, required = true, inherited = process.env, accepts = () => true, resolve = readSecret }) {
   let values = {};
   try { values = parseEnv(readFileSync(file, 'utf8')); }
   catch (error) {
-    if (error.code !== 'ENOENT') throw new Error('Cannot read environment file');
+    if (required || error.code !== 'ENOENT') throw new Error('Cannot read environment file');
   }
   const merged = { ...values, ...inherited };
   const result = {};

@@ -20,6 +20,7 @@ function loadFrontendEnvironment(): void {
 	Object.assign(
 		process.env,
 		loadEnvironment({
+			required: process.env.GROCERY_ENV_FILE !== undefined,
 			file: process.env.GROCERY_ENV_FILE ?? new URL("../.env", import.meta.url),
 			accepts: (key) => key.startsWith("CLERK_") || key.startsWith("VITE_"),
 		}),

@@ -50,4 +50,3 @@ test('cancellation terminates the owned subprocess', async () => {
   await assert.rejects(child.completed, /SIGTERM/);
   await child.stop();
 });
-

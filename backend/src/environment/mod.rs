@@ -14,8 +14,9 @@ pub fn load_environment(
 ) -> anyhow::Result<HashMap<String, String>> {
     let mut values = HashMap::new();
     if let Some(file) = file {
-        let entries = dotenvy::from_path_iter(file)
+        let contents = std::fs::read_to_string(file)
             .map_err(|_| anyhow::anyhow!("Cannot read environment file"))?;
+        let entries = dotenvy::from_read_iter(contents.as_bytes());
         for entry in entries {
             let (key, value) =
                 entry.map_err(|_| anyhow::anyhow!("Cannot parse environment file"))?;

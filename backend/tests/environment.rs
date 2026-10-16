@@ -66,3 +66,44 @@ fn provider_errors_are_redacted_and_unresolved_values_fail_closed() {
     );
     assert!(load_environment(None, &inherited, &["DATABASE_URL"], |_| Ok(String::new())).is_err());
 }
+
+#[test]
+fn shared_source_selection_contract() {
+    let fixtures: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("../../scripts/environment-contract.json")).unwrap();
+    for fixture in fixtures {
+        let dir = std::env::temp_dir().join(format!("grocery-contract-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&dir).unwrap();
+        let file = dir.join(".env");
+        if let Some(contents) = fixture["contents"].as_str() {
+            std::fs::write(&file, contents).unwrap();
+        }
+        let selected = match fixture["source"].as_str().unwrap() {
+            "default" => None,
+            "empty" => Some(std::path::Path::new("")),
+            "directory" => Some(dir.as_path()),
+            _ => Some(file.as_path()),
+        };
+        let inherited = fixture["inherited"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(key, value)| (key.clone(), value.as_str().unwrap().to_string()))
+            .collect();
+        let result = load_environment(selected, &inherited, &["ALEXA_SKILL_ID"], |_| {
+            panic!("provider must not run")
+        });
+        std::fs::remove_dir_all(dir).unwrap();
+        if fixture["error"] == true {
+            assert_eq!(
+                result.unwrap_err().to_string(),
+                "Cannot read environment file"
+            );
+        } else {
+            assert_eq!(
+                result.unwrap()["ALEXA_SKILL_ID"],
+                fixture["expected"].as_str().unwrap()
+            );
+        }
+    }
+}

@@ -36,7 +36,7 @@ test('startup command resolves every requested key with desktop or service-accou
 
 test('application scope excludes unrelated provider failures and preserves literal punctuation', () => {
   const result = loadEnvironment({
-    file: '/nonexistent/fixture.env',
+    file: '/nonexistent/fixture.env', required: false,
     inherited: { CLERK_SECRET_KEY: 'op://Development/clerk/secret', DATABASE_URL: 'op://Development/missing/url', VITE_EXAMPLE: 'a$#@ b' },
     accepts: key => key.startsWith('CLERK_') || key.startsWith('VITE_'),
     resolve: reference => { assert.equal(reference, 'op://Development/clerk/secret'); return 'resolved-secret'; },
@@ -72,7 +72,7 @@ printf desktop-secret
       OP_BIOMETRIC_UNLOCK_ENABLED: 'false', AUTH_TRACE: join(dir, 'trace'),
       SERVICE_RESULT: failure,
     };
-    const result = loadEnvironment({ file: join(dir, '.env'), inherited });
+    const result = loadEnvironment({ file: join(dir, '.env'), required: false, inherited });
     assert.equal(result.CLERK_SECRET_KEY, 'desktop-secret');
     assert.equal(readFileSync(join(dir, 'trace'), 'utf8'), 'service\ndesktop\n');
     assert.equal(inherited.OP_SERVICE_ACCOUNT_TOKEN, 'denied-fixture-token');
@@ -81,7 +81,7 @@ printf desktop-secret
 }
 
 test('provider failures expose only the variable name', () => {
-  assert.throws(() => loadEnvironment({ file: '/nonexistent/fixture.env', inherited: { CLERK_SECRET_KEY: 'op://private/reference/secret' }, resolve: () => { throw Error('sensitive provider output'); } }), { message: 'Cannot load CLERK_SECRET_KEY from 1Password; check CLI access and the reference' });
+  assert.throws(() => loadEnvironment({ file: '/nonexistent/fixture.env', required: false, inherited: { CLERK_SECRET_KEY: 'op://private/reference/secret' }, resolve: () => { throw Error('sensitive provider output'); } }), { message: 'Cannot load CLERK_SECRET_KEY from 1Password; check CLI access and the reference' });
 });
 
 test('denied CLI access stops the command without exposing provider output or changing dotenv', () => {

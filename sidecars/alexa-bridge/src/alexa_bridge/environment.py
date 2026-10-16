@@ -57,7 +57,7 @@ def load_environment() -> dict[str, str]:
     configured = os.environ.get("GROCERY_ENV_FILE")
     file = (
         Path(configured)
-        if configured
+        if configured is not None
         else next(
             (
                 parent / ".env"
@@ -68,7 +68,10 @@ def load_environment() -> dict[str, str]:
         )
     )
     try:
-        values = dotenv_values(file, interpolate=False) if file else {}
+        values = {}
+        if file is not None:
+            with file.open(encoding="utf-8") as stream:
+                values = dotenv_values(stream=stream, interpolate=False)
     except (OSError, UnicodeError):
         raise RuntimeError("Cannot read environment file") from None
     result = {}

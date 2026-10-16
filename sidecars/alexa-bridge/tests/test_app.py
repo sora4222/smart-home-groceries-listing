@@ -72,6 +72,7 @@ def test_the_skill_route_rejects_a_get(client):
 @pytest.mark.parametrize("source", ["defaults", "dotenv", "reference", "exported"])
 def test_direct_startup_applies_resolved_port_and_logging(tmp_path, monkeypatch, source):
     monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("")
     monkeypatch.setenv("GROCERY_ENV_FILE", str(tmp_path / ".env"))
     monkeypatch.setenv("ALEXA_SKILL_ID", SETTINGS.skill_id)
     monkeypatch.setenv("ALEXA_BRIDGE_SECRET", SETTINGS.bridge_secret)

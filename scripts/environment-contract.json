@@ -1,0 +1,9 @@
+[
+  {"name":"optional default absent", "source":"default", "contents":null, "inherited":{"ALEXA_SKILL_ID":"exported"}, "expected":"exported"},
+  {"name":"explicit absent despite exports", "source":"explicit", "contents":null, "inherited":{"ALEXA_SKILL_ID":"exported"}, "error":true},
+  {"name":"explicit empty path", "source":"empty", "contents":null, "inherited":{"ALEXA_SKILL_ID":"exported"}, "error":true},
+  {"name":"explicit directory", "source":"directory", "contents":null, "inherited":{"ALEXA_SKILL_ID":"exported"}, "error":true},
+  {"name":"explicit literal", "source":"explicit", "contents":"ALEXA_SKILL_ID=literal\n", "inherited":{}, "expected":"literal"},
+  {"name":"export overrides selected file", "source":"explicit", "contents":"ALEXA_SKILL_ID=literal\n", "inherited":{"ALEXA_SKILL_ID":"exported"}, "expected":"exported"},
+  {"name":"empty export overrides reference", "source":"explicit", "contents":"ALEXA_SKILL_ID=op://unavailable/secret\n", "inherited":{"ALEXA_SKILL_ID":""}, "expected":""}
+]

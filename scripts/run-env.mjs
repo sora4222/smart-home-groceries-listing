@@ -9,6 +9,7 @@ try {
   const [command, ...args] = argv;
   if (!command) throw new Error('Usage: node scripts/run-env.mjs COMMAND [ARGS...]');
   const env = loadEnvironment({
+    required: process.env.GROCERY_ENV_FILE !== undefined,
     file: process.env.GROCERY_ENV_FILE ?? fileURLToPath(new URL('../.env', import.meta.url)),
     accepts: key => !prefixes || prefixes.some(prefix => key.startsWith(prefix)),
   });

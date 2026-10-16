@@ -103,6 +103,7 @@ def test_failed_service_account_retries_with_desktop_authentication(
     tmp_path, monkeypatch, service_result
 ):
     monkeypatch.setenv("PATH", str(tmp_path))
+    (tmp_path / ".env").write_text("")
     monkeypatch.setenv("GROCERY_ENV_FILE", str(tmp_path / ".env"))
     monkeypatch.setenv("ALEXA_SKILL_ID", "op://Development/skill/id")
     monkeypatch.setenv("ALEXA_BRIDGE_SECRET", "fixture-secret")

@@ -72,3 +72,7 @@ failures, unexpected skips, and an empty aggregate suite fail the gate.
 Cargo discovers binaries through compiler-artifact JSON and preserves doc tests
 on full runs. Its stable `--logfile` adapter is deprecated upstream; keep it
 isolated until stable Rust offers structured output without nightly flags.
+
+Extend `scripts/environment-contract.json` for configuration source policy,
+then exercise it in all three loaders. Explicit files must be readable even
+when exports supply every key; only absent default discovery is optional.

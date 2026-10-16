@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { withTestDatabase } from './test-database.mjs';
-import { cancellation, runProcess, startProcess } from './test-process.mjs';
+import { cancellation, runProcess, startProcess, withServers } from './test-process.mjs';
 import { testEnvironment } from './test-environment.mjs';
 
 /** Allocate distinct available ports without assuming a worktree's fixed ports. */
@@ -26,7 +26,6 @@ async function ready(url, servers, signal) {
   const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
     signal.throwIfAborted();
-    servers.forEach(server => server.assertRunning());
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       await response.body?.cancel();
@@ -70,24 +69,20 @@ try {
       servers.push(startProcess('cargo', ['run', '--locked', '--quiet', '--bin', 'grocery-backend'], {
         cwd: backend, env, log: join(dir, 'backend.log'), signal,
       }));
-      await ready(`${apiUrl}/api/health`, servers, signal);
+      await withServers(servers, serverSignal => ready(`${apiUrl}/api/health`, servers, AbortSignal.any([signal, serverSignal])));
       servers.push(startProcess('pnpm', ['exec', 'vite', 'dev', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
         cwd: frontend, env, log: join(dir, 'frontend.log'), signal,
       }));
-      await ready(webUrl, servers, signal);
+      await withServers(servers, serverSignal => ready(webUrl, servers, AbortSignal.any([signal, serverSignal])));
       console.log('e2e: isolated PostgreSQL, backend, and frontend ready');
-      const monitor = setInterval(() => {
-        try { servers.forEach(server => server.assertRunning()); }
-        catch { process.kill(process.pid, 'SIGTERM'); }
-      }, 500);
-      try {
+      await withServers(servers, async serverSignal => {
         await runProcess('pnpm', ['e2e', '--reporter=line', ...process.argv.slice(2)], {
-          cwd: frontend, env, signal, log: join(dir, 'playwright.log'),
+          cwd: frontend, env, signal: AbortSignal.any([signal, serverSignal]), log: join(dir, 'playwright.log'),
         });
         const result = readFileSync(join(dir, 'playwright.log'), 'utf8');
         if (/\b[1-9]\d* skipped\b/.test(result)) throw new Error('Browser tests have unexpected skips');
         console.log(`e2e: ${result.match(/\d+ passed \([^\n]+\)/)?.[0] ?? 'passed'}`);
-      } finally { clearInterval(monitor); }
+      });
     } finally {
       await Promise.all(servers.map(server => server.stop()));
     }

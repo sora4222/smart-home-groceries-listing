@@ -37,7 +37,7 @@ test-backend:
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
 	@sh scripts/environment.test.sh
-	@node --test scripts/compose.test.mjs
+	@node --test scripts/compose.test.mjs scripts/process.test.mjs
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh
 	@sh scripts/check-file-length.test.sh

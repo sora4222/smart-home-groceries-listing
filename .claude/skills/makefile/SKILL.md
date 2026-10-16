@@ -32,3 +32,7 @@ See `docs/features/FEATURE_CONFIGURATION.md` when adding settings.
 Choose the database profile from the resolved `DATABASE_URL`: enable `db` for
 the Compose hostname, remove it for external PostgreSQL, and preserve all
 other profiles and the original configuration file.
+
+All launchers use `test-process.mjs` for process-group ownership and signal
+status. Race server exit promises against owned work with `withServers`;
+await cancellation cleanup before releasing the database.

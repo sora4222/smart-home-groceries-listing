@@ -1,5 +1,5 @@
 /** Run a command with resolved configuration; leave .env unchanged. */
-import { spawn } from 'node:child_process';
+import { cancellation, runProcess } from './test-process.mjs';
 import { fileURLToPath } from 'node:url';
 import { loadEnvironment } from './environment.mjs';
 
@@ -17,11 +17,8 @@ try {
   for (const key of Object.keys(childEnv)) {
     if (key.startsWith('OP_')) delete childEnv[key];
   }
-  const child = spawn(command, args, { env: childEnv, stdio: 'inherit' });
-  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
-  child.on('error', () => { console.error('Cannot start the configured command'); process.exitCode = 1; });
-  child.on('exit', (code, signal) => { process.exitCode = code ?? (signal === 'SIGINT' ? 130 : 143); });
+  await runProcess(command, args, { env: childEnv, signal: cancellation() });
 } catch (error) {
   console.error(error.message);
-  process.exitCode = 1;
+  process.exitCode ||= 1;
 }

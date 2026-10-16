@@ -59,3 +59,20 @@ export function cancellation() {
   }
   return controller.signal;
 }
+
+/** Fail immediately when any owned server exits while work is still running. */
+export async function withServers(servers, work) {
+  const controller = new AbortController();
+  const running = work(controller.signal);
+  try {
+    return await Promise.race([
+      running,
+      ...servers.map(server => server.completed.then(() => {
+        throw new Error('Test server exited before tests completed');
+      })),
+    ]);
+  } finally {
+    controller.abort();
+    await running.catch(() => {});
+  }
+}

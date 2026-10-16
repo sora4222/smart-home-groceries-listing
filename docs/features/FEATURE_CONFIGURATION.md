@@ -20,6 +20,8 @@ does not rewrite the connection URL or change a running database password.
 The backend and bridge search the working directory and ancestors for `.env`.
 JavaScript entry points use the checkout root. `GROCERY_ENV_FILE` overrides
 that path. Each worktree has independent configuration and no shared cache.
+With an explicit environment file, Vite's automatic dotenv loading is disabled
+so it cannot merge values from the checkout after the selected file is loaded.
 
 Only references need the host's `op` executable. All loaders first try an
 exported nonempty `OP_SERVICE_ACCOUNT_TOKEN` without desktop integration. If
@@ -38,7 +40,9 @@ reintroduce unresolved references. New backend settings belong in both the
 backend startup scope and the Compose environment block.
 Application startup enables the database profile when the resolved URL uses
 the Compose `db` hostname and removes it for external PostgreSQL. Other profiles
-and the original configuration file are preserved.
+and the original configuration file are preserved. Tests use
+[independent disposable PostgreSQL servers](FEATURE_DATABASE.md), so application
+database settings and profiles cannot block or redirect a test run.
 
 Tests: `scripts/environment.test.mjs` covers all requested keys, both CLI auth
 environments, authentication fallback, precedence, scope, redacted errors, and actual Compose parsing.

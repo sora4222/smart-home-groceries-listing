@@ -141,24 +141,21 @@ test('make up selects Docker or external PostgreSQL and propagates Compose failu
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('backend test target stops when database credential resolution fails', () => {
+test('backend tests select the disposable database runner without reading application secrets', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-test-command-'));
   try {
     mkdirSync(join(dir, 'scripts'));
     mkdirSync(join(dir, 'backend'));
     copyFileSync('Makefile', join(dir, 'Makefile'));
-    for (const name of ['environment.mjs', 'run-env.mjs', 'test-database-url.sh']) {
-      copyFileSync(`scripts/${name}`, join(dir, 'scripts', name));
-    }
     copyFileSync('scripts/backend-tests.sh', join(dir, 'scripts/backend-tests.sh'));
     writeFileSync(join(dir, '.env'), 'POSTGRES_PASSWORD=op://Development/test/password\n');
-    writeFileSync(join(dir, 'op'), '#!/bin/sh\nexit 7\n', { mode: 0o700 });
-    writeFileSync(join(dir, 'cargo'), '#!/bin/sh\necho cargo-started\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'op'), '#!/bin/sh\necho unexpected-provider-access >&2\nexit 7\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'node'), '#!/bin/sh\nprintf "%s %s" "$1" "$2"\n', { mode: 0o700 });
     const result = spawnSync('make', ['test-backend'], {
       cwd: dir, env: { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: join(dir, '.env') }, encoding: 'utf8',
     });
-    assert.notEqual(result.status, 0);
-    assert.doesNotMatch(result.stdout, /cargo-started/);
-    assert.match(result.stderr, /Cannot load POSTGRES_PASSWORD/);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'scripts/backend-tests.mjs --compact');
+    assert.equal(result.stderr, '');
   } finally { rmSync(dir, { recursive: true }); }
 });

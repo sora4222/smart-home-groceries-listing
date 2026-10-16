@@ -28,6 +28,9 @@ database or router behavior. The latter creates a fresh database per test;
 never use a development database. `backend/tests/common::TestApp` exercises
 the real router and middleware. Cover new routes' success, authentication, and
 invalid-input paths; add a CORS preflight test for a new HTTP method.
+`make test-backend` owns a ready PostgreSQL Testcontainer on a random port.
+Install root tooling with `pnpm install`; keep Docker available. Do not derive
+test connections from `.env`, `POSTGRES_*`, or `TEST_DATABASE_URL`.
 Add every new household route to `backend/tests/auth_required.rs`; real
 Clerk tokens are tested in `tests/clerk_tokens.rs` with a mock JWKS.
 
@@ -55,3 +58,9 @@ interact before hydration completes.
 E2E runs with sign-in off: the backend with `DEV_AUTH_BYPASS=true` and the web
 app with `VITE_AUTH_MODE=off pnpm dev`, or a Clerk key in `.env` sends every
 test to the sign-in page.
+Use `make e2e` for an isolated database and local servers with fake providers.
+The runner sets random ports and the matching OAuth callback. Raw `pnpm e2e`
+assumes an already isolated test stack and resets its data. Verify resource
+cleanup when changing either runner; never reuse a household application stack.
+Keep Vite's automatic dotenv loading disabled for an explicit
+`GROCERY_ENV_FILE`, including the empty file supplied by the browser runner.

@@ -443,17 +443,16 @@ from `localhost`. Migrations run when the backend starts, so the database
 only needs to exist. Use PostgreSQL 16 or later, the version the `db`
 container runs.
 
-1. **Home server shell:** create the role and database. Use the password
-   from `POSTGRES_PASSWORD` in `.env`, so `make test` keeps working.
+1. **Home server shell:** create the role and database. Put its password in
+   the application's `DATABASE_URL`, percent-encoded as required for a URL.
 
    ```bash
    sudo -u postgres createuser --pwprompt grocery
    sudo -u postgres createdb --owner grocery grocery
    ```
 
-   Running the backend tests on this server as well? `#[sqlx::test]` creates
-   a database per test, so the role also needs
-   `sudo -u postgres psql -c 'ALTER ROLE grocery CREATEDB'`.
+   The application role needs no `CREATEDB` privilege. Tests use a separate
+   disposable Docker server and never connect to this application database.
 
 2. **`postgresql.conf`** (`sudo -u postgres psql -c 'SHOW config_file'`):
    listen on the Docker bridge as well as loopback. `172.17.0.1` is the
@@ -471,15 +470,16 @@ container runs.
    host  grocery  grocery  172.16.0.0/12  scram-sha-256
    ```
 
-   Host-side tools (`make test`, `pg_restore` below) connect over
+   Host-side tools (`pg_restore` below) connect over
    `localhost`, which the stock `host all all 127.0.0.1/32 scram-sha-256`
-   line already allows, for every database including the test ones.
+   line already allows.
 
 4. **Home server shell:** `sudo systemctl restart postgresql`. With a host
    firewall (ufw, firewalld), allow `5432/tcp` from `172.16.0.0/12`.
 
-5. **`.env`:** remove `db` from the profiles and point the backend at the
-   host. Percent-encode any `@ : / # ?` in the password.
+5. **`.env`:** point the backend at the host. Startup removes `db` from the
+   active profiles for external PostgreSQL, even in an older configuration.
+   Percent-encode any `@ : / # ?` in the password.
 
 | `.env` key | Value |
 |---|---|

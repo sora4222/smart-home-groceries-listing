@@ -88,16 +88,22 @@ the internet.
 
 ## Testing
 ```bash
-make test          # backend (cargo test) + frontend (vitest) + sidecar (pytest)
+pnpm install       # root Testcontainers tooling
+cd frontend && pnpm install && pnpm exec playwright install chromium && cd ..
+make test          # Rust + Vitest + pytest + tooling + desktop/mobile Playwright
 make hm-test       # same, verbose
 ```
 
-The backend's tests need a PostgreSQL server at `DATABASE_URL` whose user may
-create databases — `make up` provides one. They do **not** need a Docker
-daemon: `#[sqlx::test]` creates and drops a database per test, replacing the
-old testcontainers fixture.
+Tests require a running Docker daemon. Testcontainers starts a fresh PostgreSQL
+16 server for each backend or browser run, with random credentials, a random
+loopback port, and no application volume. SQLx creates a separate database per
+backend integration test. Cleanup runs after success, failure, and interrupts.
+Tests ignore the application's `.env`, database credentials, and Compose
+profiles. They never need a 1Password account or access to a household database.
 
-See `skills/testing.md` for the full pattern (unit vs. integration vs. e2e).
+`make test-backend` and `make e2e` own their test infrastructure independently.
+See [database modes](docs/features/FEATURE_DATABASE.md) and the
+[testing skill](.claude/skills/testing/SKILL.md).
 
 ## Repository layout
 ```

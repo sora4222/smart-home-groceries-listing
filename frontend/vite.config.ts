@@ -28,8 +28,10 @@ function loadFrontendEnvironment(): void {
 
 const config = defineConfig(() => {
 	loadFrontendEnvironment();
+	const envDir: string | false = process.env.GROCERY_ENV_FILE ? false : ENV_DIR;
 	return {
-		envDir: ENV_DIR,
+		// An explicit file is already loaded above; Vite must not merge another .env.
+		envDir,
 		resolve: { tsconfigPaths: true },
 		server: {
 			port: 3000,

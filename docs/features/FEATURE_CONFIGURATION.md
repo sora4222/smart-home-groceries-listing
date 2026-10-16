@@ -53,3 +53,7 @@ by desktop access. Provider tests use fixtures, never real accounts.
 
 Provisioning: [human setup](../human-setup.md#1password).
 Commands: [operations](../using-the-app.md#configuration-and-1password).
+
+Compose lifecycle commands share `scripts/compose.mjs` and pass the selected
+file explicitly to Compose. Shutdown selects only Compose configuration and
+does not unlock application secrets. Compose failures propagate to Make.

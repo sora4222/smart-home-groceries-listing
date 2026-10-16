@@ -22,7 +22,9 @@ ports. Include browser tests in `test`; preserve command failures rather than
 masking them with output filters. Keep process-group and container cleanup in
 the owned runners. Prefer existing targets over duplicating their behavior.
 
-Compose startup uses `scripts/run-env.mjs` to resolve `op://` settings.
+Compose lifecycle commands use `scripts/compose.mjs` with the same selected
+`--env-file`. Shutdown loads only Compose settings and preserves failures
+without resolving application secrets. Startup resolves `op://` settings.
 Keep authentication on the host and backend environment mappings explicit;
 `env_file: .env` bypasses resolution. Test with fixture configuration through
 `make test-tooling`, without displaying real resolved Compose configuration.

@@ -17,16 +17,16 @@ setup-env:
 ## Lifecycle
 # Database profiles follow the resolved URL, including older .env files.
 up:
-	@node scripts/run-env.mjs sh scripts/compose-up.sh -d
+	@node scripts/compose.mjs up -d
 
-# `docker compose down` has no quiet flag, so only errors are shown.
+# Shutdown selects the same project without resolving application secrets.
 down:
-	@docker compose down 2>&1 | grep -E "error|Error" || true
+	@node scripts/compose.mjs down
 
 restart: down up
 
 alexa-up:
-	@node scripts/run-env.mjs docker compose up -d alexa-bridge
+	@node scripts/compose.mjs up -d alexa-bridge
 
 ## Tests (compact — for agent use)
 test: test-backend test-frontend test-alexa test-tooling e2e
@@ -37,6 +37,7 @@ test-backend:
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
 	@sh scripts/environment.test.sh
+	@node --test scripts/compose.test.mjs
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh
 	@sh scripts/check-file-length.test.sh
@@ -95,7 +96,7 @@ check: lint
 
 ## Human-readable variants (hm-*)
 hm-up:
-	@node scripts/run-env.mjs sh scripts/compose-up.sh
+	@node scripts/compose.mjs up
 
 hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 

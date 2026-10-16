@@ -124,7 +124,7 @@ test('make up selects Docker or external PostgreSQL and propagates Compose failu
   try {
     mkdirSync(join(dir, 'scripts'));
     copyFileSync('Makefile', join(dir, 'Makefile'));
-    for (const name of ['environment.mjs', 'run-env.mjs', 'compose-up.sh', 'database-profiles.mjs']) {
+    for (const name of ['environment.mjs', 'run-env.mjs', 'compose.mjs', 'test-process.mjs', 'database-profiles.mjs']) {
       copyFileSync(`scripts/${name}`, join(dir, 'scripts', name));
     }
     writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s" "$COMPOSE_PROFILES"\nexit 7\n', { mode: 0o700 });

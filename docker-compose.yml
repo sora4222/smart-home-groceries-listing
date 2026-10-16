@@ -1,6 +1,6 @@
 services:
-  # Development database. Runs only when `db` is in COMPOSE_PROFILES (it is in
-  # .env.example). A server with its own PostgreSQL drops `db` from the
+  # Development database. Startup enables `db` when DATABASE_URL names db.
+  # A server with its own PostgreSQL drops `db` from the
   # profiles and points DATABASE_URL at host.docker.internal:5432 instead —
   # docs/human-setup.md, "Optional: PostgreSQL installed on the server".
   db:

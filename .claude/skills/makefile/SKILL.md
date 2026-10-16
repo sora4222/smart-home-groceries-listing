@@ -26,3 +26,6 @@ Keep authentication on the host and backend environment mappings explicit;
 `env_file: .env` bypasses resolution. Test with fixture configuration through
 `make test-tooling`, without displaying real resolved Compose configuration.
 See `docs/features/FEATURE_CONFIGURATION.md` when adding settings.
+Choose the database profile from the resolved `DATABASE_URL`: enable `db` for
+the Compose hostname, remove it for external PostgreSQL, and preserve all
+other profiles and the original configuration file.

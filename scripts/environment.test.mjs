@@ -119,25 +119,25 @@ test('Compose passes resolved backend and Alexa settings without provider creden
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('make up rejects an invalid database profile and propagates Compose failures', () => {
+test('make up selects Docker or external PostgreSQL and propagates Compose failures', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-startup-'));
   try {
     mkdirSync(join(dir, 'scripts'));
     copyFileSync('Makefile', join(dir, 'Makefile'));
-    for (const name of ['environment.mjs', 'run-env.mjs', 'compose-up.sh', 'check-db-profile.sh']) {
+    for (const name of ['environment.mjs', 'run-env.mjs', 'compose-up.sh', 'database-profiles.mjs']) {
       copyFileSync(`scripts/${name}`, join(dir, 'scripts', name));
     }
-    writeFileSync(join(dir, 'docker'), '#!/bin/sh\necho compose-called\nexit 7\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s" "$COMPOSE_PROFILES"\nexit 7\n', { mode: 0o700 });
     const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: join(dir, '.env') };
     writeFileSync(join(dir, '.env'), 'DATABASE_URL=postgres://fixture@db/grocery\nCOMPOSE_PROFILES=ollama\n');
-    const rejected = spawnSync('make', ['up'], { cwd: dir, env, encoding: 'utf8' });
-    assert.notEqual(rejected.status, 0);
-    assert.equal(rejected.stdout, '');
-    assert.match(rejected.stderr, /does not include db/);
-    writeFileSync(join(dir, '.env'), 'DATABASE_URL=postgres://fixture@db/grocery\nCOMPOSE_PROFILES=db\n');
-    const failed = spawnSync('make', ['up'], { cwd: dir, env, encoding: 'utf8' });
-    assert.notEqual(failed.status, 0);
-    assert.equal(failed.stdout.trim(), 'compose-called');
+    const docker = spawnSync('make', ['up'], { cwd: dir, env, encoding: 'utf8' });
+    assert.notEqual(docker.status, 0);
+    assert.equal(docker.stdout, 'ollama,db');
+    assert.equal(readFileSync(join(dir, '.env'), 'utf8'), 'DATABASE_URL=postgres://fixture@db/grocery\nCOMPOSE_PROFILES=ollama\n');
+    writeFileSync(join(dir, '.env'), 'DATABASE_URL=postgres://fixture@host.docker.internal/grocery\nCOMPOSE_PROFILES=ollama,db\n');
+    const external = spawnSync('make', ['up'], { cwd: dir, env, encoding: 'utf8' });
+    assert.notEqual(external.status, 0);
+    assert.equal(external.stdout, 'ollama');
   } finally { rmSync(dir, { recursive: true }); }
 });
 

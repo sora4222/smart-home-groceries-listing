@@ -36,6 +36,9 @@ need no CLI. Backend health probes use existing values without unlocking secrets
 Compose explicitly maps backend settings. Raw `env_file: .env` would
 reintroduce unresolved references. New backend settings belong in both the
 backend startup scope and the Compose environment block.
+Application startup enables the database profile when the resolved URL uses
+the Compose `db` hostname and removes it for external PostgreSQL. Other profiles
+and the original configuration file are preserved.
 
 Tests: `scripts/environment.test.mjs` covers all requested keys, both CLI auth
 environments, authentication fallback, precedence, scope, redacted errors, and actual Compose parsing.

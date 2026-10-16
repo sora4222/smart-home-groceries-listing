@@ -20,7 +20,7 @@ setup-env:
 	@sh scripts/fill-env.sh
 
 ## Lifecycle
-# check-db-profile: an older .env may still lack `db` in COMPOSE_PROFILES.
+# Database profiles follow the resolved URL, including older .env files.
 up:
 	@node scripts/run-env.mjs sh scripts/compose-up.sh -d
 
@@ -46,7 +46,7 @@ test-tooling:
 	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
 	@sh scripts/check-file-length.test.sh | grep -E "FAIL|expected|actual" || echo "check-file-length: ok"
 	@sh scripts/check-migrations.test.sh | grep -E "FAIL|expected|actual" || echo "check-migrations: ok"
-	@sh scripts/check-db-profile.test.sh | grep -E "FAIL|expected|actual" || echo "check-db-profile: ok"
+	@sh scripts/database-profiles.test.sh | grep -E "FAIL|expected|actual" || echo "check-db-profile: ok"
 
 test-frontend:
 	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5

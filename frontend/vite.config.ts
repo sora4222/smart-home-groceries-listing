@@ -3,7 +3,8 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
+import { loadEnvironment } from "../scripts/environment.mjs";
 
 /**
  * The repository root, where the one `.env` lives (`docs/human-setup.md`).
@@ -12,21 +13,26 @@ import { defineConfig, loadEnv } from "vite";
 const ENV_DIR = "..";
 
 /**
- * Clerk's server middleware reads `CLERK_SECRET_KEY` from the process
- * environment, which Vite does not fill from `.env`. Copy it across for the
- * dev server, without overriding a value the shell already set.
+ * Resolve frontend configuration before Vite or Clerk reads it. Backend and
+ * tunnel credentials are outside this process's configuration boundary.
  */
-function shareClerkSecretWithServer(mode: string): void {
-	const env = loadEnv(mode, ENV_DIR, "CLERK_");
-	if (!process.env.CLERK_SECRET_KEY && env.CLERK_SECRET_KEY) {
-		process.env.CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
-	}
+function loadFrontendEnvironment(): void {
+	Object.assign(
+		process.env,
+		loadEnvironment({
+			required: process.env.GROCERY_ENV_FILE !== undefined,
+			file: process.env.GROCERY_ENV_FILE ?? new URL("../.env", import.meta.url),
+			accepts: (key) => key.startsWith("CLERK_") || key.startsWith("VITE_"),
+		}),
+	);
 }
 
-const config = defineConfig(({ mode }) => {
-	shareClerkSecretWithServer(mode);
+const config = defineConfig(() => {
+	loadFrontendEnvironment();
+	const envDir: string | false = process.env.GROCERY_ENV_FILE ? false : ENV_DIR;
 	return {
-		envDir: ENV_DIR,
+		// An explicit file is already loaded above; Vite must not merge another .env.
+		envDir,
 		resolve: { tsconfigPaths: true },
 		server: {
 			port: 3000,

@@ -24,6 +24,31 @@ and API details are in [`features/`](features/).
 
 ---
 
+## Configuration and 1Password
+
+`make up`, `make hm-up`, and `make alexa-up` resolve references before
+starting Compose. Backend, frontend, and bridge processes also load their own
+settings when started directly. Exported variables override `.env`.
+Restart the affected process after changing a value.
+
+For an arbitrary local command:
+
+```bash
+make run-env cmd='docker compose up -d backend'
+```
+
+Existing `cd frontend && pnpm dev` and `pnpm start` commands load Clerk
+settings before startup. `cargo run` from `backend/` and the bridge's
+`create_app()` load their own settings. Start containers through the shared
+loader so the images receive resolved values.
+
+Concurrent worktrees need separate `.env` files, `COMPOSE_PROJECT_NAME`,
+`POSTGRES_PORT`, and frontend ports. `GROCERY_ENV_FILE` selects another file.
+Desktop approvals and optional service-account provisioning are in
+[setup](human-setup.md#1password).
+
+---
+
 ## Voice intake: add
 
 "Alexa, ask grocery list to add 2 milk." creates a **pending** intake

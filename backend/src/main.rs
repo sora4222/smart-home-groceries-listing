@@ -19,8 +19,19 @@ use grocery_backend::{build_app, db, logging};
 /// How long the health probe waits before declaring the server unhealthy.
 const HEALTH_CHECK_TIMEOUT_SECS: u64 = 5;
 
+fn main() -> ExitCode {
+    // Health probes use the container's existing environment and never unlock secrets.
+    if !std::env::args().any(|arg| arg == "--health-check") {
+        if let Err(error) = grocery_backend::environment::initialize() {
+            eprintln!("{error}");
+            return ExitCode::FAILURE;
+        }
+    }
+    async_main()
+}
+
 #[tokio::main]
-async fn main() -> ExitCode {
+async fn async_main() -> ExitCode {
     // Held until `main` returns: dropping it stops the access-log file writer.
     let _log_guard = logging::init(access_log_dir().as_deref());
 

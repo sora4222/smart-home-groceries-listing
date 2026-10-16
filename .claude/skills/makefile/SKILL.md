@@ -16,7 +16,23 @@ Run each toolchain in its owned directory:
 - Alexa bridge: `sidecars/alexa-bridge/` with `uv run`.
 - Frontend: `frontend/` with `pnpm`.
 
-Use `TEST_DATABASE_URL` for backend tests. New long-running services or
-fixed-port targets must accept worktree-specific configuration so concurrent
-checkouts do not collide. Keep `up`/`down` aligned when a target manages a
-service. Prefer existing targets over duplicating their behavior.
+Backend and browser test targets own disposable PostgreSQL Testcontainers.
+Keep tests independent of application `.env`, profiles, secrets, and fixed
+ports. Include browser tests in `test`; preserve command failures rather than
+masking them with output filters. Keep process-group and container cleanup in
+the owned runners. Prefer existing targets over duplicating their behavior.
+
+Compose lifecycle commands use `scripts/compose.mjs` with the same selected
+`--env-file`. Shutdown loads only Compose settings and preserves failures
+without resolving application secrets. Startup resolves `op://` settings.
+Keep authentication on the host and backend environment mappings explicit;
+`env_file: .env` bypasses resolution. Test with fixture configuration through
+`make test-tooling`, without displaying real resolved Compose configuration.
+See `docs/features/FEATURE_CONFIGURATION.md` when adding settings.
+Choose the database profile from the resolved `DATABASE_URL`: enable `db` for
+the Compose hostname, remove it for external PostgreSQL, and preserve all
+other profiles and the original configuration file.
+
+All launchers use `test-process.mjs` for process-group ownership and signal
+status. Race server exit promises against owned work with `withServers`;
+await cancellation cleanup before releasing the database.

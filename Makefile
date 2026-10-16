@@ -1,12 +1,12 @@
 .PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
-        migrate migration-new lint lint-fix build alexa-up setup-env \
-        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
+        migrate migration-new check lint lint-fix build alexa-up setup-env \
+        run-env hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
-# Where the backend's tests create their throwaway databases. Overridable per
-# git worktree so concurrent agents do not collide. The default is built from
-# POSTGRES_* in the environment or .env, aimed at the port Compose publishes:
-# .env's own DATABASE_URL names the host `db`, which only resolves in Docker.
-TEST_DATABASE_URL ?= $(shell sh scripts/test-database-url.sh)
+# Tests provision their own Docker databases and random host ports.
+
+# Any local command can use the same source and provider boundary.
+run-env:
+	@node scripts/run-env.mjs $(cmd)
 
 ## First-time setup
 # Makes .env from .env.example and fills every random secret that is still
@@ -15,44 +15,44 @@ setup-env:
 	@sh scripts/fill-env.sh
 
 ## Lifecycle
-# check-db-profile: an older .env may still lack `db` in COMPOSE_PROFILES.
+# Database profiles follow the resolved URL, including older .env files.
 up:
-	@sh scripts/check-db-profile.sh
-	@docker compose up -d 2>&1 | grep -E "error|Error|started|healthy" || true
+	@node scripts/compose.mjs up -d
 
-# `docker compose down` has no quiet flag, so only errors are shown.
+# Shutdown selects the same project without resolving application secrets.
 down:
-	@docker compose down 2>&1 | grep -E "error|Error" || true
+	@node scripts/compose.mjs down
 
 restart: down up
 
 alexa-up:
-	@docker compose up -d alexa-bridge 2>&1 | grep -E "error|Error|started" || true
+	@node scripts/compose.mjs up -d alexa-bridge
 
 ## Tests (compact — for agent use)
-test: up test-backend test-frontend test-alexa test-tooling
+test: test-backend test-frontend test-alexa test-tooling e2e
 
 test-backend:
-	@cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test --quiet 2>&1 | grep -E "error|warning: unused|test result|FAILED|panicked" || true
+	@sh scripts/backend-tests.sh --compact
 
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
-	@sh scripts/test-database-url.test.sh | grep -E "FAIL|expected|actual" || echo "tooling: ok"
-	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
-	@sh scripts/check-file-length.test.sh | grep -E "FAIL|expected|actual" || echo "check-file-length: ok"
-	@sh scripts/check-migrations.test.sh | grep -E "FAIL|expected|actual" || echo "check-migrations: ok"
-	@sh scripts/check-db-profile.test.sh | grep -E "FAIL|expected|actual" || echo "check-db-profile: ok"
+	@sh scripts/environment.test.sh
+	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
+	@sh scripts/test-database.test.sh
+	@sh scripts/fill-env.test.sh
+	@sh scripts/check-file-length.test.sh
+	@sh scripts/check-migrations.test.sh
+	@sh scripts/database-profiles.test.sh
 
 test-frontend:
-	@cd frontend && pnpm test:run --reporter=dot 2>&1 | tail -5
+	@node scripts/test-command.mjs vitest frontend pnpm test:run
 
 test-alexa:
-	@cd sidecars/alexa-bridge && uv run pytest -q 2>&1 | tail -5
+	@node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -q --disable-warnings
 
-# Not part of `make test`: this one drives a real browser against a running
-# stack, so `make up` has to have happened first.
+# Owns its database, backend, and frontend; never uses a running household stack.
 e2e:
-	@cd frontend && pnpm e2e --reporter=line 2>&1 | tail -8
+	@node scripts/e2e-tests.mjs
 
 ## Database
 # Migrations are embedded in the binary and applied at startup, so the running
@@ -73,12 +73,12 @@ migration-new:
 
 ## Lint
 lint:
-	@cd backend && cargo clippy --all-targets --quiet -- -D warnings 2>&1 | grep -E "^error|^warning" || true
-	@cd backend && cargo fmt --check 2>&1 | grep -E "Diff in" || true
-	@cd sidecars/alexa-bridge && uv run ruff check . 2>&1 | grep -vE "^All checks passed" || true
-	@cd sidecars/alexa-bridge && uv run ruff format --check . 2>&1 | grep -E "Would reformat" || true
-	@cd frontend && pnpm check 2>&1 | grep -E "error|^$$" || true
-	@cd frontend && pnpm exec tsc --noEmit 2>&1 | grep -E "error" || true
+	@cd backend && cargo clippy --all-targets --quiet -- -D warnings
+	@cd backend && cargo fmt --check
+	@cd sidecars/alexa-bridge && uv run ruff check .
+	@cd sidecars/alexa-bridge && uv run ruff format --check .
+	@cd frontend && pnpm check
+	@cd frontend && pnpm exec tsc --noEmit
 
 lint-fix:
 	@cd backend && cargo clippy --all-targets --fix --allow-dirty --quiet 2>&1 | tail -2
@@ -90,27 +90,27 @@ lint-fix:
 build:
 	@docker compose build -q
 
-check:
-	@cd backend && cargo check --all-targets --quiet 2>&1 | grep -E "^error|^warning" || true
+check: lint
+	@cd backend && cargo check --all-targets --quiet
+	@git ls-files backend frontend/src sidecars | sh scripts/check-file-length.sh
 
 ## Human-readable variants (hm-*)
 hm-up:
-	sh scripts/check-db-profile.sh
-	docker compose up
+	@node scripts/compose.mjs up
 
-hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling
+hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
 hm-test-backend:
-	cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test
+	@sh scripts/backend-tests.sh
 
 hm-test-tooling:
-	sh scripts/test-database-url.test.sh
+	@$(MAKE) test-tooling
 
 hm-test-frontend:
-	cd frontend && pnpm test:run
+	node scripts/test-command.mjs vitest frontend pnpm test:run
 
 hm-test-alexa:
-	cd sidecars/alexa-bridge && uv run pytest -v
+	node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -v
 
 hm-e2e:
-	cd frontend && pnpm e2e
+	@node scripts/e2e-tests.mjs

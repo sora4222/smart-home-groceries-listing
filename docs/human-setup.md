@@ -50,6 +50,56 @@ before section 6.
 **Verify:** the script exits printing `Done.`
 **Troubleshooting:** `openssl: not found` → install OpenSSL and re-run.
 
+### 1Password
+
+Plain `.env` values work without 1Password CLI. Any value can instead be a
+complete reference, such as
+`CLERK_SECRET_KEY='op://Development/grocery-clerk/secret key'`.
+Single-quote values containing spaces, `$`, or `#`. When moving database
+credentials, retain their existing values. `DATABASE_URL` may reference an
+entire connection URL; supplied `POSTGRES_*` settings can each reference
+their own fields. Loading them does not rotate database credentials.
+
+**Desktop application, on the development computer:**
+
+1. Install [1Password CLI](https://www.1password.dev/cli/get-started).
+2. Unlock 1Password and enable **Settings → Developer → Integrate with
+   1Password CLI**.
+3. Store project secrets in **Development**. Copy each field's secret reference
+   from its menu into the matching `.env` assignment. Set both publishable-key
+   variables to the same Clerk key.
+4. Start the app and approve the CLI request in 1Password. With multiple
+   accounts, export `OP_ACCOUNT` to select the account for this shell.
+
+**Service account, on a headless server (optional):**
+
+1. Create a [service account](https://www.1password.dev/service-accounts/)
+   with read access only to the project vault. Desktop development needs none.
+2. Supply its token as `OP_SERVICE_ACCOUNT_TOKEN` in the server's protected
+   process environment before startup. Keep it out of committed files,
+   command arguments, and containers. The shared loader removes `OP_*`
+   variables before starting its child.
+3. Use the same references and startup commands. The loader first tries the
+   exported service-account token. If that read fails or returns no resolved
+   value, it retries once using desktop app integration. Without a token it
+   goes straight to the desktop app. A headless server needs a working token;
+   when both methods fail, startup stops.
+
+The shared startup loader, direct Rust backend, and direct Alexa bridge use this
+order. Each CLI subprocess gets only the selected authentication method:
+Connect and manual-session variables are removed, and the desktop attempt
+also removes the service token and enables app integration. The parent shell
+is unchanged. Desktop access may prompt for approval; an already authorized
+session may succeed without another prompt. Service-account access does not
+require a desktop prompt. See [CLI authentication variables](https://www.1password.dev/cli/environment-variables)
+and [desktop integration](https://www.1password.dev/cli/app-integration).
+
+1Password Developer Environments may also mount `.env` with literal values.
+Manage those mounts through the 1Password Environments MCP server.
+
+**Verify:** startup succeeds without printing values. If a reference fails,
+correct the named variable's item, vault access, or desktop authorization.
+
 ---
 
 ## 2. Clerk
@@ -65,7 +115,7 @@ auth provider; the backend verifies its JWTs against the JWKS endpoint
 
 | Clerk value | `.env` key |
 |---|---|
-| Publishable key (`pk_…`) | `VITE_CLERK_PUBLISHABLE_KEY` |
+| Publishable key (`pk_…`) | `CLERK_PUBLISHABLE_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` |
 | Secret key (`sk_…`) | `CLERK_SECRET_KEY` |
 | JWKS URL (ends `/.well-known/jwks.json`; may be under **Advanced**) | `CLERK_JWKS_URL` |
 
@@ -393,17 +443,16 @@ from `localhost`. Migrations run when the backend starts, so the database
 only needs to exist. Use PostgreSQL 16 or later, the version the `db`
 container runs.
 
-1. **Home server shell:** create the role and database. Use the password
-   from `POSTGRES_PASSWORD` in `.env`, so `make test` keeps working.
+1. **Home server shell:** create the role and database. Put its password in
+   the application's `DATABASE_URL`, percent-encoded as required for a URL.
 
    ```bash
    sudo -u postgres createuser --pwprompt grocery
    sudo -u postgres createdb --owner grocery grocery
    ```
 
-   Running the backend tests on this server as well? `#[sqlx::test]` creates
-   a database per test, so the role also needs
-   `sudo -u postgres psql -c 'ALTER ROLE grocery CREATEDB'`.
+   The application role needs no `CREATEDB` privilege. Tests use a separate
+   disposable Docker server and never connect to this application database.
 
 2. **`postgresql.conf`** (`sudo -u postgres psql -c 'SHOW config_file'`):
    listen on the Docker bridge as well as loopback. `172.17.0.1` is the
@@ -421,15 +470,16 @@ container runs.
    host  grocery  grocery  172.16.0.0/12  scram-sha-256
    ```
 
-   Host-side tools (`make test`, `pg_restore` below) connect over
+   Host-side tools (`pg_restore` below) connect over
    `localhost`, which the stock `host all all 127.0.0.1/32 scram-sha-256`
-   line already allows, for every database including the test ones.
+   line already allows.
 
 4. **Home server shell:** `sudo systemctl restart postgresql`. With a host
    firewall (ufw, firewalld), allow `5432/tcp` from `172.16.0.0/12`.
 
-5. **`.env`:** remove `db` from the profiles and point the backend at the
-   host. Percent-encode any `@ : / # ?` in the password.
+5. **`.env`:** point the backend at the host. Startup removes `db` from the
+   active profiles for external PostgreSQL, even in an older configuration.
+   Percent-encode any `@ : / # ?` in the password.
 
 | `.env` key | Value |
 |---|---|

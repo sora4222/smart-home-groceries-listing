@@ -9,7 +9,6 @@ process is Python.
 from __future__ import annotations
 
 import logging
-import os
 
 from ask_sdk_core.skill_builder import SkillBuilder
 from flask import Flask, jsonify
@@ -72,9 +71,9 @@ def create_app(settings: Settings | None = None) -> Flask:
 
 def main() -> None:
     """Development entrypoint. Production runs this under gunicorn."""
-    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
-    port = int(os.environ.get("PORT", "8081"))
-    create_app().run(host="127.0.0.1", port=port)
+    settings = load_settings()
+    logging.basicConfig(level=settings.log_level)
+    create_app(settings).run(host="127.0.0.1", port=settings.port)
 
 
 if __name__ == "__main__":

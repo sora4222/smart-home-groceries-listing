@@ -29,6 +29,10 @@ class Settings:
     #: Seconds to wait for the backend. Alexa abandons a skill response after
     #: about 8 seconds, so this stays well inside that budget.
     backend_timeout_seconds: float = 3.0
+    #: Port used by the direct development entrypoint.
+    port: int = 8081
+    #: Logging level used by the direct development entrypoint.
+    log_level: str = "INFO"
 
     @property
     def intake_url(self) -> str:
@@ -71,4 +75,6 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         backend_base_url=(source.get("BACKEND_BASE_URL") or "http://backend:8000").strip(),
         bridge_secret=required("ALEXA_BRIDGE_SECRET"),
         backend_timeout_seconds=float(timeout) if timeout else 3.0,
+        port=int(source.get("PORT", "8081")),
+        log_level=source.get("LOG_LEVEL", "INFO"),
     )

@@ -36,6 +36,9 @@ deadline rather than sleeping.
 Run `make test-alexa` or `uv run pytest -q` in `sidecars/alexa-bridge`. Inject
 the HTTP session; verify unsigned Alexa requests are rejected and the bridge
 forwards only its shared secret.
+For direct startup configuration, cover the port and logging passed to Flask
+and logging setup from dotenv, resolved references, exported overrides, and
+defaults. Replace the server runner and secret reader with fakes.
 
 ## Frontend
 

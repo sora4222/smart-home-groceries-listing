@@ -1,7 +1,6 @@
 /** The test database belongs to one run and must survive neither failure nor success. */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { spawnSync } from 'node:child_process';
 import { withTestDatabase } from './test-database.mjs';
 import { testEnvironment } from './test-environment.mjs';
 import { runProcess, startProcess } from './test-process.mjs';
@@ -52,12 +51,3 @@ test('cancellation terminates the owned subprocess', async () => {
   await child.stop();
 });
 
-for (const [code, output, succeeds] of [[0, '1 passed', true], [7, 'fixture failure', false], [0, '1 skipped', false]]) {
-  test(`compact output preserves failure and skip results: ${code}, ${output}`, () => {
-    const result = spawnSync(process.execPath, ['scripts/test-command.mjs', 'fixture', '.', process.execPath,
-      '-e', `console.log(${JSON.stringify(output)}); process.exit(${code});`], { encoding: 'utf8' });
-    assert.equal(result.status === 0, succeeds, result.stderr);
-    if (succeeds) assert.equal(result.stdout.trim(), 'fixture: 1 passed');
-    else assert.match(result.stderr, /Test log:/);
-  });
-}

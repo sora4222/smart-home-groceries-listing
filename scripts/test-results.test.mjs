@@ -9,9 +9,9 @@ import { spawnSync } from 'node:child_process';
 test('successful report survives skipped-row diagnostics; structured skips and missing reports fail', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-results-'));
   try {
-    for (const mode of ['passed', 'skipped', 'missing']) {
+    for (const mode of ['passed', 'skipped', 'missing', 'nonzero']) {
       const fixture = join(dir, 'fixture.mjs');
-      writeFileSync(fixture, `import {writeFileSync} from 'node:fs'; console.log('1 skipped row\\nTests 1 passed'); const file=process.argv.find(a=>a.startsWith('--outputFile='))?.split('=').slice(1).join('='); if(${JSON.stringify(mode)}!=='missing' && file) writeFileSync(file,JSON.stringify({numPassedTests:${mode === 'passed' ? 1 : 0},numFailedTests:0,numPendingTests:${mode === 'skipped' ? 1 : 0},numTodoTests:0}));`);
+      writeFileSync(fixture, `import {writeFileSync} from 'node:fs'; console.log('1 skipped row\\nTests 1 passed'); const file=process.argv.find(a=>a.startsWith('--outputFile='))?.split('=').slice(1).join('='); if(${JSON.stringify(mode)}!=='missing' && file) writeFileSync(file,JSON.stringify({numPassedTests:${['passed', 'nonzero'].includes(mode) ? 1 : 0},numFailedTests:0,numPendingTests:${mode === 'skipped' ? 1 : 0},numTodoTests:0})); process.exit(${mode === 'nonzero' ? 7 : 0});`);
       const result = spawnSync(process.execPath, ['scripts/test-command.mjs', 'vitest', dir, process.execPath, fixture], { encoding: 'utf8' });
       assert.equal(result.status === 0, mode === 'passed', result.stderr);
     }

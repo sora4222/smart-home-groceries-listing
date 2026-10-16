@@ -35,6 +35,7 @@ uuid = { version = "1.26", features = ["v4", "serde"] }
 chrono = { version = "0.4.45", default-features = false, features = ["std", "clock", "serde"] }
 thiserror = "2.0.21"
 anyhow = "1.0.104"
+dotenvy = "0.15.7"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 # aws_lc_rs: without a crypto backend jsonwebtoken panics on the first RS256

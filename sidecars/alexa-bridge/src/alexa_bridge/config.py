@@ -7,8 +7,9 @@ against, so a different skill pointed at this endpoint is rejected.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
+
+from alexa_bridge.environment import load_environment
 
 
 class ConfigError(RuntimeError):
@@ -53,7 +54,10 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
             a skill id or bridge secret would leave the endpoint effectively
             unauthenticated, so this fails closed rather than defaulting.
     """
-    source = os.environ if env is None else env
+    try:
+        source = load_environment() if env is None else env
+    except RuntimeError as error:
+        raise ConfigError(str(error)) from None
 
     def required(name: str) -> str:
         value = (source.get(name) or "").strip()

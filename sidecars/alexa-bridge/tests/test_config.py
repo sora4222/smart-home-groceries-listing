@@ -41,3 +41,56 @@ def test_a_blank_secret_is_treated_as_missing(blank):
 def test_the_timeout_is_configurable():
     settings = load_settings({**COMPLETE, "BACKEND_TIMEOUT_SECONDS": "1.5"})
     assert settings.backend_timeout_seconds == 1.5
+
+
+def test_direct_startup_reads_dotenv_without_inheriting_database_credentials(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("ALEXA_SKILL_ID", raising=False)
+    monkeypatch.delenv("ALEXA_BRIDGE_SECRET", raising=False)
+    (tmp_path / ".env").write_text(
+        "ALEXA_SKILL_ID=amzn1.ask.skill.dotenv\nALEXA_BRIDGE_SECRET=local-secret\n"
+        "DATABASE_URL=op://Development/unrelated/url\n"
+    )
+    settings = load_settings()
+    assert settings.skill_id == "amzn1.ask.skill.dotenv"
+    assert settings.bridge_secret == "local-secret"
+
+
+@pytest.mark.parametrize("token", ["", "fixture-service-token"])
+def test_direct_startup_resolves_references_with_either_cli_auth_method(
+    tmp_path, monkeypatch, token
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.setenv("OP_SERVICE_ACCOUNT_TOKEN", token)
+    monkeypatch.delenv("ALEXA_SKILL_ID", raising=False)
+    monkeypatch.setenv("ALEXA_BRIDGE_SECRET", "exported-secret")
+    (tmp_path / ".env").write_text(
+        "ALEXA_SKILL_ID=op://Development/skill/id\n"
+        "ALEXA_BRIDGE_SECRET=op://Development/unavailable/secret\n"
+        "DATABASE_URL=op://Development/unrelated/url\n"
+    )
+    op = tmp_path / "op"
+    op.write_text(
+        '#!/bin/sh\n[ "$1" = read ] && [ "$2" = --no-newline ] || exit 2\n'
+        'printf "skill-%s" "${OP_SERVICE_ACCOUNT_TOKEN:-desktop}"\n'
+    )
+    op.chmod(0o700)
+    settings = load_settings()
+    assert settings.skill_id == f"skill-{token or 'desktop'}"
+    assert settings.bridge_secret == "exported-secret"
+
+
+def test_provider_errors_do_not_disclose_values_or_cli_output(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.setenv("ALEXA_SKILL_ID", "op://private/skill/id")
+    monkeypatch.setenv("ALEXA_BRIDGE_SECRET", "literal")
+    op = tmp_path / "op"
+    op.write_text("#!/bin/sh\necho sensitive-provider-output >&2\nexit 1\n")
+    op.chmod(0o700)
+    with pytest.raises(ConfigError) as error:
+        load_settings()
+    assert str(error.value) == (
+        "Cannot load ALEXA_SKILL_ID from 1Password; check CLI access and the reference"
+    )

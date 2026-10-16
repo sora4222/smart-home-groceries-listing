@@ -47,6 +47,15 @@ check "the environment wins over .env" \
     "postgres://grocery:envwins@localhost:5432/postgres" \
     "$(run POSTGRES_PASSWORD=envwins)"
 
+check "an exported empty password overrides .env" \
+    "postgres://grocery:@localhost:5432/postgres" \
+    "$(run POSTGRES_PASSWORD=)"
+
+printf 'POSTGRES_PASSWORD=selected\n' > "$tmp/selected.env"
+check "uses the explicitly selected environment file" \
+    "postgres://grocery:selected@localhost:5432/postgres" \
+    "$(run GROCERY_ENV_FILE="$tmp/selected.env")"
+
 printf 'POSTGRES_PASSWORD=pw\nPOSTGRES_PORT=5532\n' > "$tmp/.env"
 check "reads the published port from .env, as docker compose does" \
     "postgres://grocery:pw@localhost:5532/postgres" \

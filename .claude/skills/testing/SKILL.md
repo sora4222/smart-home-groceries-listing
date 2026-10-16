@@ -12,6 +12,11 @@ skipped coverage rather than treating it as passing.
 For repository tooling, add a matching `scripts/*.test.sh` test and include
 it in `make test-tooling`; workflow-only rules should use the same script.
 
+Configuration tests use fixture dotenv files and a fake `op` executable.
+Cover exported overrides and denied access without displaying real values.
+The Node suite checks Compose wiring and needs Node 22+ and the Compose CLI,
+but no running containers or 1Password account.
+
 ## Backend
 
 Use nearby `#[cfg(test)]` modules for pure rules and `#[sqlx::test]` for

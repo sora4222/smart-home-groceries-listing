@@ -49,4 +49,11 @@ check "reads an old .env without db" fail "$(run)"
 check "the environment overrides .env, as in Compose" pass \
     "$(run COMPOSE_PROFILES=db,ollama)"
 
+printf 'DATABASE_URL=%s\nCOMPOSE_PROFILES=db\n' "$docker_url" > "$tmp/.env"
+check "an exported empty profile list overrides .env" fail \
+    "$(run COMPOSE_PROFILES=)"
+printf 'DATABASE_URL=%s\nCOMPOSE_PROFILES=ollama\n' "$host_url" > "$tmp/selected.env"
+check "uses the explicitly selected environment file" pass \
+    "$(run GROCERY_ENV_FILE="$tmp/selected.env")"
+
 [ "$fails" -eq 0 ]

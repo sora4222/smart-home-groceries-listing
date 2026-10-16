@@ -1,12 +1,17 @@
 .PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
         migrate migration-new lint lint-fix build alexa-up setup-env \
-        hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
+        run-env hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
 # Where the backend's tests create their throwaway databases. Overridable per
 # git worktree so concurrent agents do not collide. The default is built from
 # POSTGRES_* in the environment or .env, aimed at the port Compose publishes:
 # .env's own DATABASE_URL names the host `db`, which only resolves in Docker.
-TEST_DATABASE_URL ?= $(shell sh scripts/test-database-url.sh)
+TEST_DATABASE_URL ?=
+export TEST_DATABASE_URL
+
+# Any local command can use the same source and provider boundary.
+run-env:
+	@node scripts/run-env.mjs $(cmd)
 
 ## First-time setup
 # Makes .env from .env.example and fills every random secret that is still
@@ -17,8 +22,7 @@ setup-env:
 ## Lifecycle
 # check-db-profile: an older .env may still lack `db` in COMPOSE_PROFILES.
 up:
-	@sh scripts/check-db-profile.sh
-	@docker compose up -d 2>&1 | grep -E "error|Error|started|healthy" || true
+	@node scripts/run-env.mjs sh scripts/compose-up.sh -d
 
 # `docker compose down` has no quiet flag, so only errors are shown.
 down:
@@ -27,16 +31,17 @@ down:
 restart: down up
 
 alexa-up:
-	@docker compose up -d alexa-bridge 2>&1 | grep -E "error|Error|started" || true
+	@node scripts/run-env.mjs docker compose up -d alexa-bridge
 
 ## Tests (compact — for agent use)
 test: up test-backend test-frontend test-alexa test-tooling
 
 test-backend:
-	@cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test --quiet 2>&1 | grep -E "error|warning: unused|test result|FAILED|panicked" || true
+	@sh scripts/backend-tests.sh --compact
 
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
+	@sh scripts/environment.test.sh
 	@sh scripts/test-database-url.test.sh | grep -E "FAIL|expected|actual" || echo "tooling: ok"
 	@sh scripts/fill-env.test.sh | grep -E "FAIL|expected|actual" || echo "fill-env: ok"
 	@sh scripts/check-file-length.test.sh | grep -E "FAIL|expected|actual" || echo "check-file-length: ok"
@@ -95,16 +100,15 @@ check:
 
 ## Human-readable variants (hm-*)
 hm-up:
-	sh scripts/check-db-profile.sh
-	docker compose up
+	@node scripts/run-env.mjs sh scripts/compose-up.sh
 
 hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling
 
 hm-test-backend:
-	cd backend && DATABASE_URL='$(TEST_DATABASE_URL)' cargo test
+	@sh scripts/backend-tests.sh
 
 hm-test-tooling:
-	sh scripts/test-database-url.test.sh
+	@$(MAKE) test-tooling
 
 hm-test-frontend:
 	cd frontend && pnpm test:run

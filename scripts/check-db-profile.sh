@@ -7,12 +7,16 @@
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
+env_file=${GROCERY_ENV_FILE:-$root/.env}
 
 # setting KEY — environment, else .env, else nothing.
 setting() {
-    value=$(printenv "$1" || true)
-    if [ -z "$value" ] && [ -f "$root/.env" ]; then
-        value=$(sed -n "s/^$1=//p" "$root/.env" | head -n 1 | sed 's/^"\(.*\)"$/\1/')
+    if value=$(printenv "$1"); then
+        printf '%s' "$value"
+        return
+    fi
+    if [ -f "$env_file" ]; then
+        value=$(sed -n "s/^$1=//p" "$env_file" | head -n 1 | sed 's/^"\(.*\)"$/\1/')
     fi
     printf '%s' "$value"
 }

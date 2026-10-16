@@ -50,6 +50,44 @@ before section 6.
 **Verify:** the script exits printing `Done.`
 **Troubleshooting:** `openssl: not found` → install OpenSSL and re-run.
 
+### 1Password
+
+Plain `.env` values work without 1Password CLI. Any value can instead be a
+complete reference, such as
+`CLERK_SECRET_KEY='op://Development/grocery-clerk/secret key'`.
+Single-quote values containing spaces, `$`, or `#`. When moving database
+credentials, retain their existing values. `DATABASE_URL` may reference an
+entire connection URL; supplied `POSTGRES_*` settings can each reference
+their own fields. Loading them does not rotate database credentials.
+
+**Desktop application, on the development computer:**
+
+1. Install [1Password CLI](https://www.1password.dev/cli/get-started).
+2. Unlock 1Password and enable **Settings → Developer → Integrate with
+   1Password CLI**.
+3. Store project secrets in **Development**. Copy each field's secret reference
+   from its menu into the matching `.env` assignment. Set both publishable-key
+   variables to the same Clerk key.
+4. Start the app and approve the CLI request in 1Password. With multiple
+   accounts, export `OP_ACCOUNT` to select the account for this shell.
+
+**Service account, on a headless server (optional):**
+
+1. Create a [service account](https://www.1password.dev/service-accounts/)
+   with read access only to the project vault. Desktop development needs none.
+2. Supply its token as `OP_SERVICE_ACCOUNT_TOKEN` in the server's protected
+   process environment before startup. Keep it out of committed files,
+   command arguments, and containers. The shared loader removes `OP_*`
+   variables before starting its child.
+3. Use the same references and startup commands. The CLI selects the service
+   account automatically; failed access stops startup.
+
+1Password Developer Environments may also mount `.env` with literal values.
+Manage those mounts through the 1Password Environments MCP server.
+
+**Verify:** startup succeeds without printing values. If a reference fails,
+correct the named variable's item, vault access, or desktop authorization.
+
 ---
 
 ## 2. Clerk
@@ -65,7 +103,7 @@ auth provider; the backend verifies its JWTs against the JWKS endpoint
 
 | Clerk value | `.env` key |
 |---|---|
-| Publishable key (`pk_…`) | `VITE_CLERK_PUBLISHABLE_KEY` |
+| Publishable key (`pk_…`) | `CLERK_PUBLISHABLE_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` |
 | Secret key (`sk_…`) | `CLERK_SECRET_KEY` |
 | JWKS URL (ends `/.well-known/jwks.json`; may be under **Advanced**) | `CLERK_JWKS_URL` |
 

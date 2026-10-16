@@ -44,6 +44,42 @@ test('application scope excludes unrelated provider failures and preserves liter
   assert.deepEqual(result, { CLERK_SECRET_KEY: 'resolved-secret', VITE_EXAMPLE: 'a$#@ b' });
 });
 
+for (const failure of ['denied', 'empty', 'unresolved']) {
+test(`service-account ${failure} reads retry with desktop authentication only`, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'grocery-auth-fallback-'));
+  try {
+    writeFileSync(join(dir, 'op'), `#!/bin/sh
+[ "$1" = read ] && [ "$2" = --no-newline ] || exit 2
+[ -z "$OP_CONNECT_HOST$OP_CONNECT_TOKEN$OP_SESSION$OP_SESSION_fixture" ] || exit 3
+if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+  [ "$OP_BIOMETRIC_UNLOCK_ENABLED" = false ] || exit 4
+  printf 'service\n' >> "$AUTH_TRACE"
+  case "$SERVICE_RESULT" in
+    empty) exit 0 ;;
+    unresolved) printf op://unresolved; exit 0 ;;
+  esac
+  echo sensitive-provider-output >&2
+  exit 7
+fi
+[ "$OP_BIOMETRIC_UNLOCK_ENABLED" = true ] || exit 5
+printf 'desktop\n' >> "$AUTH_TRACE"
+printf desktop-secret
+`, { mode: 0o700 });
+    const inherited = {
+      PATH: dir, CLERK_SECRET_KEY: 'op://Development/test/secret',
+      OP_SERVICE_ACCOUNT_TOKEN: 'denied-fixture-token', OP_CONNECT_HOST: 'unrelated',
+      OP_CONNECT_TOKEN: 'unrelated', OP_SESSION: 'stale', OP_SESSION_fixture: 'stale',
+      OP_BIOMETRIC_UNLOCK_ENABLED: 'false', AUTH_TRACE: join(dir, 'trace'),
+      SERVICE_RESULT: failure,
+    };
+    const result = loadEnvironment({ file: join(dir, '.env'), inherited });
+    assert.equal(result.CLERK_SECRET_KEY, 'desktop-secret');
+    assert.equal(readFileSync(join(dir, 'trace'), 'utf8'), 'service\ndesktop\n');
+    assert.equal(inherited.OP_SERVICE_ACCOUNT_TOKEN, 'denied-fixture-token');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+}
+
 test('provider failures expose only the variable name', () => {
   assert.throws(() => loadEnvironment({ file: '/nonexistent/fixture.env', inherited: { CLERK_SECRET_KEY: 'op://private/reference/secret' }, resolve: () => { throw Error('sensitive provider output'); } }), { message: 'Cannot load CLERK_SECRET_KEY from 1Password; check CLI access and the reference' });
 });

@@ -79,8 +79,20 @@ their own fields. Loading them does not rotate database credentials.
    process environment before startup. Keep it out of committed files,
    command arguments, and containers. The shared loader removes `OP_*`
    variables before starting its child.
-3. Use the same references and startup commands. The CLI selects the service
-   account automatically; failed access stops startup.
+3. Use the same references and startup commands. The loader first tries the
+   exported service-account token. If that read fails or returns no resolved
+   value, it retries once using desktop app integration. Without a token it
+   goes straight to the desktop app. A headless server needs a working token;
+   when both methods fail, startup stops.
+
+The shared startup loader, direct Rust backend, and direct Alexa bridge use this
+order. Each CLI subprocess gets only the selected authentication method:
+Connect and manual-session variables are removed, and the desktop attempt
+also removes the service token and enables app integration. The parent shell
+is unchanged. Desktop access may prompt for approval; an already authorized
+session may succeed without another prompt. Service-account access does not
+require a desktop prompt. See [CLI authentication variables](https://www.1password.dev/cli/environment-variables)
+and [desktop integration](https://www.1password.dev/cli/app-integration).
 
 1Password Developer Environments may also mount `.env` with literal values.
 Manage those mounts through the 1Password Environments MCP server.

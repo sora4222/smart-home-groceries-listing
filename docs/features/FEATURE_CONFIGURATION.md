@@ -21,9 +21,15 @@ The backend and bridge search the working directory and ancestors for `.env`.
 JavaScript entry points use the checkout root. `GROCERY_ENV_FILE` overrides
 that path. Each worktree has independent configuration and no shared cache.
 
-Only references need the host's `op` executable. Its desktop integration or
-exported `OP_SERVICE_ACCOUNT_TOKEN` selects authentication; a provider error
-stops startup without switching methods. Provider access stays outside settings,
+Only references need the host's `op` executable. All loaders first try an
+exported nonempty `OP_SERVICE_ACCOUNT_TOKEN` without desktop integration. If
+that read fails or returns an empty or unresolved value, they retry once using
+desktop integration with the service token removed. Without a token they use
+desktop integration immediately. Connect and manual-session credentials are
+excluded from both attempts. Desktop account selection is preserved only for
+the desktop attempt. The parent environment is unchanged; failure of both
+methods stops startup without exposing provider output.
+Provider access stays outside settings,
 HTTP handlers, and business logic. Compose images receive resolved values and
 need no CLI. Backend health probes use existing values without unlocking secrets.
 
@@ -32,10 +38,11 @@ reintroduce unresolved references. New backend settings belong in both the
 backend startup scope and the Compose environment block.
 
 Tests: `scripts/environment.test.mjs` covers all requested keys, both CLI auth
-environments, precedence, scope, redacted errors, and actual Compose parsing.
+environments, authentication fallback, precedence, scope, redacted errors, and actual Compose parsing.
 Rust `tests/environment.rs` tests the provider-independent loader. Alexa's
 configuration tests cover direct dotenv startup and both CLI auth environments.
-Provider tests use fixtures, never real accounts.
+Rust CLI adapter tests and Alexa tests cover denied service access followed
+by desktop access. Provider tests use fixtures, never real accounts.
 
 Provisioning: [human setup](../human-setup.md#1password).
 Commands: [operations](../using-the-app.md#configuration-and-1password).

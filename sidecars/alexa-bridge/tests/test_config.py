@@ -81,9 +81,11 @@ def test_direct_startup_resolves_references_with_either_cli_auth_method(
     assert settings.bridge_secret == "exported-secret"
 
 
-def test_provider_errors_do_not_disclose_values_or_cli_output(tmp_path, monkeypatch):
+@pytest.mark.parametrize("token", ["", "denied-fixture-token"])
+def test_provider_errors_do_not_disclose_values_or_cli_output(tmp_path, monkeypatch, token):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.setenv("OP_SERVICE_ACCOUNT_TOKEN", token)
     monkeypatch.setenv("ALEXA_SKILL_ID", "op://private/skill/id")
     monkeypatch.setenv("ALEXA_BRIDGE_SECRET", "literal")
     op = tmp_path / "op"
@@ -94,3 +96,35 @@ def test_provider_errors_do_not_disclose_values_or_cli_output(tmp_path, monkeypa
     assert str(error.value) == (
         "Cannot load ALEXA_SKILL_ID from 1Password; check CLI access and the reference"
     )
+
+
+@pytest.mark.parametrize("service_result", ["exit 7", "exit 0", "printf op://unresolved"])
+def test_failed_service_account_retries_with_desktop_authentication(
+    tmp_path, monkeypatch, service_result
+):
+    monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.setenv("GROCERY_ENV_FILE", str(tmp_path / ".env"))
+    monkeypatch.setenv("ALEXA_SKILL_ID", "op://Development/skill/id")
+    monkeypatch.setenv("ALEXA_BRIDGE_SECRET", "fixture-secret")
+    monkeypatch.setenv("OP_SERVICE_ACCOUNT_TOKEN", "denied-fixture-token")
+    for key in ("OP_CONNECT_HOST", "OP_CONNECT_TOKEN", "OP_SESSION", "OP_SESSION_fixture"):
+        monkeypatch.setenv(key, "competing-auth")
+    monkeypatch.setenv("OP_BIOMETRIC_UNLOCK_ENABLED", "false")
+    trace = tmp_path / "trace"
+    monkeypatch.setenv("AUTH_TRACE", str(trace))
+    (tmp_path / "op").write_text(
+        '#!/bin/sh\n[ "$1" = read ] && [ "$2" = --no-newline ] || exit 2\n'
+        '[ -z "$OP_CONNECT_HOST$OP_CONNECT_TOKEN$OP_SESSION$OP_SESSION_fixture" ] || exit 3\n'
+        'if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then\n'
+        '  [ "$OP_BIOMETRIC_UNLOCK_ENABLED" = false ] || exit 4\n'
+        '  printf "service\\n" >> "$AUTH_TRACE"\n'
+        f"  echo sensitive-provider-output >&2\n  {service_result}\n  exit 0\nfi\n"
+        '[ "$OP_BIOMETRIC_UNLOCK_ENABLED" = true ] || exit 5\n'
+        'printf "desktop\\n" >> "$AUTH_TRACE"\nprintf desktop-skill\n'
+    )
+    (tmp_path / "op").chmod(0o700)
+
+    settings = load_settings()
+
+    assert settings.skill_id == "desktop-skill"
+    assert trace.read_text() == "service\ndesktop\n"

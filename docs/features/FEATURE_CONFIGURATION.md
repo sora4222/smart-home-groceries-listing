@@ -16,6 +16,7 @@ does not rewrite the connection URL or change a running database password.
 | Backend binary / migrations | `backend/src/environment/` initializes backend settings before threads and logging; only `onepassword.rs` calls the CLI |
 | Vite dev/build / `pnpm start` | Shared JavaScript loader resolves `CLERK_*` and `VITE_*`; only Vite's public prefix reaches the browser |
 | Alexa `load_settings()` | `alexa_bridge/environment.py` loads bridge settings only; database settings are neither retained nor resolved |
+| Production systemd units | `deploy/bin/grocery-env` runs as root before each start, calls `scripts/service-env.mjs` with the token file, and writes only that service's keys (`scripts/service-components.mjs`) for `EnvironmentFile=`; services get `GROCERY_ENV_FILE=/dev/null` and no `OP_*` |
 
 The backend and bridge search the working directory and ancestors for `.env`.
 JavaScript entry points use the checkout root. `GROCERY_ENV_FILE` overrides
@@ -39,10 +40,10 @@ Provider access stays outside settings,
 HTTP handlers, and business logic. Compose images receive resolved values and
 need no CLI. Backend health probes use existing values without unlocking secrets.
 
-Compose explicitly maps backend settings. Raw `env_file: .env` would
-reintroduce unresolved references. New backend settings belong in both the
-backend startup scope and the Compose environment block.
-Application startup enables the database profile when the resolved URL uses
+Compose explicitly maps backend settings, and so does `service-components.mjs`.
+New backend settings belong in the backend startup scope, the Compose
+environment block and the `backend` component list. Raw `env_file: .env` would
+reintroduce unresolved references. Application startup enables the database profile when the resolved URL uses
 the Compose `db` hostname and removes it for external PostgreSQL. Other profiles
 and the original configuration file are preserved. Tests use
 [independent disposable PostgreSQL servers](FEATURE_DATABASE.md), so application

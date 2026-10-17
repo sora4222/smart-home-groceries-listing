@@ -1,0 +1,24 @@
+# Python ask-sdk sidecar: verifies Alexa's request signature and forwards the
+# item to the backend. The only process the Cloudflare Tunnel reaches.
+[Unit]
+Description=Grocery list Alexa bridge
+Documentation=https://github.com/sora4222/smart-home-groceries-listing/blob/main/docs/production.md
+Wants=grocery-backend.service
+After=network-online.target grocery-backend.service
+
+[Service]
+ExecStartPre=+/opt/grocery/libexec/grocery-env write alexa-bridge
+EnvironmentFile=-/run/grocery-secrets/alexa-bridge.env
+ExecStartPost=+/bin/rm -f /run/grocery-secrets/alexa-bridge.env
+ExecStopPost=+/bin/rm -f /run/grocery-secrets/alexa-bridge.env
+# Two workers is ample for a household; a short timeout keeps a stuck request
+# from holding a worker past the window Alexa waits. The service has no home
+# directory, so gunicorn's control socket (default ~/.gunicorn) is off.
+ExecStart=/opt/grocery/alexa-bridge/venv/bin/python -m gunicorn \
+    --bind 127.0.0.1:8081 --workers 2 --timeout 15 --access-logfile - \
+    --no-control-socket alexa_bridge.app:create_app()
+Environment=BACKEND_BASE_URL=http://127.0.0.1:8000
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=grocery.target

@@ -1,0 +1,20 @@
+# TanStack Start web app (server-side rendering), on loopback port 3000.
+# VITE_* values were built in by `make build`; CLERK_* are read at run time.
+[Unit]
+Description=Grocery list web app
+Documentation=https://github.com/sora4222/smart-home-groceries-listing/blob/main/docs/production.md
+Wants=grocery-backend.service
+After=network-online.target grocery-backend.service
+
+[Service]
+ExecStartPre=+/opt/grocery/libexec/grocery-env write frontend
+EnvironmentFile=-/run/grocery-secrets/frontend.env
+ExecStartPost=+/bin/rm -f /run/grocery-secrets/frontend.env
+ExecStopPost=+/bin/rm -f /run/grocery-secrets/frontend.env
+ExecStart=/opt/grocery/bin/node /opt/grocery/frontend/.output/server/index.mjs
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+
+[Install]
+WantedBy=grocery.target

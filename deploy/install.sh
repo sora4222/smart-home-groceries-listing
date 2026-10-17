@@ -91,7 +91,10 @@ systemctl daemon-reload
 systemctl enable --quiet grocery.target "${services[@]/%/.service}"
 
 log "starting ${services[*]}"
-if ! systemctl restart "${services[@]/%/.service}"; then
+# Restart the services so updated files take effect, and start the target
+# too: PartOf= only carries `systemctl stop/restart grocery.target` to the
+# services once the target itself is active.
+if ! systemctl restart "${services[@]/%/.service}" || ! systemctl start grocery.target; then
   systemctl --no-pager --lines=20 status "${services[@]/%/.service}" || true
   die "a service did not start; see: journalctl -u 'grocery-*' -e"
 fi

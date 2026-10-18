@@ -163,3 +163,8 @@ credentials, and contain no rules about the grocery list.
 
 Google Tasks needs no sidecar — it is a plain OAuth REST API and belongs in
 Rust.
+
+## Code Review Rules
+
+Use the thermo-nuclear-code-review skill when performing a code review.
+Always give simple to understand language.

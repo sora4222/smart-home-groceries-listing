@@ -3,7 +3,7 @@
 # This is the only Python image in the repository. It exists because Amazon's
 # request signing and skill request model are implemented in the `ask-sdk`
 # Python SDK and have no maintained Rust equivalent.
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # git: one dependency is pinned to a VCS commit (see pyproject.toml's note on
 # oscrypto and OpenSSL 3). Removed again in the same layer to keep it out of

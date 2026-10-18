@@ -56,7 +56,9 @@ A saved choice:
   "package_size": "3L", "price": "4.95",
   "unit_price": { "amount": "0.165", "per": "100mL" },
   "total_price": "9.90", "priced_quantity": 2,
-  "url": "https://www.coles.com.au/…", "selected_by": "user_…",
+  "url": "https://www.coles.com.au/…",
+  "image_url": "https://productimages.coles.com.au/productimages/…",
+  "selected_by": "user_…",
   "selected_at": "2026-10-01T11:00:00Z"
 }
 ```
@@ -90,7 +92,9 @@ The rule is `services/selections/staleness.rs::choice_still_fits`.
 store, `UNIQUE (grocery_item_id, store)`, and adds `for_order` with a partial
 unique index so exactly one row per item is bought). Columns: store, product_id, product_name, brand,
 package_size, price, unit_price + unit_price_per, total_price,
-priced_quantity, url, selected_by, selected_at. Prices are unscaled `NUMERIC`.
+priced_quantity, url, image_url, selected_by, selected_at. Prices are unscaled `NUMERIC`.
+`image_url` (`20261018100000`) is the picture from the store's answer when the
+product was chosen; choices made before it have none and show a placeholder.
 
 ## Code
 - Backend: `routes/selections.rs`; `services/selections/` — `mod.rs` (rules),

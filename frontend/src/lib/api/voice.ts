@@ -1,6 +1,6 @@
 /** The intake confirmation queue: `/api/voice-requests`. */
 import { request } from "#/lib/api/client";
-import type { GroceryItem } from "#/lib/api/grocery";
+import type { GroceryItem, OnDuplicate } from "#/lib/api/grocery";
 
 export type VoiceRequestStatus = "pending" | "accepted" | "rejected";
 /** Which intake channel delivered an item. */
@@ -35,13 +35,17 @@ export interface VoiceRequest {
 
 export const voiceApi = {
 	pending: () => request<VoiceRequest[]>("/api/voice-requests"),
+	/**
+	 * Accepts a request onto the list. `ask` — the default — makes the backend
+	 * answer 409 when the name is already on the list, so the user can choose.
+	 */
 	accept: (
 		id: string,
 		body?: { name?: string; quantity?: number },
-		merge = false,
+		onDuplicate: OnDuplicate = "ask",
 	) =>
 		request<{ voice_request: VoiceRequest; grocery_item: GroceryItem }>(
-			`/api/voice-requests/${id}/accept${merge ? "?merge=true" : ""}`,
+			`/api/voice-requests/${id}/accept?on_duplicate=${onDuplicate}`,
 			{ method: "POST", body: JSON.stringify(body ?? {}) },
 		),
 	reject: (id: string) =>

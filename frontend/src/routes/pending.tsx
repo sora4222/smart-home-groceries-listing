@@ -2,8 +2,16 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { PendingRequestCard } from "#/components/pending/pending-request-card";
-import { api, type VoiceRequest } from "#/lib/api";
+import { acceptFailure } from "#/lib/accept-failure";
+import {
+	api,
+	type DuplicateItemDetail,
+	duplicateDetail,
+	type OnDuplicate,
+	type VoiceRequest,
+} from "#/lib/api";
 import { ruleTermsDescription } from "#/lib/rule-terms";
 
 export const Route = createFileRoute("/pending")({
@@ -14,31 +22,65 @@ export const Route = createFileRoute("/pending")({
 /** Requests the user just rejected — kept visible, dulled, for undo. */
 type RejectedIds = ReadonlySet<string>;
 
+/** An accept the backend paused because the name is already on the list. */
+interface HeldAccept {
+	id: string;
+	name: string;
+	quantity: number;
+	detail: DuplicateItemDetail;
+}
+
 function PendingPage() {
 	const loaderData = Route.useLoaderData();
 	const router = useRouter();
 	const [requests, setRequests] = useState<VoiceRequest[]>(loaderData);
 	const [rejectedIds, setRejectedIds] = useState<RejectedIds>(new Set());
+	const [held, setHeld] = useState<HeldAccept | null>(null);
 
-	async function handleAccept(id: string, name: string, quantity: number) {
+	function dropCard(id: string) {
+		setRequests((prev) => prev.filter((r) => r.id !== id));
+	}
+
+	async function handleAccept(
+		id: string,
+		name: string,
+		quantity: number,
+		onDuplicate: OnDuplicate = "ask",
+	) {
 		try {
-			const { grocery_item } = await api.voice.accept(id, { name, quantity });
-			setRequests((prev) => prev.filter((r) => r.id !== id));
+			const { grocery_item } = await api.voice.accept(
+				id,
+				{ name, quantity },
+				onDuplicate,
+			);
+			setHeld(null);
+			dropCard(id);
 			setRejectedIds((prev) => {
 				const next = new Set(prev);
 				next.delete(id);
 				return next;
 			});
-			// A voice item brings no chips of its own, so every one came from a rule.
+			// A voice item brings no chips of its own, so every one came from a
+			// rule. A merge returns the existing item, whose chips no rule added.
 			toast.success(`${name} added to the grocery list`, {
-				description: ruleTermsDescription(grocery_item.filter_terms),
+				description: ruleTermsDescription(
+					onDuplicate === "merge" ? [] : grocery_item.filter_terms,
+				),
 			});
 			// Awaited inside the try: an invalidation still in flight when the
 			// user navigates away rejects, and unawaited that surfaced as an
 			// unhandled "Failed to fetch" in the console.
 			await router.invalidate();
-		} catch {
-			toast.error("Could not accept that request — try again.");
+		} catch (error) {
+			const detail = duplicateDetail(error);
+			if (detail) {
+				// The name is already on the list; let the household decide.
+				setHeld({ id, name, quantity, detail });
+				return;
+			}
+			const failure = acceptFailure(error, name);
+			if (failure.gone) dropCard(id);
+			toast.error(failure.message);
 		}
 	}
 
@@ -64,13 +106,26 @@ function PendingPage() {
 		<div className="flex flex-col gap-3">
 			<h1 className="text-lg font-semibold">Pending Requests</h1>
 			{requests.map((request) => (
-				<PendingRequestCard
-					key={request.id}
-					request={request}
-					dulled={rejectedIds.has(request.id)}
-					onAccept={handleAccept}
-					onReject={handleReject}
-				/>
+				<div key={request.id} className="flex flex-col gap-2">
+					<PendingRequestCard
+						request={request}
+						dulled={rejectedIds.has(request.id)}
+						onAccept={handleAccept}
+						onReject={handleReject}
+					/>
+					{held?.id === request.id && (
+						<DuplicatePrompt
+							detail={held.detail}
+							onMerge={() =>
+								handleAccept(held.id, held.name, held.quantity, "merge")
+							}
+							onSeparate={() =>
+								handleAccept(held.id, held.name, held.quantity, "separate")
+							}
+							onCancel={() => setHeld(null)}
+						/>
+					)}
+				</div>
 			))}
 		</div>
 	);

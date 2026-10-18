@@ -11,6 +11,7 @@ export function lineFixture(overrides: Partial<OrderLine> = {}): OrderLine {
 		brand: "Coles",
 		package_size: "3L",
 		url: "https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288",
+		image_url: "https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		status: "priced",
 		price: "4.95",
 		total_price: "9.90",

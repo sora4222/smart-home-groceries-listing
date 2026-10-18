@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: shellcheck scripts/*.sh
+      - run: shellcheck scripts/*.sh deploy/*.sh deploy/bin/grocery-env
 
   actionlint:
     name: actionlint

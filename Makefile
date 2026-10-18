@@ -1,5 +1,6 @@
 .PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
-        migrate migration-new check lint lint-fix build alexa-up setup-env \
+        migrate migration-new check lint lint-fix build install update uninstall status logs \
+        alexa-up setup-env \
         run-env hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
 # Tests provision their own Docker databases and random host ports.
@@ -38,6 +39,8 @@ test-backend:
 test-tooling:
 	@sh scripts/environment.test.sh
 	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
+	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs
+	@sh scripts/grocery-env.test.sh
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh
 	@sh scripts/check-file-length.test.sh
@@ -86,9 +89,32 @@ lint-fix:
 	@cd sidecars/alexa-bridge && uv run ruff check --fix . && uv run ruff format .
 	@cd frontend && pnpm check --write
 
-## Build
+## Production server (no Docker) — docs/production.md
+# Compiles every component into build/production as your own user.
 build:
-	@docker compose build -q
+	@bash deploy/build.sh
+
+# Run with sudo. Installs build/production to /opt/grocery as systemd
+# services, plus PostgreSQL role, Ollama and cloudflared as configured.
+install:
+	@bash deploy/install.sh
+
+# Run as yourself (it asks for sudo). Deploys the checked-out branch:
+# fast-forward pull, build, check pending migrations (stops on destructive
+# ones unless ALLOW_DESTRUCTIVE=1), back up the database, install.
+update:
+	@sh deploy/pull.sh
+	@$(MAKE) --no-print-directory build
+	@sudo env ALLOW_DESTRUCTIVE=$(ALLOW_DESTRUCTIVE) bash deploy/update.sh
+
+uninstall:
+	@bash deploy/uninstall.sh
+
+status:
+	@systemctl --no-pager status grocery.target 'grocery-*.service' ollama.service 2>/dev/null | grep -E '^(●|○|×)|Active:' || true
+
+logs:
+	@journalctl --no-pager -n 100 -u 'grocery-*'
 
 check: lint
 	@cd backend && cargo check --all-targets --quiet

@@ -1,0 +1,22 @@
+# Rust API. Migrations are embedded and applied at start.
+# Listens on loopback only; the tunnel never routes to it.
+[Unit]
+Description=Grocery list backend
+Documentation=https://github.com/sora4222/smart-home-groceries-listing/blob/main/docs/production.md
+Wants=network-online.target
+After=network-online.target postgresql.service ollama.service
+
+[Service]
+ExecStartPre=+/opt/grocery/libexec/grocery-env write backend
+EnvironmentFile=-/run/grocery-secrets/backend.env
+ExecStartPost=+/bin/rm -f /run/grocery-secrets/backend.env
+ExecStopPost=+/bin/rm -f /run/grocery-secrets/backend.env
+ExecStart=/opt/grocery/bin/grocery-backend
+Environment=BIND_ADDRESS=127.0.0.1:8000
+# Daily access-log files (docs/features/FEATURE_ACCESS_LOGS.md).
+Environment=ACCESS_LOG_DIR=/var/log/grocery
+LogsDirectory=grocery
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=grocery.target

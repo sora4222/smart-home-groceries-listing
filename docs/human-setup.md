@@ -20,6 +20,11 @@ dependency, so the stack is started once, at the end. Every value written to
 
 Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 
+**Production server without Docker:** do sections 1–5 and 7–9 here, but
+start the app with [`production.md`](production.md) instead of section 6.
+In that setup the tunnel routes use `localhost` (`http://localhost:8081`),
+not the Compose hostnames below.
+
 ## Prerequisites
 
 - Shell access to the home server, in a checkout of this repository, with

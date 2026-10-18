@@ -6,7 +6,8 @@ machine for concurrent multi-agent development.
 ## Purpose
 Self-hosted household grocery manager. Spoken item → web confirmation →
 Woolworths/Coles purchase at lowest total cost (items + delivery). Unix home
-server, Docker Compose, Cloudflare Tunnel.
+server: systemd services in production (`docs/production.md`), Docker Compose
+for development, Cloudflare Tunnel.
 
 Full feature specs: `docs/features/FEATURE_*.md` — short feature
 specifications that agents read and write to stop regression.
@@ -25,7 +26,7 @@ intent or scope is ambiguous. Do not assume on non-trivial changes.
 | Auth | Clerk → `backend/src/auth/mod.rs` (swap provider here only) |
 | Automation | `chromiumoxide` (CDP) · `wreq` (TLS fingerprint emulation) |
 | Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python in the repo |
-| Infra | Docker Compose · Cloudflare Tunnel |
+| Infra | Production: systemd units in `deploy/` (no Docker) · Dev: Docker Compose · Cloudflare Tunnel |
 
 **The backend is Rust. There is no Python in it.** The single Python process
 is the Alexa bridge sidecar, isolated in `sidecars/alexa-bridge`, which
@@ -56,6 +57,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   ├── features/            # FEATURE_*.md specs
 │   ├── human-setup.md       # One-time manual provisioning (developer audience)
 │   └── using-the-app.md     # Recurring manual workflows (developer audience)
+├── deploy/                # Production: build/install scripts, systemd units
 ├── Makefile
 ├── docker-compose.yml
 ├── .env.example
@@ -73,6 +75,9 @@ contains no business logic and holds no database credentials. See "Sidecars".
 | `make lint` | `cargo clippy` + `cargo fmt --check` + `ruff` + `biome` |
 | `make lint-fix` | Apply what can be fixed automatically |
 | `make hm-up` | Human-readable startup with logs |
+| `make build` | Production build into `build/production` (no Docker) |
+| `sudo make install` | Install `build/production` as systemd services |
+| `make update` | Pull the current branch, build, check migrations, back up the DB, install |
 | `make hm-test` | Human-readable test output |
 
 ## Rules (non-negotiable)

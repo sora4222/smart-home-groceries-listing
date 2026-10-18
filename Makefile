@@ -1,6 +1,6 @@
 .PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
         migrate migration-new check lint lint-fix build install update uninstall status logs \
-        alexa-up setup-env \
+        alexa-up setup-env web \
         run-env hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
 # Tests provision their own Docker databases and random host ports.
@@ -28,6 +28,16 @@ restart: down up
 
 alexa-up:
 	@node scripts/compose.mjs up -d alexa-bridge
+
+# Only the web app, on this computer, talking to the backend at
+# VITE_API_BASE_URL (for example a home server behind a Cloudflare Tunnel).
+# No Docker, no database here. See docs/human-setup.md, "Optional: web app
+# on your own computer". WEB_PORT must match an origin in the backend's
+# CORS_ORIGINS.
+WEB_PORT ?= 3000
+web:
+	@cd frontend && pnpm install --frozen-lockfile --silent
+	@cd frontend && pnpm exec vite dev --port $(WEB_PORT) --strictPort
 
 ## Tests (compact — for agent use)
 test: test-backend test-frontend test-alexa test-tooling e2e

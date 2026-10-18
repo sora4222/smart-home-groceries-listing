@@ -112,7 +112,9 @@ grocery-list → Routes**, change the service URLs:
 | `alexa` | `http://localhost:8081` (was `http://alexa-bridge:8081`) |
 | `api/voice-requests` (optional webhook) | `http://localhost:8000` (was `http://backend:8000`) |
 
-Do not route anything else to `localhost:8000`.
+Do not route anything else to `localhost:8000`, except the separate API
+hostname for
+[the web app on your own computer](human-setup.md#optional-web-app-on-your-own-computer).
 
 ## 4. Home server shell: build and install
 
@@ -193,7 +195,9 @@ listen on loopback, and the browser calls the backend at
 `VITE_API_BASE_URL` directly. Use an SSH tunnel
 (`ssh -L 3000:localhost:3000 -L 8000:localhost:8000 <server>`).
 Alternatively, publish both ports privately with Tailscale Serve and set
-`VITE_API_BASE_URL`, `VITE_WS_URL` and `CORS_ORIGINS` to those addresses.
+`VITE_API_BASE_URL` and `CORS_ORIGINS` to those addresses. To run the web
+app on your own computer instead, against the backend through the tunnel,
+see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 
 ## Troubleshooting
 

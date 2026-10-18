@@ -1,0 +1,19 @@
+# Cloudflare Tunnel connector. Gives Amazon an HTTPS route to the Alexa
+# bridge without opening a port on the router. Routes are set in the
+# Cloudflare dashboard (docs/production.md).
+[Unit]
+Description=Grocery list Cloudflare Tunnel
+Documentation=https://github.com/sora4222/smart-home-groceries-listing/blob/main/docs/production.md
+Wants=network-online.target grocery-alexa-bridge.service
+After=network-online.target grocery-alexa-bridge.service
+
+[Service]
+ExecStartPre=+/opt/grocery/libexec/grocery-env write tunnel
+EnvironmentFile=-/run/grocery-secrets/tunnel.env
+ExecStartPost=+/bin/rm -f /run/grocery-secrets/tunnel.env
+ExecStopPost=+/bin/rm -f /run/grocery-secrets/tunnel.env
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate run
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=grocery.target

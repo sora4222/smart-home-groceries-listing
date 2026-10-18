@@ -3,7 +3,8 @@
 A self-hosted household grocery manager: say *"Alexa, add milk to the shopping
 list"*, review and confirm what was heard in a web app, and (eventually) have
 it purchase from Woolworths/Coles at the lowest total cost. Proof-of-concept,
-single home server, Docker Compose + Cloudflare Tunnel. Full product spec: the
+single home server: systemd services in production, Docker Compose for
+development, Cloudflare Tunnel. Full product spec: the
 "Google Home Grocery List — Application Specification" doc in the project's
 docs.
 
@@ -53,12 +54,17 @@ For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
 | Auth | Clerk (JWT), abstracted behind `backend/src/auth/mod.rs` |
 | Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python here |
 | Stores | `wreq` (Chrome TLS emulation) for search · `chromiumoxide` for checkout (not yet built) |
-| Infra | Docker Compose (Postgres, backend, Alexa bridge, Cloudflare Tunnel) |
+| Infra | Production: systemd services, no Docker (`docs/production.md`) · Development: Docker Compose · Cloudflare Tunnel |
 
 The backend is a single compiled binary with its migrations embedded: no
 interpreter, virtualenv or migration files on the home server.
 
 ## Running it
+On the home server (no Docker): `make build && sudo make install`. See
+[`docs/production.md`](docs/production.md).
+
+For development:
+
 ```bash
 make setup-env              # makes .env and fills the random secrets
                             # then fill the rest from docs/human-setup.md

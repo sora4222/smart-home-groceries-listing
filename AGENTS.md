@@ -77,6 +77,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 | `make hm-up` | Human-readable startup with logs |
 | `make build` | Production build into `build/production` (no Docker) |
 | `sudo make install` | Install `build/production` as systemd services |
+| `make update` | Pull the current branch, build, check migrations, back up the DB, install |
 | `make hm-test` | Human-readable test output |
 
 ## Rules (non-negotiable)

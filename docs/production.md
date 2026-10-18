@@ -141,11 +141,41 @@ to `/sign-in`.
 ## Updating
 
 ```bash
-git pull && make build && sudo make install
+make update        # as yourself; asks for your sudo password once
 ```
 
-The new files replace `/opt/grocery` in one step, then the services restart.
-Migrations run when the backend starts.
+Deploys the branch that is checked out:
+
+1. Fast-forwards it to its upstream. It stops if the checkout has
+   uncommitted changes or the branch has diverged.
+2. Runs `make build`.
+3. Compares the build's sqlx migrations with `_sqlx_migrations` in the
+   database and lists the pending ones. It stops before changing anything
+   when:
+   - a pending migration contains `DROP TABLE/COLUMN/SCHEMA`, `TRUNCATE`,
+     `DELETE FROM` or a column type change. Read the file, then run
+     `make update ALLOW_DESTRUCTIVE=1`.
+   - the database has migrations the checkout does not know, which means
+     an older branch. Its code would run against a newer schema.
+4. Backs the database up with `pg_dump -Fc` to `/var/backups/grocery/`
+   (root only, newest 10 kept).
+5. Runs `make install`. The new backend binary applies the pending
+   migrations (`--migrate-only`, as `nobody`) *before* `/opt/grocery` is
+   switched over. If a migration fails, sqlx rolls it back and the running
+   version is left untouched.
+
+sqlx applies each pending file once, in order, inside a transaction. It
+refuses to start if an already-applied migration file was edited, so fix
+mistakes with a new migration, never by editing an old one.
+
+**Restore a backup:**
+
+```bash
+sudo systemctl stop grocery.target
+sudo cat /var/backups/grocery/<file>.dump | sudo -u postgres pg_restore --clean --if-exists -d grocery
+```
+
+Then check out the matching commit and run `make update` again.
 
 ## Operating
 
@@ -153,6 +183,7 @@ Migrations run when the backend starts.
 |---|---|
 | State of every unit | `make status` |
 | Recent logs | `make logs`, or `journalctl -u grocery-backend -f` |
+| Deploy the checked-out branch | `make update` |
 | Restart everything | `sudo systemctl restart grocery.target` |
 | Stop everything | `sudo systemctl stop grocery.target` |
 | Remove (keeps `/etc/grocery`, the database and logs) | `sudo make uninstall` |

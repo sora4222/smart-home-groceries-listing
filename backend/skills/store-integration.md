@@ -26,6 +26,7 @@ services/stores/
 ├── unit_price.rs   # normalise() → per 100 g, per 100 mL, per unit
 ├── deal.rs         # Deal + total_price()
 ├── money.rs        # JSON float → Decimal
+├── image.rs        # https_only(): picture links kept only when https
 ├── error.rs        # StoreError: Blocked / Unreachable / UnexpectedResponse
 └── store.rs        # Store enum
 services/product_search/   # one item across all stores: query, filters,
@@ -35,6 +36,13 @@ services/product_lookup.rs # one product at one store by id (route:
 ```
 Add a store: a `wire.rs` + `mapping.rs` + client implementing `StoreClient`,
 a `Store` variant, and one arm in `registry::live`. Nothing else changes.
+
+Every mapper fills `Product.image_url` with the product's picture and passes
+it through `image::https_only` (the web app puts it straight into
+`<img src>`). Woolworths: `SmallImageFile`. Coles: the `imageUris` entry with
+`type: default` (else the first), joined to
+`https://productimages.coles.com.au/productimages`. No picture → `None`; the
+web app shows a placeholder.
 
 ## Priority order
 1. Official retailer API (check first — may exist or be partially public)

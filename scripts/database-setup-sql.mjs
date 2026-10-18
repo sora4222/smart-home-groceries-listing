@@ -3,6 +3,7 @@
  * updates) the application role and database on this server's PostgreSQL.
  *
  *   grocery-env json database | node database-setup-sql.mjs | runuser -u postgres -- psql
+ *   grocery-env json database | node database-setup-sql.mjs --print-database   →  "local grocery" | "remote"
  *
  * The password is sent as a SCRAM-SHA-256 verifier computed here, so the
  * plain password never appears in PostgreSQL's statement log. A URL that
@@ -64,7 +65,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const { DATABASE_URL: url } = JSON.parse(readFileSync(0, 'utf8'));
     if (!url) throw new Error('DATABASE_URL is not set in .env');
     const target = databaseTarget(url);
-    if (target.local) process.stdout.write(setupSql(target));
+    if (process.argv[2] === '--print-database') process.stdout.write(target.local ? `local ${target.database}\n` : 'remote\n');
+    else if (target.local) process.stdout.write(setupSql(target));
     else console.error('DATABASE_URL names another server; skipping database setup');
   } catch (error) {
     console.error(error.message);

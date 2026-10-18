@@ -7,6 +7,7 @@
 #   alexa-bridge/venv        relocatable Python virtualenv with the bridge
 #   frontend/.output         TanStack Start server bundle
 #   lib/ libexec/ systemd/   configuration resolver and unit files
+#   migrations/              copy of the SQL the binary embeds, for checks
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -52,10 +53,12 @@ cp -a "$root/frontend/.output" "$stage/frontend/.output"
 
 log "configuration resolver and systemd units"
 for file in environment.mjs service-env.mjs service-components.mjs systemd-env.mjs \
-  database-setup-sql.mjs triage-setup.mjs; do
+  database-setup-sql.mjs triage-setup.mjs migration-plan.mjs run-with-env.mjs; do
   install -m 644 "$root/scripts/$file" "$stage/lib/$file"
 done
 install -m 755 "$root/deploy/bin/grocery-env" "$stage/libexec/grocery-env"
+# The migrations the binary embeds, so `make update` can check them first.
+cp -a "$root/backend/migrations" "$stage/migrations"
 cp -a "$root/deploy/systemd" "$stage/systemd"
 git -C "$root" describe --always --dirty > "$stage/VERSION" 2> /dev/null || echo unknown > "$stage/VERSION"
 

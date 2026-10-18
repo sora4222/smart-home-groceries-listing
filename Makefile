@@ -1,5 +1,5 @@
 .PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
-        migrate migration-new check lint lint-fix build install uninstall status logs \
+        migrate migration-new check lint lint-fix build install update uninstall status logs \
         alexa-up setup-env \
         run-env hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
 
@@ -39,7 +39,7 @@ test-backend:
 test-tooling:
 	@sh scripts/environment.test.sh
 	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
-	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs
+	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs
 	@sh scripts/grocery-env.test.sh
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh
@@ -98,6 +98,14 @@ build:
 # services, plus PostgreSQL role, Ollama and cloudflared as configured.
 install:
 	@bash deploy/install.sh
+
+# Run as yourself (it asks for sudo). Deploys the checked-out branch:
+# fast-forward pull, build, check pending migrations (stops on destructive
+# ones unless ALLOW_DESTRUCTIVE=1), back up the database, install.
+update:
+	@sh deploy/pull.sh
+	@$(MAKE) --no-print-directory build
+	@sudo env ALLOW_DESTRUCTIVE=$(ALLOW_DESTRUCTIVE) bash deploy/update.sh
 
 uninstall:
 	@bash deploy/uninstall.sh

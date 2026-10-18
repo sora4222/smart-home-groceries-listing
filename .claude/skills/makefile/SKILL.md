@@ -33,12 +33,14 @@ Choose the database profile from the resolved `DATABASE_URL`: enable `db` for
 the Compose hostname, remove it for external PostgreSQL, and preserve all
 other profiles and the original configuration file.
 
-Production targets (`build`, `install`, `uninstall`, `status`, `logs`) call
+Production targets (`build`, `install`, `update`, `uninstall`, `status`, `logs`) call
 the scripts in `deploy/` and never use Docker. `make build` runs as the
 developer and writes only `build/production`, laid out as `/opt/grocery`;
 `make install` runs as root and must stay re-runnable. Services read
 settings only through `deploy/bin/grocery-env`; a new key goes in the right
 component in `scripts/service-components.mjs` (`docs/production.md`).
+`make update` must stay non-destructive: it checks pending migrations with
+`scripts/migration-plan.mjs`, backs up, and only then installs.
 
 All launchers use `test-process.mjs` for process-group ownership and signal
 status. Race server exit promises against owned work with `withServers`;

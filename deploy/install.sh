@@ -4,7 +4,8 @@
 #
 #   1. .env               -> /etc/grocery/grocery.env (root only)
 #   2. build/production   -> /opt/grocery (root owned, read-only to services)
-#   3. PostgreSQL role and database from DATABASE_URL (local server only)
+#   3. PostgreSQL role and database from DATABASE_URL (local server only),
+#      then pending migrations with the new binary, before switching over
 #   4. Ollama, when it is the triage provider on this machine
 #   5. cloudflared, when CLOUDFLARE_TUNNEL_TOKEN is set
 #   6. systemd units, enabled at boot and (re)started
@@ -57,8 +58,11 @@ log "PostgreSQL role and database"
 if systemctl is-active --quiet postgresql; then
   settings database | "$node" "$lib/database-setup-sql.mjs" \
     | (cd / && runuser -u postgres -- psql -X -q -v ON_ERROR_STOP=1)
+  log "database migrations (new backend, before switching over)"
+  settings backend | "$node" "$lib/run-with-env.mjs" nobody "$prefix.new/bin/grocery-backend" --migrate-only \
+    || die "migrations failed; nothing was switched over, the running version is unchanged"
 else
-  warn "postgresql.service is not running; skipped creating the role and database"
+  warn "postgresql.service is not running; skipped the role, database and migrations"
 fi
 
 log "intake triage model"

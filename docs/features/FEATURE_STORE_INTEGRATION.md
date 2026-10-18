@@ -133,7 +133,9 @@ filter (special or multibuy) — it never reorders.
 **Sorting** (`lib/product-sort.ts`, client side only): both stores' products
 are mixed in one list, each labelled with its store. "Sort by" offers unit
 price, shelf price and name (brand + name, case-insensitive), each low→high
-and high→low; the default is unit price low→high. Unavailable products always
+and high→low; the default is unit price low→high. Unit price is the backend's
+effective one (after deals at the item's quantity), on the basis common to the
+whole search, before "Specials only" filters it. Unavailable products always
 go last, then products missing the sorted value (no price, no unit price, or
 a unit price on a basis other than the most common one), in either direction.
 Ties keep the backend's order. Stores that failed or show nothing get one

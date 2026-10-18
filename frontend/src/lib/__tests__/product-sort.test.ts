@@ -3,10 +3,14 @@ import { describe, expect, it } from "vitest";
 import { productFixture } from "#/components/products/__tests__/fixtures";
 import type { StoreProduct } from "#/lib/api";
 import {
+	commonBasis,
 	type ProductSort,
+	type SortContext,
 	type StoreListing,
 	sortListings,
 } from "#/lib/product-sort";
+
+const context: SortContext = { quantity: 1, basis: "100mL" };
 
 function listing(
 	product: Partial<StoreProduct>,
@@ -23,8 +27,12 @@ function unit(amount: string, per: "100mL" | "100g" | "unit" = "100mL") {
 	return { amount, per, converted_from: null };
 }
 
-function namesAfter(listings: StoreListing[], sort: ProductSort): string[] {
-	return sortListings(listings, sort).map(({ product }) => product.name);
+function namesAfter(
+	listings: StoreListing[],
+	sort: ProductSort,
+	given: SortContext = context,
+): string[] {
+	return sortListings(listings, sort, given).map(({ product }) => product.name);
 }
 
 const mixed = [
@@ -93,7 +101,9 @@ describe("sortListings", () => {
 		];
 
 		expect(
-			sortListings(branded, "name-asc").map(({ product }) => product.brand),
+			sortListings(branded, "name-asc", context).map(
+				({ product }) => product.brand,
+			),
 		).toEqual(["Acme", "Zed"]);
 	});
 
@@ -144,5 +154,62 @@ describe("sortListings", () => {
 		expect(namesAfter(ties, "price-asc")).toEqual(["First", "Second"]);
 		expect(namesAfter(ties, "price-desc")).toEqual(["First", "Second"]);
 		expect(ties[0].product.name).toBe("First");
+	});
+
+	it("judges unit price after a multibuy at the item's quantity", () => {
+		const listings = [
+			listing({
+				product_id: "1",
+				name: "Plain",
+				price: "3.00",
+				unit_price: unit("0.30"),
+				total_price: "6.00",
+			}),
+			listing({
+				product_id: "2",
+				name: "Multibuy",
+				price: "3.50",
+				unit_price: unit("0.35"),
+				// 2 for $5: 25c per 100mL once two are bought.
+				total_price: "5.00",
+				deal_applied: true,
+			}),
+		];
+
+		expect(
+			namesAfter(listings, "unit-asc", { quantity: 2, basis: "100mL" }),
+		).toEqual(["Multibuy", "Plain"]);
+	});
+
+	it("compares on the basis it is given, not the one left after a filter", () => {
+		const listings = [
+			listing({
+				product_id: "1",
+				name: "Each",
+				unit_price: unit("0.01", "unit"),
+			}),
+			...mixed,
+		];
+
+		expect(namesAfter(listings, "unit-asc").at(-1)).toBe("Each");
+		expect(
+			namesAfter(listings, "unit-asc", { quantity: 1, basis: "unit" })[0],
+		).toBe("Each");
+	});
+});
+
+describe("commonBasis", () => {
+	it("is the basis most unit prices share", () => {
+		expect(
+			commonBasis(
+				[unit("1", "unit"), unit("1"), unit("2"), null].map((unit_price) =>
+					productFixture({ unit_price }),
+				),
+			),
+		).toBe("100mL");
+	});
+
+	it("is null when nothing has a unit price", () => {
+		expect(commonBasis([productFixture({ unit_price: null })])).toBeNull();
 	});
 });

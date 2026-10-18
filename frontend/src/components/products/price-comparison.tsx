@@ -27,6 +27,7 @@ import type {
 	StoreProducts,
 } from "#/lib/api";
 import {
+	commonBasis,
 	DEFAULT_SORT,
 	type ProductSort,
 	type StoreListing,
@@ -164,6 +165,12 @@ function Results({ item }: { item: GroceryItem }) {
 						listings={sortListings(
 							listingsOf(state.data.stores, specialsOnly),
 							sort,
+							{
+								quantity: state.data.item.quantity,
+								basis: commonBasis(
+									state.data.stores.flatMap((results) => results.products),
+								),
+							},
 						)}
 						quantity={state.data.item.quantity}
 					/>

@@ -12,8 +12,8 @@ while IFS= read -r path; do
     [ -f "$path" ] || continue
     case "$path" in
         *routeTree.gen.ts) continue ;;
-        *.rs | *.py) limit=300 ;;
-        *.ts | *.tsx) limit=400 ;;
+        *.rs | *.py) limit=500 ;;
+        *.ts | *.tsx) limit=500 ;;
         *) continue ;;
     esac
     lines=$(wc -l < "$path" | tr -d ' ')

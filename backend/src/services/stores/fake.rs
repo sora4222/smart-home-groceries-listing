@@ -26,6 +26,9 @@ use super::unit_price::normalise;
 /// Searching for anything containing this makes the fake Coles unreachable.
 pub const OUTAGE_KEYWORD: &str = "outage";
 
+/// Every fake product's picture: a file in the web app's `public/` folder.
+pub const FAKE_IMAGE: &str = "/fake-product.svg";
+
 /// One catalogue row: the keyword that finds it, then the product's details.
 struct Row {
     store: Store,
@@ -216,6 +219,8 @@ fn product(row: &Row) -> Product {
             .collect(),
         category: Some(row.category.to_string()),
         url: format!("https://example.test/{}/{}", row.store, row.id),
+        // Served by the web app, so development needs no network for it.
+        image_url: Some(FAKE_IMAGE.to_string()),
         available: true,
     }
 }

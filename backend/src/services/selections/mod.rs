@@ -103,6 +103,7 @@ impl<'a> SelectionService<'a> {
                 // screen re-prices either way.
                 priced_quantity: searched.quantity,
                 url: &product.url,
+                image_url: product.image_url.as_deref(),
                 selected_by: user_id,
             },
         )

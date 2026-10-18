@@ -18,6 +18,7 @@ pub mod deal;
 pub mod error;
 pub mod fake;
 pub mod http;
+pub mod image;
 pub mod measure;
 pub mod money;
 pub mod product;

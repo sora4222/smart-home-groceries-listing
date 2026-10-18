@@ -16,6 +16,8 @@ interface PendingRequestCardProps {
 	dulled: boolean;
 	onAccept: (id: string, name: string, quantity: number) => void;
 	onReject: (id: string) => void;
+	/** Called when the user changes the name or quantity. */
+	onEdit?: (id: string) => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export function PendingRequestCard({
 	dulled,
 	onAccept,
 	onReject,
+	onEdit,
 }: PendingRequestCardProps) {
 	const [name, setName] = useState(request.parsed_name);
 	const [quantity, setQuantity] = useState(request.parsed_quantity);
@@ -49,7 +52,10 @@ export function PendingRequestCard({
 					<input
 						id={`name-${request.id}`}
 						value={name}
-						onChange={(e) => setName(e.target.value)}
+						onChange={(e) => {
+							setName(e.target.value);
+							onEdit?.(request.id);
+						}}
 						className="w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					/>
 				</div>
@@ -68,9 +74,10 @@ export function PendingRequestCard({
 					min={1}
 					max={999}
 					value={quantity}
-					onChange={(e) =>
-						setQuantity(Math.max(1, Number(e.target.value) || 1))
-					}
+					onChange={(e) => {
+						setQuantity(Math.max(1, Number(e.target.value) || 1));
+						onEdit?.(request.id);
+					}}
 					className="w-20 rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				/>
 				<span className="text-xs text-muted-foreground">

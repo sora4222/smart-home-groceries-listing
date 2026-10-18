@@ -47,30 +47,9 @@ function PendingPage() {
 		quantity: number,
 		onDuplicate: OnDuplicate = "ask",
 	) {
+		let accepted: Awaited<ReturnType<typeof api.voice.accept>>;
 		try {
-			const { grocery_item } = await api.voice.accept(
-				id,
-				{ name, quantity },
-				onDuplicate,
-			);
-			setHeld(null);
-			dropCard(id);
-			setRejectedIds((prev) => {
-				const next = new Set(prev);
-				next.delete(id);
-				return next;
-			});
-			// A voice item brings no chips of its own, so every one came from a
-			// rule. A merge returns the existing item, whose chips no rule added.
-			toast.success(`${name} added to the grocery list`, {
-				description: ruleTermsDescription(
-					onDuplicate === "merge" ? [] : grocery_item.filter_terms,
-				),
-			});
-			// Awaited inside the try: an invalidation still in flight when the
-			// user navigates away rejects, and unawaited that surfaced as an
-			// unhandled "Failed to fetch" in the console.
-			await router.invalidate();
+			accepted = await api.voice.accept(id, { name, quantity }, onDuplicate);
 		} catch (error) {
 			const detail = duplicateDetail(error);
 			if (detail) {
@@ -81,6 +60,29 @@ function PendingPage() {
 			const failure = acceptFailure(error, name);
 			if (failure.gone) dropCard(id);
 			toast.error(failure.message);
+			return;
+		}
+
+		setHeld(null);
+		dropCard(id);
+		setRejectedIds((prev) => {
+			const next = new Set(prev);
+			next.delete(id);
+			return next;
+		});
+		// A voice item brings no chips of its own, so every one came from a
+		// rule. A merge returns the existing item, whose chips no rule added.
+		toast.success(`${name} added to the grocery list`, {
+			description: ruleTermsDescription(
+				onDuplicate === "merge" ? [] : accepted.grocery_item.filter_terms,
+			),
+		});
+		try {
+			await router.invalidate();
+		} catch {
+			// The accept succeeded; only the refresh failed (an invalidation
+			// still in flight when the user navigates away rejects). Unawaited,
+			// that surfaced as an unhandled "Failed to fetch" in the console.
 		}
 	}
 
@@ -112,6 +114,10 @@ function PendingPage() {
 						dulled={rejectedIds.has(request.id)}
 						onAccept={handleAccept}
 						onReject={handleReject}
+						onEdit={(id) =>
+							// The held question was about the old name and quantity.
+							setHeld((prev) => (prev?.id === id ? null : prev))
+						}
 					/>
 					{held?.id === request.id && (
 						<DuplicatePrompt

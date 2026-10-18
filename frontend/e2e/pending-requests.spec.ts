@@ -57,4 +57,24 @@ test.describe("accepting a voice item already on the list", () => {
 		await expect(page.getByRole("alertdialog")).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Accept eggs" })).toBeVisible();
 	});
+
+	test("editing the card closes the question about the old name", async ({
+		page,
+		request,
+	}) => {
+		await gotoList(page);
+		await addItem(page, "jam", 1);
+		expect(await deliverVoiceItem(request, "jam", 1)).toBe("pending");
+
+		await gotoList(page, "/pending");
+		await page.getByRole("button", { name: "Accept jam" }).click();
+		await expect(page.getByRole("alertdialog")).toBeVisible();
+		await page.getByLabel("Item name").fill("strawberry jam");
+
+		await expect(page.getByRole("alertdialog")).toHaveCount(0);
+		await page.getByRole("button", { name: "Accept strawberry jam" }).click();
+		await expect(
+			page.getByRole("button", { name: "Accept strawberry jam" }),
+		).toHaveCount(0);
+	});
 });

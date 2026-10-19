@@ -62,7 +62,7 @@ test-tooling:
 	@sh scripts/desktop.test.sh
 	@sh scripts/environment.test.sh
 	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/dev.test.mjs scripts/dev-context.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
-	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs
+	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs scripts/build-frontend.test.mjs
 	@sh scripts/grocery-env.test.sh
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh

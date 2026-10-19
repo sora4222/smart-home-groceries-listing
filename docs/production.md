@@ -1,8 +1,8 @@
 # Production server (no Docker)
 
 Runs the app on an Ubuntu 26.04 home server as systemd services, without
-Docker. `make build` compiles everything as your user; `sudo make hm-install-server`
-installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
+Docker. `make build` compiles everything as your user, using sudo to resolve
+frontend configuration. `sudo make hm-install-server` installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
 the services. Re-running both is also how an update is deployed.
 
 Do the vendor-console parts of [`human-setup.md`](human-setup.md) first
@@ -72,6 +72,13 @@ sudo sh -c 'umask 077; cat > /etc/1password/grocery.token'   # paste, Enter, Ctr
 ```
 
 The service account needs read access to the project vault only.
+
+The frontend build uses this same resolver and token-file priority through
+sudo, reading the checkout's `.env`. Only resolved `CLERK_*` and `VITE_*`
+settings reach the unprivileged build; the token stays in the resolver.
+A token-file authentication failure stops the build or service startup without
+falling back to a desktop account. Local development retains desktop fallback.
+No token file permissions need to be relaxed or token exported in your shell.
 
 ## 2. `.env`
 

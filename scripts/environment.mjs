@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 
-/** Try the exported service account, then retry once through the desktop app. */
+/** Try the service account; desktop retry is allowed only outside token-file production use. */
 export function readSecret(reference, inherited) {
   const desktop = { ...inherited, OP_BIOMETRIC_UNLOCK_ENABLED: 'true' };
   for (const key of Object.keys(desktop)) {
@@ -20,7 +20,10 @@ export function readSecret(reference, inherited) {
     const service = { ...desktop, OP_SERVICE_ACCOUNT_TOKEN: inherited.OP_SERVICE_ACCOUNT_TOKEN, OP_BIOMETRIC_UNLOCK_ENABLED: 'false' };
     delete service.OP_ACCOUNT;
     try { return read(service); }
-    catch { /* A failed service-account read gets one desktop attempt. */ }
+    catch (error) {
+      // Production must use the selected token, never an interactive fallback.
+      if (inherited.GROCERY_OP_SERVICE_ONLY === '1') throw error;
+    }
   }
   return read(desktop);
 }

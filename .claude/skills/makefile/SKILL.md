@@ -44,6 +44,11 @@ Build as the developer into `build/production`; install as root. Updates check
 migrations and back up before installation. Settings flow through
 `deploy/bin/grocery-env` and `scripts/service-components.mjs`.
 
+The frontend build uses `scripts/build-frontend.mjs` to call the checkout resolver
+through sudo, then builds unprivileged with resolved frontend settings. Never
+export the installed service-account token to builds. Token-file authentication
+must fail without desktop fallback.
+
 Desktop commands are `hm-dev-desktop`, `build-desktop`, `test-desktop` and
 `check-desktop`. Development and build use `scripts/desktop.mjs`, which resolves
 only the public default URL and isolates development application identities by

@@ -20,7 +20,10 @@ Cover exported overrides and denied access without displaying real values.
 Cover service-account success, a failed service read followed by desktop
 success, and failure of both methods. Fake CLI checks should reject competing
 Connect/session credentials and verify desktop integration is enabled for the
-fallback. Keep real credentials out of test fixtures and output.
+fallback. Token-file production resolution must instead fail without desktop
+fallback, including an empty token file. Exercise the frontend build with a
+fake sudo and op, checking token priority and that build subprocesses receive
+only resolved frontend settings. Keep real credentials out of test fixtures and output.
 The Node suite checks Compose wiring and needs Node 22+ and the Compose CLI,
 but no running containers or 1Password account.
 

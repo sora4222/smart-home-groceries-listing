@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # `make build`: compile every production component into build/production,
 # laid out exactly as `make hm-install-server` copies it to /opt/grocery. Runs as your
-# own user and needs neither root nor Docker.
+# own user, using sudo only to resolve frontend settings; no Docker.
 #
 #   bin/grocery-backend      Rust backend (release, migrations embedded)
 #   alexa-bridge/venv        relocatable Python virtualenv with the bridge
@@ -46,9 +46,9 @@ UV_PROJECT_ENVIRONMENT=$stage/alexa-bridge/venv uv sync --quiet --frozen --no-de
 "$stage/alexa-bridge/venv/bin/python" -c 'import alexa_bridge.app, gunicorn' \
   || die "the alexa bridge virtualenv is incomplete"
 
-log "web app: pnpm build (VITE_* values come from .env now)"
+log "web app: pnpm build (frontend settings resolved with the server 1Password account)"
 pnpm --dir "$root/frontend" install --frozen-lockfile --silent
-pnpm --dir "$root/frontend" run --silent build
+node "$root/scripts/build-frontend.mjs"
 cp -a "$root/frontend/.output" "$stage/frontend/.output"
 
 log "configuration resolver and systemd units"

@@ -33,7 +33,11 @@ export function parseArguments(argv) {
 export function resolveComponent({ name, file, tokenFile, inherited = process.env, resolve }) {
   const spec = component(name);
   const env = { ...inherited };
-  if (tokenFile) env.OP_SERVICE_ACCOUNT_TOKEN = readFileSync(tokenFile, 'utf8').trim();
+  if (tokenFile) {
+    env.OP_SERVICE_ACCOUNT_TOKEN = readFileSync(tokenFile, 'utf8').trim();
+    if (!env.OP_SERVICE_ACCOUNT_TOKEN) throw new Error('The 1Password service-account token file is empty');
+    env.GROCERY_OP_SERVICE_ONLY = '1';
+  }
   const values = loadEnvironment({ file, inherited: env, accepts: key => accepts(spec, key), ...(resolve && { resolve }) });
   return renamed(spec, values);
 }

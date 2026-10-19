@@ -30,7 +30,8 @@ esac
 
 here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 node=${GROCERY_NODE:-$here/../bin/node}
-resolver=$here/../lib/service-env.mjs
+# Builds use the checkout resolver before an installed/staged layout exists.
+resolver=${GROCERY_RESOLVER:-$here/../lib/service-env.mjs}
 config=${GROCERY_CONFIG:-/etc/grocery/grocery.env}
 etc_dir=${GROCERY_ETC:-/etc/grocery}
 tokens=${GROCERY_OP_TOKENS:-/etc/1password/grocery.token /etc/1password/token}

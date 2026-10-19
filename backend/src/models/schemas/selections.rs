@@ -87,6 +87,7 @@ pub struct ItemSelectionResponse {
     pub total_price: Option<Decimal>,
     pub priced_quantity: i32,
     pub url: String,
+    pub image_url: Option<String>,
     pub selected_by: String,
     pub selected_at: DateTime<Utc>,
 }
@@ -117,6 +118,7 @@ impl From<ItemSelection> for ItemSelectionResponse {
             total_price: row.total_price,
             priced_quantity: row.priced_quantity,
             url: row.url,
+            image_url: row.image_url,
             selected_by: row.selected_by,
             selected_at: row.selected_at,
         }

@@ -68,6 +68,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 | Target | Action |
 |---|---|
 | `make up` | Start all services; adapt the port for multi-agent development |
+| `make web` | Only the web app, against the backend at `VITE_API_BASE_URL` |
 | `make down` | Stop all |
 | `make test` | All tests (compact output) |
 | `make migrate` | Apply pending `sqlx` migrations |

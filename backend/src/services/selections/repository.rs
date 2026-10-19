@@ -28,6 +28,7 @@ pub struct NewSelection<'a> {
     pub total_price: Option<Decimal>,
     pub priced_quantity: i32,
     pub url: &'a str,
+    pub image_url: Option<&'a str>,
     pub selected_by: &'a str,
 }
 
@@ -39,7 +40,7 @@ where
     Ok(sqlx::query_as::<_, ItemSelection>(
         "SELECT id, grocery_item_id, store, product_id, product_name, brand,
                 package_size, price, unit_price, unit_price_per, total_price,
-                priced_quantity, url, selected_by, selected_at, for_order
+                priced_quantity, url, image_url, selected_by, selected_at, for_order
          FROM item_selections
          WHERE for_order
          ORDER BY selected_at",
@@ -56,7 +57,7 @@ where
     Ok(sqlx::query_as::<_, ItemSelection>(
         "SELECT id, grocery_item_id, store, product_id, product_name, brand,
                 package_size, price, unit_price, unit_price_per, total_price,
-                priced_quantity, url, selected_by, selected_at, for_order
+                priced_quantity, url, image_url, selected_by, selected_at, for_order
          FROM item_selections
          ORDER BY selected_at",
     )
@@ -84,8 +85,8 @@ pub async fn upsert(
         "INSERT INTO item_selections
              (id, grocery_item_id, store, product_id, product_name, brand,
               package_size, price, unit_price, unit_price_per, total_price,
-              priced_quantity, url, selected_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+              priced_quantity, url, image_url, selected_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          ON CONFLICT (grocery_item_id, store) DO UPDATE SET
              product_id = EXCLUDED.product_id,
              product_name = EXCLUDED.product_name,
@@ -97,12 +98,13 @@ pub async fn upsert(
              total_price = EXCLUDED.total_price,
              priced_quantity = EXCLUDED.priced_quantity,
              url = EXCLUDED.url,
+             image_url = EXCLUDED.image_url,
              selected_by = EXCLUDED.selected_by,
              selected_at = now(),
              for_order = true
          RETURNING id, grocery_item_id, store, product_id, product_name, brand,
                    package_size, price, unit_price, unit_price_per, total_price,
-                   priced_quantity, url, selected_by, selected_at, for_order",
+                   priced_quantity, url, image_url, selected_by, selected_at, for_order",
     )
     .bind(Uuid::new_v4())
     .bind(new.grocery_item_id)
@@ -117,6 +119,7 @@ pub async fn upsert(
     .bind(new.total_price)
     .bind(new.priced_quantity)
     .bind(new.url)
+    .bind(new.image_url)
     .bind(new.selected_by)
     .fetch_one(&mut **tx)
     .await?)

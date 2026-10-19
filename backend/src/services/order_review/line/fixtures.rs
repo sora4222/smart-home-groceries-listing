@@ -35,6 +35,7 @@ pub fn choice(item: &GroceryItem, store: Store, product_id: &str, price: Decimal
         total_price: Some(price),
         priced_quantity: 1,
         url: String::new(),
+        image_url: None,
         selected_by: "user".into(),
         selected_at: chrono::Utc::now(),
         for_order: true,

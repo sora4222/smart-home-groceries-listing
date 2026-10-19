@@ -181,9 +181,10 @@ runs the connector, so do not install it on the host.
 The resulting skill endpoint is `https://grocery.<your-domain>/alexa`; section
 4 needs it.
 
-**Security:** expose only the sidecar. Never route to `backend:8000`; that
-would publish the whole API, which trusts the sidecar's shared secret and,
-with `DEV_AUTH_BYPASS=true`, nothing else.
+**Security:** expose only the sidecar here. Route to `backend:8000` only
+for [the web app on your own computer](#optional-web-app-on-your-own-computer),
+and only with `DEV_AUTH_BYPASS=false`: the route publishes the whole API,
+which with the bypass on trusts nothing.
 
 **Verify:** the tunnel is listed. Status is **Down**/**Inactive** until
 section 6 starts the connector.
@@ -510,6 +511,77 @@ pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
 | Backend logs `password authentication failed` | The password in `DATABASE_URL` differs from the role's, or has an unencoded special character. |
 | `make up` stops with "COMPOSE_PROFILES does not include db" | `DATABASE_URL` still names `db`; finish step 5. On a developer machine, add `db` instead (a `.env` made before the `db` profile existed lacks it). |
 | A `db` container still starts | `db` is still in `COMPOSE_PROFILES`, in `.env` or exported in the shell (the shell wins). |
+
+---
+
+## Optional: web app on your own computer
+
+Run the web app on your own computer while the backend and PostgreSQL stay
+on the home server. The browser calls the backend at `VITE_API_BASE_URL`,
+so the backend gets its own public hostname on the existing tunnel. Spec:
+[`features/FEATURE_REMOTE_BACKEND.md`](features/FEATURE_REMOTE_BACKEND.md).
+
+**Security:** this publishes the whole API. It is safe only with sign-in on:
+on the server, `DEV_AUTH_BYPASS=false` and `CLERK_JWKS_URL` set (section 2).
+With the bypass on, anyone who finds the hostname can read and change the
+list.
+
+### Cloudflare dashboard (dash.cloudflare.com)
+
+In **Networking → Tunnels → grocery-list → Routes → Add route → Published
+application**, add a second hostname. Leave **Path** empty so `/api/*` and
+the `/ws` WebSocket both reach the backend:
+
+| Field | Value |
+|---|---|
+| Subdomain | `grocery-api` |
+| Domain | your domain |
+| Path | *(empty)* |
+| Service URL | `http://localhost:8000` (systemd, [`production.md`](production.md)) or `http://backend:8000` (Compose) |
+
+Cloudflare passes WebSockets through without extra settings.
+
+### Home server `.env`
+
+| Key | Value |
+|---|---|
+| `DEV_AUTH_BYPASS` | `false` |
+| `CORS_ORIGINS` | must include the web app's origin, `http://localhost:3000` by default. Comma-separate more than one. |
+
+Restart the backend (`sudo systemctl restart grocery-backend`, or
+`make restart` under Compose).
+
+### Your computer
+
+Needs Node 22+, `pnpm` and a checkout of this repository. No Docker and no
+database. Create `.env` in the checkout root with only the web app's keys:
+
+| Key | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://grocery-api.<your-domain>` |
+| `VITE_WS_URL` | empty (follows `VITE_API_BASE_URL` as `wss://…/ws`) |
+| `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` | the publishable key (section 2) |
+| `CLERK_SECRET_KEY` | the secret key; the web app's own server reads the sign-in cookie with it |
+
+Clerk development keys (`pk_test_…`) work on `localhost`. Production keys
+(`pk_live_…`) work only on the domain set in Clerk, so use the development
+instance's keys here.
+
+Then run `make web` and open [localhost:3000](http://localhost:3000).
+`WEB_PORT=3001 make web` picks another port; add that origin to
+`CORS_ORIGINS` on the server.
+
+**Verify:** `curl https://grocery-api.<your-domain>/api/health` answers, and
+after signing in the Pending Requests page loads without errors in the
+browser console.
+
+| Symptom | Fix |
+|---|---|
+| Console: `blocked by CORS policy` | The origin in the address bar is missing from the server's `CORS_ORIGINS`, or the backend was not restarted. |
+| Every request is `401` | The server's `CLERK_JWKS_URL` is from a different Clerk instance than the keys on your computer. |
+| Clerk error about the domain or key | A `pk_live_…` key on `localhost`; use the development instance's keys. |
+| Console: `VITE_API_BASE_URL must start with http:// or https://` | Add the scheme to the value, then restart `make web`. |
+| Requests still go to `localhost:8000` | `VITE_*` values are read at start: restart `make web`. |
 
 ---
 

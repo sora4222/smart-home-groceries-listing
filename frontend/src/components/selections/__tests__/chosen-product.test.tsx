@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { selectionFixture } from "#/components/selections/__tests__/fixtures";
@@ -80,5 +80,19 @@ describe("ChosenProduct", () => {
 		render(<ChosenProduct itemName="milk" selection={selectionFixture()} />);
 
 		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+	});
+
+	it("shows the chosen product's picture", () => {
+		render(<ChosenProduct itemName="milk" selection={selectionFixture()} />);
+
+		expect(
+			within(screen.getByLabelText("Chosen product for milk")).getByRole(
+				"img",
+				{ name: "Coles Full Cream Milk" },
+			),
+		).toHaveAttribute(
+			"src",
+			"https://productimages.coles.com.au/productimages/8/8150288.jpg",
+		);
 	});
 });

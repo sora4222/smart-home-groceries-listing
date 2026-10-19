@@ -60,6 +60,8 @@ pub struct ProductResponse {
     pub deal_applied: bool,
     pub category: Option<String>,
     pub url: String,
+    /// The product's picture, when the store has one.
+    pub image_url: Option<String>,
     pub available: bool,
 }
 
@@ -109,6 +111,7 @@ impl From<PricedProduct> for ProductResponse {
             deal_applied: priced.deal_applied,
             category: p.category,
             url: p.url,
+            image_url: p.image_url,
             available: p.available,
         }
     }

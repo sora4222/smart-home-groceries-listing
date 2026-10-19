@@ -22,6 +22,10 @@ ports. Include browser tests in `test`; preserve command failures rather than
 masking them with output filters. Keep process-group and container cleanup in
 the owned runners. Prefer existing targets over duplicating their behavior.
 
+`make web` runs only the frontend on the host (no Docker) against the
+backend at `VITE_API_BASE_URL`; keep it free of backend and database
+settings (`docs/features/FEATURE_REMOTE_BACKEND.md`).
+
 Compose lifecycle commands use `scripts/compose.mjs` with the same selected
 `--env-file`. Shutdown loads only Compose settings and preserves failures
 without resolving application secrets. Startup resolves `op://` settings.

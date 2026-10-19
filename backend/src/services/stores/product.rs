@@ -8,9 +8,9 @@ use super::unit_price::UnitPrice;
 
 /// One store's product, mapped from that store's own response.
 ///
-/// Images and marketing copy are deliberately not carried: the household
-/// compares on price, size and name, and the project aims to reduce
-/// marketing-driven buying.
+/// Marketing copy is deliberately not carried: the household compares on
+/// price, size, name and the product's picture, and the project aims to
+/// reduce marketing-driven buying.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Product {
     pub store: Store,
@@ -33,6 +33,8 @@ pub struct Product {
     pub category: Option<String>,
     /// The product's page on the store's website.
     pub url: String,
+    /// The product's picture on the store's image server, always `https://`.
+    pub image_url: Option<String>,
     /// The store can deliver it now.
     pub available: bool,
 }
@@ -73,6 +75,7 @@ pub(crate) mod fixtures {
             deals: Vec::new(),
             category: None,
             url: String::new(),
+            image_url: None,
             available: true,
         }
     }

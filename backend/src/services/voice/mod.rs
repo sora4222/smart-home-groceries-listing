@@ -25,7 +25,7 @@ use crate::models::db::{
 use crate::models::schemas::{
     AlexaIntakeCreate, VoiceRequestCreate, VoiceRequestDecision, MAX_QUANTITY,
 };
-use crate::services::grocery::{duplicate_error, repository as grocery_repository};
+use crate::services::grocery::{duplicate_error, repository as grocery_repository, OnDuplicate};
 use crate::services::item_rules::{self, AddedVia};
 use crate::services::triage::TriageQueue;
 use crate::services::ws_hub::WsHub;
@@ -119,13 +119,14 @@ impl<'a> VoiceService<'a> {
 
     /// Accepts a request, applying any corrections, onto the active list.
     ///
-    /// Returns [`ApiError::DuplicateActiveItem`] when an active item with the
-    /// same normalised name exists and `merge` is false, so the caller can ask
-    /// the user whether to add another or update the existing quantity.
-    /// `merge = true` adds to the existing item's quantity instead, capped at
-    /// [`MAX_QUANTITY`] to stay inside the column's constraint. A new list
-    /// entry gets the chips of every item rule matching its (corrected) name;
-    /// a merge leaves the existing item's chips alone.
+    /// When an active item with the same normalised name exists,
+    /// `on_duplicate` decides: [`OnDuplicate::Ask`] returns
+    /// [`ApiError::DuplicateActiveItem`] so the caller can ask the user whether
+    /// to add another or update the existing quantity; [`OnDuplicate::Merge`]
+    /// adds to the existing item's quantity, capped at [`MAX_QUANTITY`] to stay
+    /// inside the column's constraint; [`OnDuplicate::Separate`] adds a second
+    /// entry. A new list entry gets the chips of every item rule matching its
+    /// (corrected) name; a merge leaves the existing item's chips alone.
     ///
     /// Accepting is allowed from `pending` *and* `rejected` — the latter backs
     /// the web app's "dulled, undo-on-hover" reject. Only an already-accepted
@@ -135,7 +136,7 @@ impl<'a> VoiceService<'a> {
         request_id: Uuid,
         decision: &VoiceRequestDecision,
         user_id: &str,
-        merge: bool,
+        on_duplicate: OnDuplicate,
     ) -> Result<(VoiceRequest, GroceryItem), ApiError> {
         let mut tx = self.pool.begin().await?;
 
@@ -149,40 +150,41 @@ impl<'a> VoiceService<'a> {
         let name = corrected_name(decision, &request);
         let quantity = decision.quantity.unwrap_or(request.parsed_quantity);
 
-        let (grocery_item, merged) =
-            match grocery_repository::lock_active_duplicate(&mut tx, &name).await? {
-                Some(existing) if !merge => {
-                    // Nothing has been written yet; rolling back just releases
-                    // the locks before the 409 goes out.
-                    tx.rollback().await?;
-                    log::duplicate_asked(&request, &existing);
-                    return Err(duplicate_error(&existing));
-                }
-                Some(existing) => {
-                    let merged = existing.quantity.saturating_add(quantity).min(MAX_QUANTITY);
-                    let item =
-                        grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?;
-                    (item, true)
-                }
-                None => {
-                    // A voice item carries no note or chips of its own; its chips
-                    // come from the item rules matching its name, and the user
-                    // annotates it further on the list.
-                    let rule_terms =
-                        item_rules::filter_terms_for(&mut *tx, &name, AddedVia::Voice).await?;
-                    let item = grocery_repository::insert_item(
-                        &mut tx,
-                        &name,
-                        quantity,
-                        GroceryItemSource::Voice,
-                        None,
-                        &rule_terms,
-                        user_id,
-                    )
-                    .await?;
-                    (item, false)
-                }
-            };
+        let clash = grocery_repository::lock_active_duplicate(&mut tx, &name).await?;
+        let (grocery_item, merged) = match (clash, on_duplicate) {
+            (Some(existing), OnDuplicate::Ask) => {
+                // Nothing has been written yet; rolling back just releases
+                // the locks before the 409 goes out.
+                tx.rollback().await?;
+                log::duplicate_asked(&request, &existing);
+                return Err(duplicate_error(&existing));
+            }
+            (Some(existing), OnDuplicate::Merge) => {
+                let merged = existing.quantity.saturating_add(quantity).min(MAX_QUANTITY);
+                let item =
+                    grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?;
+                (item, true)
+            }
+            // No clash, or the user asked for both entries to exist.
+            (_, _) => {
+                // A voice item carries no note or chips of its own; its chips
+                // come from the item rules matching its name, and the user
+                // annotates it further on the list.
+                let rule_terms =
+                    item_rules::filter_terms_for(&mut *tx, &name, AddedVia::Voice).await?;
+                let item = grocery_repository::insert_item(
+                    &mut tx,
+                    &name,
+                    quantity,
+                    GroceryItemSource::Voice,
+                    None,
+                    &rule_terms,
+                    user_id,
+                )
+                .await?;
+                (item, false)
+            }
+        };
 
         let accepted =
             repository::mark_accepted(&mut tx, request.id, &name, quantity, grocery_item.id)

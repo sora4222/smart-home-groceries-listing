@@ -26,6 +26,8 @@ export interface ItemSelection {
 	total_price: string | null;
 	priced_quantity: number;
 	url: string;
+	/** The product's picture when it was chosen; older choices have none. */
+	image_url: string | null;
 	selected_by: string;
 	selected_at: string;
 	/**

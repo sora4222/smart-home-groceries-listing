@@ -119,3 +119,51 @@ async fn whitespace_only_differences_are_treated_as_duplicates(pool: PgPool) {
 
     assert_eq!(status, StatusCode::CONFLICT);
 }
+
+#[sqlx::test]
+async fn on_duplicate_merge_is_the_same_as_the_merge_flag(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let item = unique_item();
+    let first = app.create_pending(&item, 1).await;
+    app.post(&format!("/api/voice-requests/{first}/accept"))
+        .await;
+
+    let second = app.create_pending(&item, 2).await;
+    let (status, body) = app
+        .post(&format!(
+            "/api/voice-requests/{second}/accept?on_duplicate=merge"
+        ))
+        .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["grocery_item"]["quantity"], 3);
+}
+
+#[sqlx::test]
+async fn on_duplicate_separate_adds_a_second_entry(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let item = unique_item();
+    let first = app.create_pending(&item, 1).await;
+    app.post(&format!("/api/voice-requests/{first}/accept"))
+        .await;
+
+    let second = app.create_pending(&item, 2).await;
+    let (status, body) = app
+        .post(&format!(
+            "/api/voice-requests/{second}/accept?on_duplicate=separate"
+        ))
+        .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["grocery_item"]["quantity"], 2);
+    assert_eq!(body["voice_request"]["status"], "accepted");
+
+    let (_, listed) = app.get("/api/grocery-items").await;
+    let matching = listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|i| i["name"] == item.as_str())
+        .count();
+    assert_eq!(matching, 2, "separate must keep both entries");
+}

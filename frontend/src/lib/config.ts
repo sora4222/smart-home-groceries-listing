@@ -1,6 +1,11 @@
-/** Backend base URLs. Overridable via `.env` for non-default deployments. */
-export const API_BASE_URL: string =
-	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+/**
+ * Backend addresses for this build, from `VITE_API_BASE_URL` and
+ * `VITE_WS_URL` in `.env`. Rules: `lib/backend-url.ts`.
+ */
+import { resolveBackendUrls } from "#/lib/backend-url";
 
-export const WS_URL: string =
-	import.meta.env.VITE_WS_URL ?? `${API_BASE_URL.replace(/^http/, "ws")}/ws`;
+const urls = resolveBackendUrls(import.meta.env);
+
+export const API_BASE_URL: string = urls.apiBaseUrl;
+
+export const WS_URL: string = urls.wsUrl;

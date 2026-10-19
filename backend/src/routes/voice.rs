@@ -19,6 +19,7 @@ use crate::models::schemas::{
     VoiceRequestAcceptResult, VoiceRequestCreate, VoiceRequestDecision, VoiceRequestResponse,
 };
 use crate::routes::extract::{OptionalValidatedJson, ValidatedJson};
+use crate::services::grocery::OnDuplicate;
 use crate::services::voice::VoiceService;
 use crate::state::AppState;
 
@@ -36,11 +37,27 @@ pub fn router() -> Router<AppState> {
         .route("/api/voice-requests/{request_id}/reject", post(reject))
 }
 
-/// `?merge=true` folds the quantity into an existing active item.
+/// What to do when the accepted name is already on the active list.
+///
+/// `?on_duplicate=merge|separate` answers the question the 409 asked.
+/// `?merge=true` is the older spelling of `on_duplicate=merge`, still accepted.
 #[derive(Debug, Deserialize)]
 pub struct AcceptQuery {
     #[serde(default)]
     pub merge: bool,
+    #[serde(default)]
+    pub on_duplicate: OnDuplicate,
+}
+
+impl AcceptQuery {
+    /// The duplicate answer this query carries.
+    fn on_duplicate(&self) -> OnDuplicate {
+        if self.merge {
+            OnDuplicate::Merge
+        } else {
+            self.on_duplicate
+        }
+    }
 }
 
 /// `POST /api/voice-requests` — the generic intake webhook.
@@ -86,7 +103,7 @@ async fn accept(
     OptionalValidatedJson(decision): OptionalValidatedJson<VoiceRequestDecision>,
 ) -> Result<Json<VoiceRequestAcceptResult>, ApiError> {
     let (request, item) = VoiceService::new(&state.pool, &state.hub)
-        .accept(request_id, &decision, &user.id, query.merge)
+        .accept(request_id, &decision, &user.id, query.on_duplicate())
         .await?;
 
     Ok(Json(VoiceRequestAcceptResult {

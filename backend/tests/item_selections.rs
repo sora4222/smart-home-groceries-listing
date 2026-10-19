@@ -52,11 +52,13 @@ async fn choosing_a_product_saves_it_with_the_stores_own_details(pool: PgPool) {
     assert_eq!(body["priced_quantity"], 1);
     assert_eq!(body["selected_by"], "dev-user");
     assert!(body["url"].as_str().is_some());
+    assert_eq!(body["image_url"], "/fake-product.svg");
     assert!(body["selected_at"].as_str().is_some());
 
     let saved = selections(&app).await;
     assert_eq!(saved.len(), 1);
     assert_eq!(saved[0]["product_id"], "w-milk-2l");
+    assert_eq!(saved[0]["image_url"], "/fake-product.svg");
 }
 
 #[sqlx::test]

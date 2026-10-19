@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { lineFixture } from "#/components/order/__tests__/fixtures";
@@ -61,5 +61,16 @@ describe("OrderLineRow", () => {
 		expect(row).toHaveTextContent("No price");
 		expect(row).not.toHaveTextContent("$9.90");
 		expect(row).toHaveTextContent("no longer offers this product");
+	});
+
+	it("shows the chosen product's picture", () => {
+		const row = renderLine();
+
+		expect(
+			within(row).getByRole("img", { name: "Coles Full Cream Milk" }),
+		).toHaveAttribute(
+			"src",
+			"https://productimages.coles.com.au/productimages/8/8150288.jpg",
+		);
 	});
 });

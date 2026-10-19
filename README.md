@@ -76,6 +76,10 @@ cd frontend && pnpm install && pnpm dev   # http://localhost:3000
 
 `make hm-up` runs the containers in the foreground with full logs.
 
+To run only the web app on your own computer, against a backend on the home
+server, set `VITE_API_BASE_URL` in `.env` and run `make web`
+(`docs/human-setup.md`, "Optional: web app on your own computer").
+
 To run the backend on the host instead of in its container:
 
 ```bash

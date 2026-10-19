@@ -14,8 +14,8 @@ really costs before anything is ordered. The list can be sorted another way
 (see "Web app").
 
 Nothing is recommended or promoted. Adverts and sponsored placements from
-the stores are dropped, products are shown without images or marketing copy,
-and the order is price only (reducing marketing-driven buying is a project
+the stores are dropped, products are shown with the store's picture but
+without marketing copy, and the order is price only (reducing marketing-driven buying is a project
 goal).
 
 ## Endpoint
@@ -47,6 +47,7 @@ The answer is **200 even when a store fails**: that store's entry carries
         "unit_price_note": "unit price calculated from 100 sheets",
         "deals": [], "total_price": "24", "deal_applied": false,
         "category": "Toilet Paper", "url": "https://www.woolworths.com.au/shop/productdetails/722/…",
+        "image_url": "https://cdn0.woolworths.media/content/wowproductimages/small/000722.jpg",
         "available": true
       }]
     },
@@ -110,6 +111,13 @@ and 2026-10-06 (lookup) —
   beside a per-kilogram price. `multiBuyPromotion.reward` is already a
   per-unit price. Entries with an `adId` or `featured: true` are dropped.
 - `was` / `WasPrice` only count when higher than the current price.
+- Pictures (`image_url`): Woolworths `SmallImageFile`; Coles `imageUris`
+  (the `type: default` entry, else the first) joined to
+  `https://productimages.coles.com.au/productimages`. Only `https://` links
+  are kept (`services/stores/image.rs`); otherwise `image_url` is `null` and
+  the web app shows a placeholder. The Coles image host was not checked live
+  from this project. Every fake product uses `/fake-product.svg`, a file in
+  `frontend/public/`.
 
 ## Configuration
 | Variable | Default | Meaning |
@@ -125,6 +133,8 @@ The fake catalogue covers milk, toilet paper and bananas. A query containing
 ## Web app
 `components/products/`: `PriceComparison` (compound: `.Trigger`,
 `.Content`, a Shadcn `Sheet`), `ProductList`, `StoreNotices`, `ProductRow`,
+`ProductImage` (the picture, or a placeholder when there is none or it fails
+to load; also used by the chosen product and the order review),
 `ProductPrice`, `UnitPriceLine`, `ProductSortSelect`, `SpecialsOnlySwitch`.
 `hooks/useItemProducts.ts` searches only while the sheet is open, and again
 when the item's name, quantity or chips change. "Specials only" is a display

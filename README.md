@@ -45,6 +45,45 @@ interaction model, `.env`, Woolworths), ordered by dependency. `make setup-env` 
 For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
 [`docs/using-the-app.md`](docs/using-the-app.md).
 
+## Using the app on a Mac
+There is no packaged macOS app (no `.dmg`, Tauri or Electron build, and no
+PWA manifest). On a Mac you run the web app locally with `make web`; it talks
+to the backend on the home server, which does the Woolworths and Coles
+lookups. A browser shortcut then gives it its own Dock icon and window.
+
+The home server must already be published on its own hostname, with sign-in
+on and `http://localhost:3000` in `CORS_ORIGINS`. Those steps are in
+[`docs/human-setup.md`](docs/human-setup.md#optional-web-app-on-your-own-computer).
+
+1. Install the tools (Homebrew from [brew.sh](https://brew.sh)):
+
+   ```bash
+   xcode-select --install       # git and make
+   brew install node pnpm       # Node 22 or newer
+   ```
+
+2. Clone the repository and create `.env` in its root with only these keys:
+
+   | Key | Value |
+   |---|---|
+   | `VITE_API_BASE_URL` | `https://grocery-api.<your-domain>` |
+   | `VITE_WS_URL` | empty (becomes `wss://grocery-api.<your-domain>/ws`) |
+   | `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` | the Clerk development instance's `pk_test_…` key |
+   | `CLERK_SECRET_KEY` | the matching `sk_test_…` key |
+
+   Clerk `pk_live_…` keys do not work on `localhost`.
+
+3. Run `make web` and open [localhost:3000](http://localhost:3000). Sign in.
+   The Pending Requests page should load with no errors in the browser
+   console.
+
+4. Add it to the Dock:
+   - **Safari** (macOS 14+): **File → Add to Dock**.
+   - **Chrome**: **⋮ → Cast, save and share → Install page as app**.
+
+   The Dock icon only opens the page. `make web` must be running in a
+   terminal for it to load; stop it with `Ctrl+C`.
+
 ## Stack
 | Layer | Tech |
 |---|---|
@@ -77,8 +116,7 @@ cd frontend && pnpm install && pnpm dev   # http://localhost:3000
 `make hm-up` runs the containers in the foreground with full logs.
 
 To run only the web app on your own computer, against a backend on the home
-server, set `VITE_API_BASE_URL` in `.env` and run `make web`
-(`docs/human-setup.md`, "Optional: web app on your own computer").
+server, see [Using the app on a Mac](#using-the-app-on-a-mac).
 
 To run the backend on the host instead of in its container:
 

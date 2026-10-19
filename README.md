@@ -49,40 +49,11 @@ For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
 There is no packaged macOS app (no `.dmg`, Tauri or Electron build, and no
 PWA manifest). On a Mac you run the web app locally with `make web`; it talks
 to the backend on the home server, which does the Woolworths and Coles
-lookups. A browser shortcut then gives it its own Dock icon and window.
+lookups. A Safari or Chrome shortcut then gives it its own Dock icon and
+window, but `make web` must be running for it to load.
 
-The home server must already be published on its own hostname, with sign-in
-on and `http://localhost:3000` in `CORS_ORIGINS`. Those steps are in
-[`docs/human-setup.md`](docs/human-setup.md#optional-web-app-on-your-own-computer).
-
-1. Install the tools (Homebrew from [brew.sh](https://brew.sh)):
-
-   ```bash
-   xcode-select --install       # git and make
-   brew install node pnpm       # Node 22 or newer
-   ```
-
-2. Clone the repository and create `.env` in its root with only these keys:
-
-   | Key | Value |
-   |---|---|
-   | `VITE_API_BASE_URL` | `https://grocery-api.<your-domain>` |
-   | `VITE_WS_URL` | empty (becomes `wss://grocery-api.<your-domain>/ws`) |
-   | `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` | the Clerk development instance's `pk_test_…` key |
-   | `CLERK_SECRET_KEY` | the matching `sk_test_…` key |
-
-   Clerk `pk_live_…` keys do not work on `localhost`.
-
-3. Run `make web` and open [localhost:3000](http://localhost:3000). Sign in.
-   The Pending Requests page should load with no errors in the browser
-   console.
-
-4. Add it to the Dock:
-   - **Safari** (macOS 14+): **File → Add to Dock**.
-   - **Chrome**: **⋮ → Cast, save and share → Install page as app**.
-
-   The Dock icon only opens the page. `make web` must be running in a
-   terminal for it to load; stop it with `Ctrl+C`.
+Steps, including the server side and the Mac tools: [`docs/human-setup.md`,
+"Optional: web app on your own computer"](docs/human-setup.md#optional-web-app-on-your-own-computer).
 
 ## Stack
 | Layer | Tech |

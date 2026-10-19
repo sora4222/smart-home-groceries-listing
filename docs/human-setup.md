@@ -553,8 +553,15 @@ Restart the backend (`sudo systemctl restart grocery-backend`, or
 
 ### Your computer
 
-Needs Node 22+, `pnpm` and a checkout of this repository. No Docker and no
-database. Create `.env` in the checkout root with only the web app's keys:
+Needs Node 22+, `pnpm`, `git`, `make` and a checkout of this repository. No
+Docker and no database. On macOS, with Homebrew ([brew.sh](https://brew.sh)):
+
+```bash
+xcode-select --install       # git and make
+brew install node pnpm       # Node 22 or newer
+```
+
+Create `.env` in the checkout root with only the web app's keys:
 
 | Key | Value |
 |---|---|
@@ -570,6 +577,13 @@ instance's keys here.
 Then run `make web` and open [localhost:3000](http://localhost:3000).
 `WEB_PORT=3001 make web` picks another port; add that origin to
 `CORS_ORIGINS` on the server.
+
+To give it a Dock icon and its own window on macOS:
+
+- **Safari** (macOS 14+): **File → Add to Dock**.
+- **Chrome**: **⋮ → Cast, save and share → Install page as app**.
+
+The icon only opens the page; `make web` must be running for it to load.
 
 **Verify:** `curl https://grocery-api.<your-domain>/api/health` answers, and
 after signing in the Pending Requests page loads without errors in the

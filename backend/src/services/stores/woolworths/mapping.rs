@@ -4,6 +4,7 @@ use rust_decimal::Decimal;
 
 use super::wire::{Attributes, ProductDetail, SearchResponse, Tag, WireProduct};
 use crate::services::stores::deal::Deal;
+use crate::services::stores::image::https_only;
 use crate::services::stores::measure;
 use crate::services::stores::money::{from_wire, positive_from_wire};
 use crate::services::stores::product::Product;
@@ -35,6 +36,7 @@ fn product(p: WireProduct, site_url: &str) -> Product {
         store: Store::Woolworths,
         product_id: p.stockcode.to_string(),
         url: product_url(site_url, p.stockcode, p.url_friendly_name.as_deref()),
+        image_url: https_only(p.small_image_file.as_deref()),
         unit_price: unit_price(p.cup_price, p.cup_measure.as_deref()),
         was_price: positive_from_wire(p.was_price).filter(|was| Some(*was) > price),
         deals: p.centre_tag.as_ref().and_then(deal).into_iter().collect(),
@@ -119,6 +121,10 @@ mod tests {
         assert_eq!(pepsi.package_size.as_deref(), Some("1.25L"));
         assert_eq!(pepsi.price, Some(dec!(4)));
         assert_eq!(pepsi.category.as_deref(), Some("Soft Drinks"));
+        assert_eq!(
+            pepsi.image_url.as_deref(),
+            Some("https://cdn0.woolworths.media/content/wowproductimages/small/007985.jpg")
+        );
         assert_eq!(
             pepsi.url,
             "https://www.woolworths.com.au/shop/productdetails/7985/pepsi-max-cola-no-sugar-soft-drink-bottle"

@@ -1,7 +1,8 @@
 //! Coles' products → [`Product`].
 
-use super::wire::{MultiBuy, Pricing, SearchPage, WireProduct};
+use super::wire::{ImageUri, MultiBuy, Pricing, SearchPage, WireProduct};
 use crate::services::stores::deal::Deal;
+use crate::services::stores::image::https_only;
 use crate::services::stores::measure;
 use crate::services::stores::money::{from_wire, positive_from_wire};
 use crate::services::stores::product::Product;
@@ -10,6 +11,9 @@ use crate::services::stores::unit_price::{normalise, UnitPrice};
 
 /// The `_type` Coles gives product results.
 const PRODUCT_TYPE: &str = "PRODUCT";
+
+/// Where the paths in `imageUris` live.
+const IMAGE_SERVER: &str = "https://productimages.coles.com.au/productimages";
 
 /// Every product on the page, in Coles' order, without paid placements.
 ///
@@ -51,6 +55,7 @@ pub fn product(p: WireProduct, site_url: &str) -> Product {
         store: Store::Coles,
         product_id: p.id.to_string(),
         url: product_url(site_url, &p),
+        image_url: image_url(&p.image_uris),
         was_price: pricing
             .and_then(|pr| positive_from_wire(pr.was))
             .filter(|was| Some(*was) > price),
@@ -68,6 +73,20 @@ pub fn product(p: WireProduct, site_url: &str) -> Product {
         package_size: p.size.filter(|s| !s.trim().is_empty()),
         price,
     }
+}
+
+/// The main picture (`type: default`), else the first one.
+fn image_url(uris: &[ImageUri]) -> Option<String> {
+    let main = uris
+        .iter()
+        .find(|image| image.kind.as_deref() == Some("default"))
+        .or_else(|| uris.first())?;
+    let path = main.uri.trim();
+    if path.starts_with("https://") {
+        return https_only(Some(path));
+    }
+    path.starts_with('/')
+        .then(|| format!("{IMAGE_SERVER}{path}"))
 }
 
 /// Coles marks specials by promotion type, or flags an online-only one.
@@ -155,6 +174,10 @@ mod tests {
         assert!(coke.on_special);
         assert_eq!(coke.category.as_deref(), Some("Soft Drinks"));
         assert_eq!(
+            coke.image_url.as_deref(),
+            Some("https://productimages.coles.com.au/productimages/1/123011.jpg")
+        );
+        assert_eq!(
             coke.url,
             "https://www.coles.com.au/product/coca-cola-classic-soft-drink-bottle-1-25l-123011"
         );
@@ -202,6 +225,26 @@ mod tests {
         let gone = products.iter().find(|p| p.product_id == "777").unwrap();
         assert!(!gone.available);
         assert_eq!(gone.price, None);
+    }
+
+    #[test]
+    fn a_product_without_pictures_has_no_image() {
+        let products = fixture();
+        let bananas = products.iter().find(|p| p.product_id == "409499").unwrap();
+        assert_eq!(bananas.image_url, None);
+    }
+
+    #[test]
+    fn an_image_path_must_be_a_path_on_the_image_server() {
+        let image = |uri: &str| ImageUri {
+            uri: uri.into(),
+            kind: None,
+        };
+        assert_eq!(image_url(&[image("javascript:alert(1)")]), None);
+        assert_eq!(
+            image_url(&[image("https://cdn.example/a.jpg")]).as_deref(),
+            Some("https://cdn.example/a.jpg")
+        );
     }
 
     #[test]

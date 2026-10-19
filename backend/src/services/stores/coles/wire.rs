@@ -63,6 +63,18 @@ pub struct WireProduct {
     pub pricing: Option<Pricing>,
     #[serde(default)]
     pub online_heirs: Vec<Heir>,
+    /// The product's pictures. Absent on product pages.
+    #[serde(default)]
+    pub image_uris: Vec<ImageUri>,
+}
+
+/// One picture, as a path on Coles' image server: `/1/123011.jpg`.
+#[derive(Debug, Deserialize)]
+pub struct ImageUri {
+    pub uri: String,
+    /// `default` for the main picture.
+    #[serde(rename = "type")]
+    pub kind: Option<String>,
 }
 
 /// Price data. Absent for products that cannot be bought.

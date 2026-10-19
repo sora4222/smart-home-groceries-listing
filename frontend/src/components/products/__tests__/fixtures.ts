@@ -19,6 +19,7 @@ export function productFixture(
 		deal_applied: false,
 		category: "Milk",
 		url: "https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288",
+		image_url: "https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		available: true,
 		...overrides,
 	};

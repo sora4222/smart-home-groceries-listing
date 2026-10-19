@@ -158,6 +158,8 @@ pub struct ItemSelection {
     /// The item's quantity when the product was chosen.
     pub priced_quantity: i32,
     pub url: String,
+    /// The product's picture when it was chosen.
+    pub image_url: Option<String>,
     /// The household member who chose it.
     pub selected_by: String,
     pub selected_at: DateTime<Utc>,

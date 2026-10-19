@@ -91,6 +91,7 @@ async fn committed_choices_are_grouped_by_store_with_subtotals(pool: PgPool) {
     assert_eq!(line["item_name"], "bananas");
     assert_eq!(line["quantity"], 5);
     assert_eq!(line["product_id"], "w-banana");
+    assert_eq!(line["image_url"], "/fake-product.svg");
     assert_eq!(line["status"], "priced");
     assert_eq!(line["price"], "0.80");
     assert_eq!(line["price_change"], "same");
@@ -194,6 +195,8 @@ async fn a_store_that_cannot_be_asked_keeps_the_choice_without_a_price(pool: PgP
 
     assert_eq!(line["status"], "store_failed");
     assert_eq!(line["product_name"], "Old product");
+    // Chosen before pictures were saved: shown without one.
+    assert!(line["image_url"].is_null(), "{line}");
     assert!(
         line["problem"].as_str().unwrap().contains("Coles"),
         "{line}"

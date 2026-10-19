@@ -65,6 +65,9 @@ pub struct WireProduct {
     #[serde(default)]
     pub is_sponsored_ad: Option<bool>,
     pub url_friendly_name: Option<String>,
+    /// The product's picture, e.g.
+    /// `https://cdn0.woolworths.media/content/wowproductimages/small/007985.jpg`.
+    pub small_image_file: Option<String>,
     pub centre_tag: Option<Tag>,
     pub additional_attributes: Option<Attributes>,
 }

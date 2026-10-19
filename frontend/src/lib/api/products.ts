@@ -50,6 +50,8 @@ export interface StoreProduct {
 	deal_applied: boolean;
 	category: string | null;
 	url: string;
+	/** The product's picture on the store's image server, when it has one. */
+	image_url: string | null;
 	available: boolean;
 }
 

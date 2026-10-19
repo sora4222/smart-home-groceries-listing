@@ -1,3 +1,4 @@
+import { ProductImage } from "#/components/products/product-image";
 import { Button } from "#/components/ui/button";
 import type { ItemSelection, StoreId } from "#/lib/api";
 import { formatMoney } from "#/lib/money";
@@ -5,7 +6,7 @@ import { formatMoney } from "#/lib/money";
 /**
  * The products chosen for a list item, on the item's card: the one the order
  * buys, and the item's choice at the other store when there is one, each with
- * its size, store and shelf price when it was chosen. The order screen
+ * its picture, size, store and shelf price when it was chosen. The order screen
  * re-prices them before anything is bought, and can switch the item between
  * its stores.
  *
@@ -51,7 +52,7 @@ export function ChosenProduct({
 	);
 }
 
-/** One chosen product: what it is, and Clear. */
+/** One chosen product: its picture, what it is, and Clear. */
 function ChoiceRow({
 	label,
 	clearLabel,
@@ -79,10 +80,15 @@ function ChoiceRow({
 			aria-label={label}
 			className="flex items-center justify-between gap-2 rounded-md border border-border p-2"
 		>
-			<div className="flex min-w-0 flex-col">
-				{note && <span className="text-xs text-muted-foreground">{note}</span>}
-				<span className="text-sm font-medium">{title}</span>
-				<span className="text-xs text-muted-foreground">{details}</span>
+			<div className="flex min-w-0 items-center gap-2">
+				<ProductImage src={selection.image_url} name={title} size="sm" />
+				<div className="flex min-w-0 flex-col">
+					{note && (
+						<span className="text-xs text-muted-foreground">{note}</span>
+					)}
+					<span className="text-sm font-medium">{title}</span>
+					<span className="text-xs text-muted-foreground">{details}</span>
+				</div>
 			</div>
 			{onClear && (
 				<Button

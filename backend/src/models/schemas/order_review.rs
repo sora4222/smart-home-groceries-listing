@@ -46,6 +46,8 @@ pub struct OrderLineResponse {
     pub brand: Option<String>,
     pub package_size: Option<String>,
     pub url: String,
+    /// The chosen product's picture.
+    pub image_url: Option<String>,
     pub status: LineStatusBody,
     /// Shelf price for one today.
     pub price: Option<Decimal>,
@@ -121,6 +123,7 @@ impl From<OrderLine> for OrderLineResponse {
             brand: choice.brand,
             package_size: choice.package_size,
             url: choice.url,
+            image_url: choice.image_url,
             status: line.status.into(),
             price: line.price,
             total_price: line.total_price,

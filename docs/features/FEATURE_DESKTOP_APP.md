@@ -120,7 +120,8 @@ refuses anything that is not `http(s)://host[:port]`.
   `stores.rs` (`Store::url(StorePage)`, the one table of store addresses;
   abilities with `StoreAbilities::allows(page)`; which page is the trolley),
   `fill_operation.rs` (one fill
-  per store, waiting to finished, and every `FillFailure`), `fill_watch.rs` and `fill_status.rs`
+  per store, waiting to finished), `fill_failure.rs` (every way a fill
+  fails, and its sentence), `fill_watch.rs` and `fill_status.rs`
   (reading the program's progress), `windows/` (`main_window.rs`,
   `store_window.rs`), `commands/` (`desktop.rs`, `store.rs`, `setup.rs`),
   `notify.rs`, `tray.rs`.

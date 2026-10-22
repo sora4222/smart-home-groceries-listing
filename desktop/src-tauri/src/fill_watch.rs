@@ -7,7 +7,8 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, Runtime, WebviewWindow};
 use tokio::sync::oneshot;
 
-use crate::fill_operation::{FillFailure, FillOperations, FillReport};
+use crate::fill_failure::FillFailure;
+use crate::fill_operation::{FillOperations, FillReport};
 use crate::fill_status::{self, PageStatus};
 use crate::stores::Store;
 

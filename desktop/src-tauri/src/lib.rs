@@ -3,6 +3,7 @@
 //! Spec: `docs/features/FEATURE_DESKTOP_APP.md`.
 
 mod commands;
+mod fill_failure;
 mod fill_operation;
 mod fill_status;
 mod fill_watch;

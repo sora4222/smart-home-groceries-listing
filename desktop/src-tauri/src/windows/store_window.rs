@@ -11,7 +11,8 @@ use tauri::{
 };
 use url::Url;
 
-use crate::fill_operation::{FillFailure, FillOperations};
+use crate::fill_failure::FillFailure;
+use crate::fill_operation::FillOperations;
 use crate::fill_watch;
 use crate::stores::{Store, StorePage};
 

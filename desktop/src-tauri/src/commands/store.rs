@@ -7,7 +7,8 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Manager, Runtime};
 
-use crate::fill_operation::{FillFailure, FillOperations, FillReport};
+use crate::fill_failure::FillFailure;
+use crate::fill_operation::{FillOperations, FillReport};
 use crate::stores::{Store, StorePage};
 use crate::windows::store_window;
 

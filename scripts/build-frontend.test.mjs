@@ -6,12 +6,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-for (const scenario of ['success', 'denied', 'empty-token', 'shared-token', 'build-failure', 'sudo-failure', 'environment']) {
+for (const scenario of ['success', 'human', 'denied', 'empty-token', 'shared-token', 'build-failure', 'sudo-failure', 'environment']) {
   test(`frontend build uses installed service-account policy: ${scenario}`, () => {
     const dir = mkdtempSync(join(tmpdir(), 'grocery-build-auth-'));
     try {
-      for (const name of ['scripts', 'deploy/bin', 'frontend', 'path', 'etc']) mkdirSync(join(dir, name), { recursive: true });
-      for (const name of ['build-frontend.mjs', 'environment.mjs', 'op-auth.mjs', 'op-environment.mjs', 'service-env.mjs', 'service-components.mjs', 'systemd-env.mjs', 'test-process.mjs', 'toolchain-environment.mjs']) {
+      for (const name of ['scripts', 'deploy/bin', 'frontend/.output', 'path', 'etc']) mkdirSync(join(dir, name), { recursive: true });
+      copyFileSync('Makefile', join(dir, 'Makefile'));
+      copyFileSync('deploy/build-component.sh', join(dir, 'deploy/build-component.sh'));
+      for (const name of ['command.mjs', 'build-frontend.mjs', 'environment.mjs', 'op-auth.mjs', 'op-environment.mjs', 'service-env.mjs', 'service-components.mjs', 'systemd-env.mjs', 'test-process.mjs', 'toolchain-environment.mjs']) {
         copyFileSync(`scripts/${name}`, join(dir, 'scripts', name));
       }
       copyFileSync('deploy/bin/grocery-env', join(dir, 'deploy/bin/grocery-env'));
@@ -20,6 +22,15 @@ for (const scenario of ['success', 'denied', 'empty-token', 'shared-token', 'bui
       if (scenario !== 'shared-token') writeFileSync(join(dir, 'etc/app.token'), scenario === 'empty-token' ? '  \n' : 'fixture-app');
       writeFileSync(join(dir, 'path/sudo'), `#!/bin/sh
 [ "$SCENARIO" != sudo-failure ] || exit 1
+# Model sudo needing foreground input before it can open the protected resolver.
+[ "$(ps -o pgid= -p $$ | tr -d ' ')" = "$BUILD_FOREGROUND_GROUP" ] || {
+  echo 'sudo: a terminal is required to read the password' >&2
+  exit 1
+}
+IFS= read -r answer && [ "$answer" = fixture-password ] || {
+  echo 'sudo: a terminal is required to read the password' >&2
+  exit 1
+}
 exec "$@"
 `, { mode: 0o700 });
       writeFileSync(join(dir, 'path/op'), `#!/bin/sh
@@ -40,6 +51,7 @@ printf resolved-jwks
       // The documented deployment selects a Developer Environment for the public URLs.
       if (scenario === 'environment') writeFileSync(join(dir, 'etc/op-environment-id'), 'envfixtureid\n');
       writeFileSync(join(dir, 'path/pnpm'), `#!/bin/sh
+[ "$3" != install ] || exit 0
 [ "$CLERK_JWKS_URL" = resolved-jwks ] || exit 10
 [ "$VITE_API_BASE_URL" = ${scenario === 'environment' ? 'https://environment.example:8101' : 'http://localhost:8000'} ] || exit 11
 [ "$GROCERY_ENV_FILE" = /dev/null ] || exit 12
@@ -47,17 +59,21 @@ printf resolved-jwks
 printf build-started
 [ "${scenario}" != build-failure ]
 `, { mode: 0o700 });
-      const result = spawnSync(process.execPath, [join(dir, 'scripts/build-frontend.mjs')], {
-        encoding: 'utf8',
+      const result = spawnSync('make', ['--no-print-directory', '-C', dir, 'build-frontend', `human=${scenario === 'human' ? 1 : 0}`], {
+        encoding: 'utf8', input: 'fixture-password\n',
         env: { ...process.env, PATH: `${dir}/path:${process.env.PATH}`,
           GROCERY_OP_TOKENS: `${dir}/etc/app.token ${dir}/etc/shared.token`, GROCERY_ETC: `${dir}/etc`,
           GROCERY_PATH: `${dir}/path:/usr/bin:/bin`, SCENARIO: scenario,
+          BUILD_FOREGROUND_GROUP: spawnSync('ps', ['-o', 'pgid=', '-p', String(process.pid)], { encoding: 'utf8' }).stdout.trim(),
           OP_SERVICE_ACCOUNT_TOKEN: 'stale-export', OP_CONNECT_TOKEN: 'stale', OP_SESSION_fixture: 'stale',
           CLERK_SECRET_KEY: 'stale-secret', VITE_STALE: 'stale', DATABASE_URL: 'stale-database', STORE_TAB_SECRET: 'stale-store' },
       });
-      const builds = ['success', 'shared-token', 'build-failure', 'environment'].includes(scenario);
-      assert.equal(result.stdout, builds ? 'build-started' : '', result.stderr);
-      assert.equal(result.status === 0, ['success', 'shared-token', 'environment'].includes(scenario), result.stderr);
+      const builds = ['success', 'human', 'shared-token', 'build-failure', 'environment'].includes(scenario);
+      const succeeds = ['success', 'human', 'shared-token', 'environment'].includes(scenario);
+      const output = scenario === 'human' ? 'build-startedbuilt build/frontend\n' : 'build-frontend: passed\nbuilt build/frontend\n';
+      assert.equal(result.stdout, succeeds ? output : '', result.stderr);
+      if (builds && !succeeds) assert.match(result.stderr, /build-started/);
+      assert.equal(result.status === 0, succeeds, result.stderr);
       assert.doesNotMatch(result.stdout + result.stderr, /fixture-app|fixture-shared|provider-private-error|stale-secret/);
       const attempts = scenario === 'environment' ? 2 : 1;
       if (!['empty-token', 'sudo-failure'].includes(scenario)) assert.equal(readFileSync(join(dir, 'trace'), 'utf8'), 'service-attempt\n'.repeat(attempts));

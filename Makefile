@@ -141,8 +141,12 @@ hm-fix: format
 build: build-backend build-frontend build-alexa
 	@$(RUN) bash deploy/build.sh --assemble
 
-build-backend build-frontend build-alexa:
+build-backend build-alexa:
 	@$(RUN) bash deploy/build-component.sh $(@:build-%=%)
+
+# Resolve protected configuration in the foreground so sudo retains the terminal.
+build-frontend:
+	@GROCERY_BUILD_HUMAN=$(if $(HUMAN),1,0) bash deploy/build-component.sh frontend
 
 build-desktop:
 	@$(RUN) bash deploy/build-component.sh desktop

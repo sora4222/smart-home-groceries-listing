@@ -85,6 +85,8 @@ The service account needs read access to the project vault only.
 The frontend build uses this same resolver and token-file priority through
 sudo, reading the checkout's `.env`. Only resolved `CLERK_*` and `VITE_*`
 settings reach the unprivileged build; the token stays in the resolver.
+Configuration resolution stays in the foreground so sudo can prompt in the
+terminal. The compiler runs through the compact log runner after resolution.
 A token-file authentication failure stops the build or service startup without
 falling back to a desktop account. Local development retains desktop fallback.
 No token file permissions need to be relaxed or token exported in your shell.

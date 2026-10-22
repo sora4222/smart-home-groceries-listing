@@ -18,7 +18,13 @@ try {
   try { values = JSON.parse(result.stdout); }
   catch { throw new Error('Invalid frontend configuration from resolver'); }
   Object.assign(env, values, { GROCERY_ENV_FILE: '/dev/null' });
-  await runProcess('pnpm', ['--dir', `${root}frontend`, 'run', '--silent', 'build'], { env, signal: cancellation() });
+  // Capture compiler logs only after the interactive configuration step finishes.
+  await runProcess(process.execPath, [
+    `${root}scripts/command.mjs`,
+    ...(process.env.GROCERY_BUILD_HUMAN === '1' ? ['--human'] : []),
+    'build-frontend', '--',
+    'pnpm', '--dir', `${root}frontend`, 'run', '--silent', 'build',
+  ], { env, signal: cancellation() });
 } catch (error) {
   console.error(error.message);
   process.exitCode ||= 1;

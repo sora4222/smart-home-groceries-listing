@@ -112,7 +112,7 @@ Only `VITE_*` values are public browser configuration; never put secrets in them
 read-only formatting check. Component names are `backend`, `frontend`, `alexa` and
 `desktop`; type checks are `type-backend`, `type-frontend` and `type-desktop`.
 Commands default to compact output; use `human=1` to pass `--human` to the runners.
-Failures retain private logs and print the log location.
+Compact-mode failures retain private logs and print the log location.
 
 `reset-db` refuses to run without `confirm=reset`. It never follows `DATABASE_URL`
 to a remote database. It requires the local Compose `db` service to be running,

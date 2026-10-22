@@ -147,8 +147,9 @@ sudo make install-server ALLOW_DEPENDENCY_INSTALL=1
 ```
 
 The option also works with `make hm-update-server`. Existing `hm-install-server`
-and `hm-uninstall-server` commands remain aliases. Installer options and the
-root-only configuration remain in `/etc/grocery` for subsequent runs.
+and `hm-uninstall-server` commands remain aliases. The selected 1Password
+Environment ID, desktop user and root-only configuration remain in `/etc/grocery`
+for subsequent runs.
 
 On each run, `make install-server`:
 

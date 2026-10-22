@@ -15,6 +15,7 @@ test('successful report survives skipped-row diagnostics; structured skips and m
       for (const output of [[], ['--human']]) {
         const result = spawnSync(process.execPath, ['scripts/test-command.mjs', ...output, 'vitest', dir, process.execPath, fixture], { encoding: 'utf8' });
         assert.equal(result.status === 0, mode === 'passed', result.stderr);
+        if (mode !== 'passed') assert.equal(result.stderr.includes('Test log:'), output.length === 0);
       }
     }
   } finally { rmSync(dir, { recursive: true }); }

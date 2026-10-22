@@ -45,6 +45,7 @@ def test_the_timeout_is_configurable():
 
 def test_direct_startup_reads_dotenv_without_inheriting_database_credentials(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GROCERY_ENV_FILE", raising=False)
     monkeypatch.delenv("ALEXA_SKILL_ID", raising=False)
     monkeypatch.delenv("ALEXA_BRIDGE_SECRET", raising=False)
     (tmp_path / ".env").write_text(
@@ -61,6 +62,7 @@ def test_direct_startup_resolves_references_with_either_cli_auth_method(
     tmp_path, monkeypatch, token
 ):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GROCERY_ENV_FILE", raising=False)
     monkeypatch.setenv("PATH", str(tmp_path))
     monkeypatch.setenv("OP_SERVICE_ACCOUNT_TOKEN", token)
     monkeypatch.delenv("ALEXA_SKILL_ID", raising=False)

@@ -1,138 +1,126 @@
-# Google Home Grocery List
+# Home Grocery List
 
-A self-hosted household grocery manager: say *"Alexa, add milk to the shopping
-list"*, review and confirm what was heard in a web app, and (eventually) have
-it purchase from Woolworths/Coles at the lowest total cost. Proof-of-concept,
-single home server: systemd services in production, Docker Compose for
-development, Cloudflare Tunnel. Full product spec: the
-"Google Home Grocery List — Application Specification" doc in the project's
-docs.
+A grocery list for one household.
 
-**Currently implemented:**
-- **Voice intake** — the generic webhook, the Alexa channel, the confirmation
-  queue and Pending Requests (`docs/features/FEATURE_VOICE.md`).
-- **LLM triage** — a local model (Ollama, llama.cpp or vLLM) checks every
-  intake item ("would a supermarket sell this?") before the household sees it; the `/triage` page holds what the
-  checker rejected or was unsure of (`FEATURE_TRIAGE.md`).
-- **The grocery list** — add, edit, annotate, chip and commit items
-  (`FEATURE_GROCERY_LIST.md`), with **item rules** that chip items
-  automatically (`FEATURE_ITEM_RULES.md`).
-- **Price comparison** — each item's products at Woolworths and Coles,
-  cheapest per unit first, with unit prices, specials and multibuys
-  (`FEATURE_STORE_INTEGRATION.md`), and choosing one product per item
-  (`FEATURE_PRODUCT_CHOICE.md`).
-- **Send to Woolworths** — puts every chosen Woolworths product into your own
-  Woolworths trolley through a bookmark you press on woolworths.com.au; you
-  pay on Woolworths (`FEATURE_TROLLEY_HANDOFF.md`,
-  `docs/FEAT_WOOLWORTHS_ACCESS.md`).
-- **Access logs** — every request is logged to a daily file and the
-  database; the `/logs` page shows who asked for what
-  (`FEATURE_ACCESS_LOGS.md`).
+1. You say an item to Alexa, or type it into Google Tasks.
+2. The item waits in the web app until a person accepts it.
+3. The web app shows the price of each item at Woolworths and Coles.
+4. The web app puts the products you chose into your Woolworths or Coles
+   trolley. You pay on the store's website. This app never pays.
 
-Ordering, checkout and spending analysis are not built yet; their
-`FEATURE_*.md` files are placeholders.
+The app has three parts:
 
-> Despite the repository name, Google Home cannot be integrated directly — the
-> Smart Home Action / OAuth account-linking route was dropped. Alexa is the
-> working voice channel; Google Tasks and Google Keep are planned. See
-> `docs/features/FEATURE_VOICE.md`.
+| Part | What it does | Where it runs |
+|---|---|---|
+| Backend | Stores the list and gets prices from Woolworths and Coles | The home server |
+| Database | PostgreSQL. The backend saves everything here | The home server |
+| Web app | The pages you use in a browser | The home server, or your own computer |
 
-## First-time setup
-**Start with [`docs/human-setup.md`](docs/human-setup.md).** It covers every
-manual provisioning step (Clerk, Cloudflare Tunnel, the Alexa skill and its
-interaction model, `.env`, Woolworths), ordered by dependency. `make setup-env` fills in the random secrets.
+Google Home is not connected. Google does not allow it. See
+[`docs/features/FEATURE_VOICE.md`](docs/features/FEATURE_VOICE.md).
 
-For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
-[`docs/using-the-app.md`](docs/using-the-app.md).
+## Which guide to read
 
-## Stack
-| Layer | Tech |
+| You want to | Read |
 |---|---|
-| Frontend | React 19 + TanStack Start (SSR) + Shadcn-pattern UI + Tailwind v4 |
-| Backend | **Rust + Axum** (REST + WebSocket) |
-| Database | PostgreSQL + `sqlx` (migrations embedded in the binary) |
-| Auth | Clerk (JWT), abstracted behind `backend/src/auth/mod.rs` |
-| Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python here |
-| Stores | `wreq` (Chrome TLS emulation) for search · `chromiumoxide` for checkout (not yet built) |
-| Infra | Production: systemd services, no Docker (`docs/production.md`) · Development: Docker Compose · Cloudflare Tunnel |
+| Set up the app for the first time | [`docs/human-setup.md`](docs/human-setup.md) |
+| Install the app on the home server | [`docs/production.md`](docs/production.md) |
+| Use the app from your Mac | [Use the web app on a Mac](#use-the-web-app-on-a-mac) below |
+| Do a shop, undo a mistake, or fix a problem | [`docs/using-the-app.md`](docs/using-the-app.md) |
+| Know how one feature works | [`docs/features/`](docs/features/) |
 
-The backend is a single compiled binary with its migrations embedded: no
-interpreter, virtualenv or migration files on the home server.
+## Use the web app on a Mac
 
-## Running it
-On the home server (no Docker): `make build && sudo make install`. See
-[`docs/production.md`](docs/production.md).
+There is no Mac app to download. You run the web app on your Mac with one
+command. The web app gets the list and the prices from the backend on the
+home server.
 
-For development:
+Before you start, the home server must be reachable from the internet.
+[`docs/human-setup.md`, "Optional: web app on your own computer"](docs/human-setup.md#optional-web-app-on-your-own-computer)
+shows how to set that up.
+
+1. Install the tools. Open Terminal and run:
+
+   ```bash
+   xcode-select --install
+   brew install node pnpm
+   ```
+
+   `brew` comes from [brew.sh](https://brew.sh). You need Node 22 or newer.
+
+2. Download the code:
+
+   ```bash
+   git clone https://github.com/sora4222/smart-home-groceries-listing.git
+   cd smart-home-groceries-listing
+   ```
+
+3. Make a file named `.env` in that folder. Put the backend address and the
+   Clerk keys in it. The table in
+   [`docs/human-setup.md`, "Your computer"](docs/human-setup.md#your-computer)
+   lists each key and where to find its value.
+
+4. Start the web app:
+
+   ```bash
+   make web
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) and sign in.
+
+6. Optional: add the web app to your Dock.
+   - Safari: **File → Add to Dock**.
+   - Chrome: **⋮ → Cast, save and share → Install page as app**.
+
+   The Dock icon works only while `make web` is running. To stop the web app,
+   press `Ctrl+C` in Terminal.
+
+## Run everything on your own computer (development)
+
+You need Docker, `make`, Node 22 and `pnpm`.
 
 ```bash
-make setup-env              # makes .env and fills the random secrets
-                            # then fill the rest from docs/human-setup.md
-make up                     # Postgres, backend, Alexa bridge, Cloudflare Tunnel
-make migrate                # optional — the backend migrates itself at startup
-
-cd frontend && pnpm install && pnpm dev   # http://localhost:3000
+make setup-env    # makes .env and fills in the random passwords
+make up           # starts the database, backend, Alexa bridge and tunnel
+cd frontend && pnpm install && pnpm dev    # web app on http://localhost:3000
 ```
 
-`make hm-up` runs the containers in the foreground with full logs.
+Fill in the rest of `.env` with [`docs/human-setup.md`](docs/human-setup.md).
 
-To run only the web app on your own computer, against a backend on the home
-server, set `VITE_API_BASE_URL` in `.env` and run `make web`
-(`docs/human-setup.md`, "Optional: web app on your own computer").
+Two `.env` settings help while you develop:
 
-To run the backend on the host instead of in its container:
+| Setting | What it does |
+|---|---|
+| `STORE_CLIENTS=fake` | Uses a small fake shop. The backend does not call Woolworths or Coles |
+| `DEV_AUTH_BYPASS=true` | Turns sign-in off. Never use it on a server that the internet can reach |
+
+`make down` stops everything.
+
+## Run the tests
+
+You need Docker running. The tests start their own database and never touch
+yours.
 
 ```bash
-make up                                   # Postgres only is enough
-cd backend && cargo run                   # reads .env via the environment
-```
-
-Set `STORE_CLIENTS=fake` to use a small built-in catalogue instead of the
-real Woolworths and Coles websites (development, tests, or a machine that
-should not reach the stores).
-
-Without Clerk configured yet, set `DEV_AUTH_BYPASS=true` in `.env` so the
-backend accepts requests without a JWT. It logs a warning at startup — see
-`docs/human-setup.md` for why this must never be set on a host reachable from
-the internet.
-
-## Testing
-```bash
-pnpm install       # root Testcontainers tooling
+pnpm install
 cd frontend && pnpm install && pnpm exec playwright install chromium && cd ..
-make test          # Rust + Vitest + pytest + tooling + desktop/mobile Playwright
-make hm-test       # same, verbose
+make test
 ```
 
-Tests require a running Docker daemon. Testcontainers starts a fresh PostgreSQL
-16 server for each backend or browser run, with random credentials, a random
-loopback port, and no application volume. SQLx creates a separate database per
-backend integration test. Cleanup runs after success, failure, and interrupts.
-Tests ignore the application's `.env`, database credentials, and Compose
-profiles. They never need a 1Password account or access to a household database.
+`make hm-test` runs the same tests with longer output. `make check` runs the
+linters.
 
-`make test-backend` and `make e2e` own their test infrastructure independently.
-See [database modes](docs/features/FEATURE_DATABASE.md) and the
-[testing skill](.claude/skills/testing/SKILL.md).
+## Folders
 
-## Repository layout
-```
-backend/          Rust + Axum API — see backend/AGENTS.md
-frontend/         TanStack Start app — see frontend/AGENTS.md
-sidecars/
-  alexa-bridge/   Python ask-sdk bridge — see its AGENTS.md
-docs/
-  features/       One spec-and-status doc per major goal
-  README.md       Which doc is for whom
-  human-setup.md  One-time provisioning (Clerk, Cloudflare, Alexa skill, .env)
-  using-the-app.md  Recurring workflows (voice intake, a shop, undo, fixes)
-skills/           Reference notes for agents working in this repo — read before
-                  touching migrations, the Makefile, git conventions, or
-                  store integrations
-```
+| Folder | What is in it |
+|---|---|
+| `backend/` | The backend, in Rust |
+| `frontend/` | The web app, in React |
+| `sidecars/alexa-bridge/` | A small Python program that passes Alexa requests to the backend |
+| `deploy/` | Files that install the app on the home server |
+| `docs/` | Guides and feature notes |
 
-## Development rules
-See `AGENTS.md` for the non-negotiables (file length limits, commit
-convention, TDD, architecture boundaries, no Python in the backend).
-`backend/AGENTS.md`, `frontend/AGENTS.md` and
-`sidecars/alexa-bridge/AGENTS.md` cover their own layers.
+## Rules for changing the code
+
+Read [`AGENTS.md`](AGENTS.md) first. `backend/`, `frontend/` and
+`sidecars/alexa-bridge/` each have their own `AGENTS.md`.

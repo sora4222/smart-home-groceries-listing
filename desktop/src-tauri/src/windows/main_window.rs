@@ -1,7 +1,10 @@
 //! The main window: the server's web app, or the setup page when no server
 //! address is saved yet.
 
-use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    utils::config::BackgroundThrottlingPolicy, AppHandle, Manager, Runtime, WebviewUrl,
+    WebviewWindowBuilder,
+};
 use url::Url;
 
 /// The main window's label. Capabilities name it.
@@ -30,6 +33,8 @@ pub fn open<R: Runtime>(app: &AppHandle<R>, page: MainPage) -> tauri::Result<()>
     };
     log::info!("[main-window] opening {url}");
     WebviewWindowBuilder::new(app, MAIN_LABEL, url)
+        // The hidden main page owns the WebSocket and notification listeners.
+        .background_throttling(BackgroundThrottlingPolicy::Disabled)
         .title("Grocery List")
         .inner_size(1100.0, 800.0)
         .min_inner_size(390.0, 600.0)

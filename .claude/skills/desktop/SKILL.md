@@ -17,6 +17,9 @@ screens and shared trolley programs. Keep each module responsible for one task.
 Queue notifications use the WebSocket `counts_snapshot` as a silent baseline
 on every connection. Keep pending and held coverage for the first live increase
 and reconnects; an initial HTTP count must not overwrite fresher socket data.
+The main webview must disable background throttling because it owns those
+listeners while hidden in the tray. Tauri supports this on macOS 14+; do not
+claim Windows or Linux background behavior from this setting alone.
 
 One saved frontend origin wins over the runtime `GROCERY_DESKTOP_SERVER_URL`,
 then the build default. Validate origins before granting commands. Never grant

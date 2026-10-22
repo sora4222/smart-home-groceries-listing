@@ -67,6 +67,11 @@ after reconnects, so the first subsequent increase produces a notice. Existing
 items on connection never produce notices. Nav badges also use the snapshot;
 a delayed initial HTTP response cannot overwrite a pushed count.
 
+The main webview disables background throttling so macOS 14+ keeps its
+WebSocket and notification listeners active while the window is hidden in the
+tray. Tauri does not implement this setting on Windows or Linux; those
+platforms still need live background-delivery verification.
+
 ## How it works
 1. The main window (`main`) loads the server address saved in
    `settings.json` in the app's config folder. With none saved it shows the

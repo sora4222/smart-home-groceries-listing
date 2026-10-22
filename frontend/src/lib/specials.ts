@@ -1,8 +1,8 @@
 /**
  * The "specials only" display filter on the price comparison.
  *
- * It narrows what is shown and nothing else: the order stays cheapest per
- * unit first, and the later order optimiser ignores it unless the user
+ * It narrows what is shown and nothing else: the order stays the one the
+ * household sorted by, and the later order optimiser ignores it unless the user
  * turns on "prefer specials" in their order settings.
  */
 import type { StoreProduct } from "#/lib/api/products";

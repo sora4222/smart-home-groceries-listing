@@ -19,17 +19,30 @@ async function openComparison(page: Page, name: string) {
 	return sheet;
 }
 
-/** The product names shown for one store, top to bottom. */
-async function productsAt(sheet: ReturnType<Page["getByRole"]>, store: string) {
-	const region = sheet.getByRole("region", { name: store });
-	await expect(region).toBeVisible();
-	return region.getByRole("article").evaluateAll((articles) =>
-		articles.map((a) => a.getAttribute("aria-label")),
-	);
+type Sheet = ReturnType<Page["getByRole"]>;
+
+/** The product names shown, top to bottom; only one store's when given. */
+async function productNames(sheet: Sheet, store?: "woolworths" | "coles") {
+	const list = sheet.getByRole("list", { name: "Products" });
+	await expect(list).toBeVisible();
+	const rows = store
+		? list.locator(`[data-testid="product-listing"][data-store="${store}"]`)
+		: list.getByRole("listitem");
+	return rows
+		.getByRole("article")
+		.evaluateAll((articles) => articles.map((a) => a.getAttribute("aria-label")));
+}
+
+/** Picks one way to sort the comparison. */
+async function sortBy(page: Page, sheet: Sheet, label: string) {
+	await sheet.getByRole("combobox", { name: "Sort by" }).click();
+	await page.getByRole("option", { name: label, exact: true }).click();
 }
 
 test.describe("price comparison", () => {
-	test("shows both stores, cheapest per unit first", async ({ page }) => {
+	test("shows both stores together, cheapest per unit first", async ({
+		page,
+	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
 
@@ -38,10 +51,12 @@ test.describe("price comparison", () => {
 		await expect(
 			sheet.getByRole("heading", { name: "Prices for milk ×1" }),
 		).toBeVisible();
-		// $1.55/L for the 2L beats $1.80/L for the 3L.
-		expect(await productsAt(sheet, "Woolworths")).toEqual([
+		// Per 100mL: 15.5c, 16.5c (Coles), 18c, 39c (Coles).
+		expect(await productNames(sheet)).toEqual([
 			"Woolworths Full Cream Milk",
+			"Coles Full Cream Milk",
 			"Dairy Farmers Full Cream Milk",
+			"Minor Figures Barista Oat Milk",
 		]);
 		const cheapest = sheet.getByRole("article", {
 			name: "Woolworths Full Cream Milk",
@@ -57,7 +72,43 @@ test.describe("price comparison", () => {
 		expect(
 			await picture.evaluate((img: HTMLImageElement) => img.naturalWidth),
 		).toBeGreaterThan(0);
-		await expect(sheet.getByRole("region", { name: "Coles" })).toBeVisible();
+	});
+
+	test("sorts by unit price, price and name, both ways", async ({ page }) => {
+		await gotoList(page);
+		await addItem(page, "milk");
+		const sheet = await openComparison(page, "milk");
+		const byUnit = [
+			"Woolworths Full Cream Milk",
+			"Coles Full Cream Milk",
+			"Dairy Farmers Full Cream Milk",
+			"Minor Figures Barista Oat Milk",
+		];
+		const byPrice = [
+			"Woolworths Full Cream Milk",
+			"Minor Figures Barista Oat Milk",
+			"Coles Full Cream Milk",
+			"Dairy Farmers Full Cream Milk",
+		];
+		const byName = [
+			"Coles Full Cream Milk",
+			"Dairy Farmers Full Cream Milk",
+			"Minor Figures Barista Oat Milk",
+			"Woolworths Full Cream Milk",
+		];
+
+		await sortBy(page, sheet, "Unit price: high to low");
+		expect(await productNames(sheet)).toEqual([...byUnit].reverse());
+		await sortBy(page, sheet, "Price: low to high");
+		expect(await productNames(sheet)).toEqual(byPrice);
+		await sortBy(page, sheet, "Price: high to low");
+		expect(await productNames(sheet)).toEqual([...byPrice].reverse());
+		await sortBy(page, sheet, "Name: A to Z");
+		expect(await productNames(sheet)).toEqual(byName);
+		await sortBy(page, sheet, "Name: Z to A");
+		expect(await productNames(sheet)).toEqual([...byName].reverse());
+		await sortBy(page, sheet, "Unit price: low to high");
+		expect(await productNames(sheet)).toEqual(byUnit);
 	});
 
 	test("the item's filters narrow the products", async ({ page }) => {
@@ -72,10 +123,10 @@ test.describe("price comparison", () => {
 
 		const sheet = await openComparison(page, "toilet paper");
 
-		expect(await productsAt(sheet, "Woolworths")).toEqual([
+		expect(await productNames(sheet, "woolworths")).toEqual([
 			"Kleenex Complete Clean 3 Ply Toilet Paper",
 		]);
-		expect(await productsAt(sheet, "Coles")).toEqual([
+		expect(await productNames(sheet, "coles")).toEqual([
 			"Quilton 3 Ply Toilet Rolls",
 		]);
 	});
@@ -84,14 +135,12 @@ test.describe("price comparison", () => {
 		await gotoList(page);
 		await addItem(page, "milk");
 		const sheet = await openComparison(page, "milk");
-		await expect(sheet.getByRole("region", { name: "Coles" })).toBeVisible();
+		await expect(sheet.getByRole("list", { name: "Products" })).toBeVisible();
 
 		await sheet.getByRole("switch", { name: "Specials only" }).click();
 
-		expect(await productsAt(sheet, "Woolworths")).toEqual([
+		expect(await productNames(sheet)).toEqual([
 			"Dairy Farmers Full Cream Milk",
-		]);
-		expect(await productsAt(sheet, "Coles")).toEqual([
 			"Minor Figures Barista Oat Milk",
 		]);
 	});
@@ -105,10 +154,11 @@ test.describe("price comparison", () => {
 
 		const sheet = await openComparison(page, "milk outage");
 
-		await expect(
-			sheet.getByRole("region", { name: "Coles" }).getByRole("status"),
-		).toHaveText("Coles could not be reached. Try again later.");
-		expect((await productsAt(sheet, "Woolworths")).length).toBeGreaterThan(0);
+		await expect(sheet.getByRole("status")).toHaveText(
+			"Coles could not be reached. Try again later.",
+		);
+		expect((await productNames(sheet, "woolworths")).length).toBeGreaterThan(0);
+		expect(await productNames(sheet, "coles")).toEqual([]);
 	});
 
 	test("closes with Escape and works on a committed list", async ({ page }) => {

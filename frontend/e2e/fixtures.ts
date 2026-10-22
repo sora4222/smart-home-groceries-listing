@@ -16,6 +16,8 @@ interface GroceryFixtures {
 /**
  * The shared test setup.
  *
+ * The dev-only TanStack Devtools button is hidden.
+ *
  * Every test starts from an empty list, an empty confirmation queue, no
  * item rules, no saved shops, no dislikes and no delivery fees, and
  * every test fails if the browser threw, logged an error, or got a 5xx from the
@@ -85,6 +87,18 @@ export const test = base.extend<GroceryFixtures>({
 				mode: "minimise_total",
 				max_delivery_spend: null,
 			},
+		});
+
+		// The dev server's TanStack Devtools button floats over the page's
+		// bottom-right corner and swallows clicks meant for the app under it.
+		// Production builds have no such button, so tests never see it either.
+		await page.addInitScript(() => {
+			const style = document.createElement("style");
+			style.textContent =
+				'[aria-label="Open TanStack Devtools"] { display: none !important; }';
+			document.addEventListener("DOMContentLoaded", () =>
+				document.head.append(style),
+			);
 		});
 
 		const problems: string[] = [];

@@ -16,7 +16,7 @@ async function openComparison(page: Page, name: string) {
 		.click();
 	const sheet = page.getByRole("dialog");
 	await expect(sheet).toBeVisible();
-	await expect(sheet.getByRole("region", { name: "Coles" })).toBeVisible();
+	await expect(sheet.getByRole("list", { name: "Products" })).toBeVisible();
 	return sheet;
 }
 

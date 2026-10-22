@@ -52,7 +52,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   └── AGENTS.md            # Backend-specific rules
 ├── sidecars/
 │   └── alexa-bridge/        # Python ask-sdk bridge — AGENTS.md of its own
-├── skills/                  # Agent reference files ← read before acting
+├── desktop/                 # Tauri client, loads the server web app
+├── .claude/skills/           # Agent reference files, read before acting
 ├── docs/
 │   ├── features/            # FEATURE_*.md specs
 │   ├── human-setup.md       # One-time manual provisioning (developer audience)
@@ -174,3 +175,5 @@ Rust.
 
 Use the thermo-nuclear-code-review skill when performing a code review.
 Always give simple to understand language.
+For desktop connection, native commands or launch changes, read
+`.claude/skills/desktop/SKILL.md` and `docs/features/FEATURE_DESKTOP_APP.md`.

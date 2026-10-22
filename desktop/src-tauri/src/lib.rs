@@ -67,15 +67,25 @@ fn first_page(app: &tauri::AppHandle) -> MainPage {
         .app_config_dir()
         .map(|dir| settings::load(&dir))
         .unwrap_or_default();
-    let Some(origin) = saved.server_url else {
-        log::info!("[app] no server address saved; showing setup");
-        return MainPage::Setup;
+    let runtime = std::env::var("GROCERY_DESKTOP_SERVER_URL").ok();
+    let origin = match settings::starting_url(
+        &saved,
+        runtime.as_deref(),
+        option_env!("GROCERY_DESKTOP_SERVER_URL"),
+    ) {
+        Ok(Some(origin)) => origin,
+        Ok(None) => return MainPage::Setup,
+        Err(problem) => {
+            log::warn!("[app] server address refused: {problem}");
+            return MainPage::Setup;
+        }
     };
     let Ok(url) = Url::parse(&origin) else {
         return MainPage::Setup;
     };
     if let Err(err) = server_access::grant(app, &origin) {
         log::error!("[app] could not grant {origin} the app's commands: {err}");
+        return MainPage::Setup;
     }
     log::info!("[app] opening {origin}");
     MainPage::Server(url)

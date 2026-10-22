@@ -10,6 +10,7 @@ use crate::windows::main_window::{self, MainPage};
 use crate::windows::store_window;
 
 const OPEN: &str = "open";
+const RELOAD: &str = "reload";
 const WOOLWORTHS: &str = "woolworths";
 const CHANGE_SERVER: &str = "change-server";
 const QUIT: &str = "quit";
@@ -20,6 +21,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         app,
         &[
             &MenuItem::with_id(app, OPEN, "Open Grocery List", true, None::<&str>)?,
+            &MenuItem::with_id(app, RELOAD, "Reload server", true, None::<&str>)?,
             &MenuItem::with_id(app, WOOLWORTHS, "Open Woolworths", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(
@@ -51,6 +53,13 @@ fn on_menu<R: Runtime>(app: &AppHandle<R>, id: &str) -> tauri::Result<()> {
     log::info!("[tray] {id}");
     match id {
         OPEN => main_window::reveal(app),
+        RELOAD => {
+            use tauri::Manager;
+            if let Some(window) = app.get_webview_window(main_window::MAIN_LABEL) {
+                window.reload()?;
+            }
+            Ok(())
+        }
         WOOLWORTHS => store_window::show_at(app, Store::Woolworths, Store::Woolworths.home_url()),
         CHANGE_SERVER => main_window::open(app, MainPage::Setup),
         QUIT => {

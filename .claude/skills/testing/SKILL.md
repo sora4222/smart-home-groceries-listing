@@ -79,3 +79,12 @@ isolated until stable Rust offers structured output without nightly flags.
 Extend `scripts/environment-contract.json` for configuration source policy,
 then exercise it in all three loaders. Explicit files must be readable even
 when exports supply every key; only absent default discovery is optional.
+
+## Desktop
+
+`make test-desktop` uses the shared Cargo result adapter without a database or
+application secrets. `scripts/desktop.test.sh` checks worktree identity and the
+launcher environment boundary. Keep frontend coverage for the native trolley
+steps and browser fallback, plus executing the shared fill program with delivery
+helpers and no automatic checkout. Native unit tests and a built bundle do not
+prove live Tailscale, Cloudflare, Clerk or authenticated store behavior.

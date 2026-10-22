@@ -678,3 +678,66 @@ host as blocked, add it next to `*.woolworths.media`:
 |---|---|
 | `*.woolworths.media` | Woolworths page scripts (already added) |
 | `ui.shadcn.com` | `shadcn` CLI component installs |
+
+## Desktop client through Tailscale or Cloudflare
+
+The desktop client loads the server's frontend from one origin. It uses that
+frontend's API configuration. It does not start an API or database locally.
+
+### On the server
+
+1. Choose how this computer reaches the frontend and API. For Tailscale, connect
+   both computers to the tailnet and route each required service with Tailscale
+   Serve or an existing reverse proxy. The systemd services listen on loopback,
+   so the server's Tailscale IP alone does not publish them. For Cloudflare,
+   configure frontend and API HTTPS hostnames in the tunnel. Keep API routes and
+   `/ws` pointed at the backend.
+2. Set `VITE_API_BASE_URL` to the API origin reachable from the desktop computer.
+   Leave `VITE_WS_URL` blank to derive its socket URL, or provide the explicit
+   `wss://` endpoint. Use HTTPS for the API when filling store trolleys because
+   store pages use HTTPS and block insecure remote fetches. Do not use `localhost` for the browser API unless the API
+   actually runs on the desktop computer. Use HTTPS for both hostnames.
+3. Set `SERVER_API_BASE_URL=http://127.0.0.1:8000` for the loopback backend used
+   by systemd. Add the exact frontend origin to `CORS_ORIGINS` while retaining
+   existing required origins. Keep Clerk authentication enabled.
+4. Rebuild the frontend after changing `VITE_*` values. Restart the frontend
+   after changing its SSR configuration. Production Environment changes require
+   the owner's approval before applying them.
+
+If Cloudflare Access protects the API hostname, allow the application's existing
+browser/store authentication flow through it. The store window's fetches cannot
+complete an interactive Access login challenge. Never embed an Access service
+token, database credential or Clerk secret in the desktop app.
+
+### On the desktop computer
+
+1. Install Rust and the platform's Tauri build prerequisites, then run `make setup`.
+   macOS needs Xcode Command Line Tools. Linux needs WebKitGTK 4.1, GTK 3,
+   AppIndicator and librsvg development libraries. Windows needs Microsoft C++
+   Build Tools and WebView2.
+2. Optionally set `GROCERY_DESKTOP_SERVER_URL` in the development Environment.
+   This is the frontend origin, such as `https://groceries.example.com`, rather
+   than the API origin. Leave it blank to choose on first run. An installed build
+   may embed a public default, and a saved address always takes priority.
+3. Run `make hm-dev-desktop` during development, or `make build-desktop` to build
+   the platform's installer. On macOS an app-only build is
+   `cd desktop && pnpm build --bundles app`. The output is under
+   `desktop/src-tauri/target/release/bundle/`. Review unsigned-app prompts through
+   the operating system before opening the app.
+4. Connect Tailscale first when using a private address. Open the app, enter the
+   frontend origin if prompted, then sign in through Clerk. Do not enter a URL
+   containing login credentials, a path or a query.
+5. Use the tray's **Change server address** to replace the origin. The app
+   restarts to replace its command permission. **Reload server** retries the
+   current page after reconnecting a tunnel. Development builds have separate
+   settings, cookies and instance locks for each worktree.
+
+The development Environment has optional `GROCERY_DESKTOP_SERVER_URL` and
+`SERVER_API_BASE_URL` entries, initially blank. Equivalent proposed production
+entries are `GROCERY_DESKTOP_SERVER_URL=` and
+`SERVER_API_BASE_URL=http://127.0.0.1:8000`. These do not replace the production
+API hostname, WebSocket configuration or CORS list. Confirm the existing public
+hostnames and approve production changes before applying them.
+
+Routing references: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve)
+and [Cloudflare Tunnel protocols](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/protocols/).

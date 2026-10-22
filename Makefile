@@ -3,7 +3,8 @@
         update-db migration-new check check-format lint type-backend type-frontend \
         check-file-length format hm-fix build hm-install-server hm-update-server \
         hm-uninstall-server hm-status hm-logs hm-dev hm-test hm-test-backend \
-        hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright
+        hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright \
+        hm-dev-desktop build-desktop test-desktop check-desktop
 
 # Tests provision their own Docker databases and random host ports.
 
@@ -18,6 +19,7 @@ setup:
 	@cd frontend && pnpm exec playwright install chromium
 	@cd sidecars/alexa-bridge && uv sync --frozen
 	@cd backend && cargo fetch --locked --quiet
+	@cd desktop && pnpm install --frozen-lockfile --silent
 
 # Makes .env from .env.example and fills every random secret that is still
 # empty. Never overwrites a value. See docs/human-setup.md, part 1.
@@ -50,13 +52,14 @@ hm-dev-frontend:
 	@cd frontend && pnpm exec vite dev --port $(WEB_PORT) --strictPort
 
 ## Tests (compact — for agent use)
-test: test-backend test-frontend test-alexa test-tooling test-frontend-playwright
+test: test-backend test-frontend test-alexa test-tooling test-frontend-playwright test-desktop
 
 test-backend:
 	@sh scripts/backend-tests.sh --compact
 
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
+	@sh scripts/desktop.test.sh
 	@sh scripts/environment.test.sh
 	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/dev.test.mjs scripts/dev-context.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
 	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs
@@ -94,7 +97,7 @@ migration-new:
 	 echo "created backend/migrations/$${next}_$${slug}.sql"
 
 ## Checks and formatting
-check: check-format lint type-backend type-frontend check-file-length
+check: check-format lint type-backend type-frontend check-file-length check-desktop
 
 check-format:
 	@cd backend && cargo fmt --check
@@ -113,7 +116,7 @@ type-frontend:
 	@cd frontend && pnpm exec tsc --noEmit
 
 check-file-length:
-	@git ls-files backend frontend/src sidecars | sh scripts/check-file-length.sh
+	@git ls-files backend frontend/src sidecars desktop/src-tauri/src | sh scripts/check-file-length.sh
 
 format:
 	@cd backend && cargo fmt
@@ -157,7 +160,7 @@ hm-logs:
 hm-dev:
 	@node scripts/dev.mjs --human
 
-hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright
+hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright test-desktop
 
 hm-test-backend:
 	@sh scripts/backend-tests.sh
@@ -173,3 +176,18 @@ hm-test-alexa:
 
 hm-test-frontend-playwright:
 	@node scripts/e2e-tests.mjs
+
+## Desktop client, no local server or database required
+hm-dev-desktop:
+	@cd desktop && pnpm dev
+
+# Build only the native client. The public default URL is optional.
+build-desktop:
+	@cd desktop && pnpm build
+
+test-desktop:
+	@node scripts/desktop-tests.mjs
+
+check-desktop:
+	@cd desktop/src-tauri && cargo fmt --check
+	@cd desktop/src-tauri && cargo clippy --locked --all-targets --quiet -- -D warnings

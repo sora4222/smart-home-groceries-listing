@@ -316,3 +316,16 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 | Alexa: "The list is locked for purchase" | The list is committed; release it in the web app first. |
 | Google Tasks card: "connect Google Tasks again" | Access was revoked or expired: **Intake → Disconnect**, then connect again. |
 | Alexa adds/removes nothing | [`human-setup.md` §7](human-setup.md#7-smoke-test-the-skill). |
+
+## Desktop connection and shopping
+
+Connect Tailscale before opening a private server address. The tray's **Reload
+server** retries the current page after a connection failure. **Change server
+address** saves a new frontend origin and restarts the app. Store login cookies
+remain in the native store window.
+
+In **Send to Woolworths**, log in to Woolworths in its native window, choose a
+delivery time, then press **Fill trolley in the app**. The app reports the
+handoff result and offers **Open checkout**. Review and pay on Woolworths.
+Coles uses its existing browser bookmark steps. A recorded purchase means the
+trolley was filled, not that payment completed.

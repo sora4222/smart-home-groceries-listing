@@ -52,6 +52,9 @@ pub fn parse_server_url(input: &str) -> Result<String, AddressProblem> {
     if url.host_str().is_none_or(str::is_empty) {
         return problem("The address has no server name.");
     }
+    if url.host_str().is_some_and(|host| host.contains('*')) {
+        return problem("Use one server name, without wildcards.");
+    }
     if !url.username().is_empty() || url.password().is_some() {
         return problem("Leave the login out of the address.");
     }
@@ -86,8 +89,27 @@ pub fn load(dir: &Path) -> Settings {
             log::warn!("[settings] saved server address refused: {problem}");
             Settings::default()
         }
-        _ => settings,
+        Some(Ok(origin)) => Settings {
+            server_url: Some(origin),
+        },
+        None => settings,
     }
+}
+
+/// A saved address takes priority over a launch or build default.
+/// Invalid defaults return an error so startup can show setup without granting access.
+pub fn starting_url(
+    saved: &Settings,
+    runtime: Option<&str>,
+    bundled: Option<&str>,
+) -> Result<Option<String>, AddressProblem> {
+    saved
+        .server_url
+        .as_deref()
+        .or_else(|| runtime.filter(|value| !value.trim().is_empty()))
+        .or_else(|| bundled.filter(|value| !value.trim().is_empty()))
+        .map(parse_server_url)
+        .transpose()
 }
 
 /// Writes the settings, making the config folder if needed.
@@ -161,5 +183,41 @@ mod tests {
         )
         .unwrap();
         assert_eq!(load(dir.path()), Settings::default());
+    }
+    #[test]
+    fn defaults_support_tailscale_and_cloudflare_but_saved_settings_win() {
+        let empty = Settings::default();
+        assert_eq!(
+            starting_url(&empty, Some("http://100.91.154.126:3000"), None).unwrap(),
+            Some("http://100.91.154.126:3000".into())
+        );
+        assert_eq!(
+            starting_url(&empty, None, Some("https://groceries.example.com")).unwrap(),
+            Some("https://groceries.example.com".into())
+        );
+        let saved = Settings {
+            server_url: Some("https://server.tailnet.ts.net".into()),
+        };
+        assert_eq!(
+            starting_url(&saved, Some("invalid"), None).unwrap(),
+            saved.server_url
+        );
+        assert_eq!(starting_url(&empty, Some(" "), None).unwrap(), None);
+        assert!(starting_url(&empty, Some("https://*.example.com"), None).is_err());
+        assert!(starting_url(&empty, Some("https://%2a.example.com"), None).is_err());
+    }
+
+    #[test]
+    fn normalizes_hand_edited_settings_before_granting_access() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(SETTINGS_FILE),
+            r#"{"server_url":" https://Grocery.example.com/ "}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            load(dir.path()).server_url,
+            Some("https://grocery.example.com".into())
+        );
     }
 }

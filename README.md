@@ -124,3 +124,24 @@ for requirements, status, logs and removal. Production uses systemd, without Doc
 Project conventions are in [AGENTS.md](AGENTS.md), with layer-specific guidance
 in each application directory. Agent reference skills live in `.claude/skills/`
 and the component `skills/` directories.
+
+## Desktop client
+
+The Tauri client loads the web app from one saved server URL. Use the frontend's
+Tailscale address or Cloudflare HTTPS hostname. The server hosts the screens,
+API and database; the desktop client needs no local database or Docker stack.
+Woolworths can fill its trolley in a native store window. Coles retains the
+browser bookmark workflow.
+
+After `make setup`, use `make hm-dev-desktop` or `make build-desktop`.
+`GROCERY_DESKTOP_SERVER_URL` optionally supplies a default at launch or build.
+Leave it blank to choose in the app. A saved address takes priority. Build
+artifacts contain this public URL, so never include credentials in it.
+Development instances use separate application identities for each worktree.
+`make test-desktop` runs native unit tests; `make check` includes native lint.
+
+The server's browser API and WebSocket URLs must be reachable from the desktop
+computer. `SERVER_API_BASE_URL` can keep SSR requests on server loopback while
+`VITE_API_BASE_URL` points to a reachable API hostname. See
+[desktop setup](docs/human-setup.md#desktop-client-through-tailscale-or-cloudflare)
+and [the desktop contract](docs/features/FEATURE_DESKTOP_APP.md).

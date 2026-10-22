@@ -43,3 +43,10 @@ Production `build` and `hm-install-server`, `hm-update-server`,
 Build as the developer into `build/production`; install as root. Updates check
 migrations and back up before installation. Settings flow through
 `deploy/bin/grocery-env` and `scripts/service-components.mjs`.
+
+Desktop commands are `hm-dev-desktop`, `build-desktop`, `test-desktop` and
+`check-desktop`. Development and build use `scripts/desktop.mjs`, which resolves
+only the public default URL and isolates development application identities by
+worktree. `setup` installs the desktop CLI. `check` and `test` include native
+checks and unit tests. Native tests share `cargo-results.mjs`; no household
+server or database is needed for them.

@@ -68,6 +68,19 @@ test('references resolve with the token file, and only the selected keys are res
   assert.deepEqual(seen, [['op://Vault/item/skill', 'fixture-token']]);
 }));
 
+test('a Developer Environment ID selects the Environment as a configuration source', () => withDir(dir => {
+  const file = join(dir, 'grocery.env');
+  writeFileSync(file, 'CLOUDFLARE_TUNNEL_TOKEN=from-dotenv\n');
+  assert.equal(parseArguments(['--environment-id', 'envfixtureid', 'tunnel']).environmentId, 'envfixtureid');
+  const seen = [];
+  const values = resolveComponent({
+    name: 'tunnel', file, environmentId: 'envfixtureid', inherited: {},
+    readEnvironment: (id, env) => { seen.push([id, env.GROCERY_OP_SERVICE_ONLY]); return { CLOUDFLARE_TUNNEL_TOKEN: 'from-environment' }; },
+  });
+  assert.deepEqual(values, { TUNNEL_TOKEN: 'from-environment' });
+  assert.deepEqual(seen, [['envfixtureid', undefined]]);
+}));
+
 test('unknown components and formats are refused', () => {
   assert.throws(() => component('db'), /Unknown component/);
   assert.throws(() => parseArguments(['--format', 'yaml', 'backend']), /Unknown format/);

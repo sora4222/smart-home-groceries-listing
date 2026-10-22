@@ -64,6 +64,15 @@ not under a home directory, because the web app service runs it.
 | Shared service account | `/etc/1password/token` | Unattended boot |
 | Desktop app | `sudo make hm-install-server OP_DESKTOP_USER=<login>` | Someone approves the 1Password prompt on each start |
 
+A 1Password Developer Environment can supply settings too. Install it once
+with `sudo make hm-install-server OP_ENVIRONMENT_ID=<id>`; this writes
+`/etc/grocery/op-environment-id`. `grocery-env` then reads the Environment
+through `op run --environment` (1Password CLI 2.41 or later) with the same
+access option above. Environment values override `.env`, which may then be
+absent. The frontend build reads the same ID file, so `make build` and the
+services use one source. A 1Password community report says service accounts
+could not read Environments in CLI 2.33 beta; verify the token on the server.
+
 Save a token without putting it in shell history or command arguments:
 
 ```bash
@@ -269,15 +278,13 @@ isolated detached checkout at
 `/home/sora/projects/grocery-desktop-deploy-20261022-D4tQHy/checkout`.
 The existing server checkout's staged and unstaged work was preserved.
 
-The installed loader already reads the production Developer Environment using
-`/etc/grocery/op-environment-id`. The branch's older loader does not support
-that selection. This deployment retained the installed `grocery-env`,
-`service-env.mjs`, `service-environment.mjs`, administrative helpers and their
-support module in the staged artifacts, adding this branch's component
-allowlist so the frontend receives `SERVER_API_BASE_URL`. The frontend build
-used a snapshot of that loader. Build preparation, logs and verification are
-in the deployment directory above. A future install must retain or integrate
-that Environment-loading support before replacing `/opt/grocery`.
+That deployment preserved a manually installed loader that read the
+Developer Environment from `/etc/grocery/op-environment-id`, because the
+branch's loader could not. The versioned loader now reads the same file (see
+section 1), so `make build` and `sudo make hm-install-server` no longer need
+that overlay. This has not yet been run on the server. Before the next install,
+confirm that the Environment ID file exists there, then check that the built
+browser assets contain the approved API and WebSocket URLs.
 
 The normal migration check found only the additive
 `20261018100000_selection_images.sql` migration. The database was backed up to

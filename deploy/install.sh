@@ -12,6 +12,8 @@
 #
 # Optional: OP_DESKTOP_USER=<login> resolves op:// values through that
 # user's 1Password desktop app when no service-account token is installed.
+# Optional: OP_ENVIRONMENT_ID=<id> adds that 1Password Developer Environment
+# as a configuration source; its values override .env.
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -41,6 +43,11 @@ if [ -n "${OP_DESKTOP_USER:-}" ]; then
   id -u "$OP_DESKTOP_USER" > /dev/null 2>&1 || die "OP_DESKTOP_USER $OP_DESKTOP_USER does not exist"
   printf '%s\n' "$OP_DESKTOP_USER" > "$etc/op-desktop-user"
   chmod 600 "$etc/op-desktop-user"
+fi
+if [ -n "${OP_ENVIRONMENT_ID:-}" ]; then
+  [[ $OP_ENVIRONMENT_ID =~ ^[A-Za-z0-9]+$ ]] || die "OP_ENVIRONMENT_ID must contain only letters and digits"
+  printf '%s\n' "$OP_ENVIRONMENT_ID" > "$etc/op-environment-id"
+  chmod 600 "$etc/op-environment-id"
 fi
 
 log "program files -> $prefix ($(cat "$staged/VERSION"))"

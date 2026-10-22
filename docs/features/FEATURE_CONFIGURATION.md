@@ -16,7 +16,7 @@ does not rewrite the connection URL or change a running database password.
 | Backend binary / migrations | `backend/src/environment/` initializes backend settings before threads and logging; only `onepassword.rs` calls the CLI |
 | Vite dev/build / `pnpm start` | Shared JavaScript loader resolves `CLERK_*`, `VITE_*` and `SERVER_API_BASE_URL`; only Vite's public prefix reaches the browser |
 | Alexa `load_settings()` | `alexa_bridge/environment.py` loads bridge settings only; database settings are neither retained nor resolved |
-| Production systemd units | `deploy/bin/grocery-env` runs as root before each start, calls `scripts/service-env.mjs` with the token file, and writes only that service's keys (`scripts/service-components.mjs`) for `EnvironmentFile=`; services get `GROCERY_ENV_FILE=/dev/null` and no `OP_*` |
+| Production systemd units | `deploy/bin/grocery-env` runs as root before each start, calls `scripts/service-env.mjs` with the token file and the optional Developer Environment ID (`/etc/grocery/op-environment-id`, read through `op run --environment` and overriding `.env`), and writes only that service's keys (`scripts/service-components.mjs`) for `EnvironmentFile=`; services get `GROCERY_ENV_FILE=/dev/null` and no `OP_*` |
 
 The backend and bridge search the working directory and ancestors for `.env`.
 JavaScript entry points use the checkout root. `GROCERY_ENV_FILE` overrides

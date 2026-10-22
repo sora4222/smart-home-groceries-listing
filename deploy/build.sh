@@ -52,7 +52,7 @@ node "$root/scripts/build-frontend.mjs"
 cp -a "$root/frontend/.output" "$stage/frontend/.output"
 
 log "configuration resolver and systemd units"
-for file in environment.mjs service-env.mjs service-components.mjs systemd-env.mjs \
+for file in environment.mjs op-auth.mjs op-environment.mjs service-env.mjs service-components.mjs systemd-env.mjs \
   database-setup-sql.mjs triage-setup.mjs migration-plan.mjs run-with-env.mjs; do
   install -m 644 "$root/scripts/$file" "$stage/lib/$file"
 done

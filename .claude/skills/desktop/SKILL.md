@@ -7,11 +7,10 @@ description: Change the Tauri desktop connection, native commands, store windows
 
 Read `docs/features/FEATURE_DESKTOP_APP.md` before changing behavior.
 For production URL changes or deployment, read the Tailscale Service section
-in `docs/production.md`. Verify the installed configuration loader before
-deploying from an isolated checkout; saved Environment values alone do not
-establish that the frontend build and running services use those values.
-Record any preserved server-loader overlay alongside the deployed application
-commit so the next installation can retain the same configuration source.
+in `docs/production.md`. The versioned loader reads the Developer
+Environment selected by `/etc/grocery/op-environment-id` for both the frontend
+build and the services; do not deploy a hand-kept loader overlay. Saved
+Environment values alone do not prove the built assets use them, so check them.
 `desktop/src-tauri/` owns native commands and settings. The frontend owns all
 screens and shared trolley programs. Keep each module responsible for one task.
 Queue notifications use the WebSocket `counts_snapshot` as a silent baseline

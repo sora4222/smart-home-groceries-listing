@@ -23,11 +23,16 @@ tmp=$(CDPATH='' cd "$tmp" && pwd -P)
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/opt/bin" "$tmp/opt/lib" "$tmp/opt/libexec" "$tmp/path" "$tmp/etc"
 cp "$here/../deploy/bin/grocery-env" "$tmp/opt/libexec/"
-cp "$here"/environment.mjs "$here"/service-env.mjs "$here"/service-components.mjs "$here"/systemd-env.mjs "$tmp/opt/lib/"
+cp "$here"/environment.mjs "$here"/op-auth.mjs "$here"/op-environment.mjs "$here"/service-env.mjs "$here"/service-components.mjs "$here"/systemd-env.mjs "$tmp/opt/lib/"
 ln -s "$(command -v node)" "$tmp/opt/bin/node"
 cat > "$tmp/path/op" <<'OP'
 #!/bin/sh
 [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] || exit 1
+if [ "$1" = run ]; then
+    [ "$2" = --environment ] && [ "$3" = envfixtureid ] || exit 2
+    shift 5
+    exec env -u PWD -u OLDPWD -u SHLVL -u _ CLOUDFLARE_TUNNEL_TOKEN=from-environment "$@"
+fi
 printf 'resolved-%s' "${3##*/}"
 OP
 chmod +x "$tmp/path/op"
@@ -56,6 +61,14 @@ check "secrets directory is private" "700" "$(node -e 'console.log((require("nod
 check "no temporary files are left" "alexa-bridge.env" "$(ls -A "$tmp/run")"
 check "json output for install steps" \
     '{"DATABASE_URL":"postgres://grocery:pw@localhost/grocery"}' "$(run json database)"
+
+# The installed Developer Environment ID adds the Environment as a source.
+printf 'envfixtureid\n' > "$tmp/etc/op-environment-id"
+check "the selected Developer Environment is read" '{"TUNNEL_TOKEN":"from-environment"}' "$(run json tunnel)"
+mv "$tmp/etc/grocery.env" "$tmp/etc/grocery.env.saved"
+check "an Environment works without a configuration file" '{"TUNNEL_TOKEN":"from-environment"}' "$(run json tunnel)"
+mv "$tmp/etc/grocery.env.saved" "$tmp/etc/grocery.env"
+rm "$tmp/etc/op-environment-id"
 
 # The exported token is not used: without a token file, the reference fails.
 rm "$tmp/etc/token"

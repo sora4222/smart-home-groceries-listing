@@ -6,4 +6,6 @@ export function loadEnvironment(options: {
   inherited?: NodeJS.ProcessEnv;
   accepts?: (key: string) => boolean;
   resolve?: (reference: string, inherited: NodeJS.ProcessEnv) => string;
+  environmentId?: string;
+  readEnvironment?: (environmentId: string, inherited: NodeJS.ProcessEnv) => Record<string, string>;
 }): Record<string, string>;

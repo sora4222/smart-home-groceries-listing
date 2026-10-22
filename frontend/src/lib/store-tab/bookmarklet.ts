@@ -17,8 +17,17 @@ import type { FillTrolleyConfig } from "#/lib/store-tab/store-tab";
 type SelfContained = (...args: any[]) => unknown;
 
 /**
+ * Where the desktop program keeps its progress on the store page:
+ * `{state: "running"}`, then `{state: "completed" | "failed", message}`.
+ * The store page cannot call the desktop app, so the app reads this value
+ * instead (`desktop/src-tauri/src/fill_status.rs`).
+ */
+export const FILL_PROGRESS_GLOBAL = "__groceryFill";
+
+/**
  * Builds the program shared by bookmarks and the desktop store window.
- * `log` reports completion without opening checkout or showing a dialog.
+ * `report` keeps the progress in {@link FILL_PROGRESS_GLOBAL} without opening
+ * checkout or showing a dialog.
  *
  * The fill function is called as `fill(settings, helpers)`.
  *
@@ -29,7 +38,7 @@ export function buildFillProgram(
 	fill: SelfContained,
 	config: FillTrolleyConfig,
 	helpers: Record<string, SelfContained> = {},
-	finish: "alert" | "log" = "alert",
+	finish: "alert" | "report" = "alert",
 ): string {
 	const settings = JSON.stringify({
 		apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ""),
@@ -38,13 +47,16 @@ export function buildFillProgram(
 	const helperSource = `{${Object.entries(helpers)
 		.map(([name, helper]) => `${name}:${helper.toString()}`)
 		.join(",")}}`;
+	const progress = `window.${FILL_PROGRESS_GLOBAL}`;
+	const start = finish === "report" ? `${progress}={state:'running'};` : "";
 	const report =
-		finish === "log"
-			? ".then(function(r){console.info(r.message)},function(){console.error('Fill trolley failed')});void 0"
+		finish === "report"
+			? `.then(function(r){${progress}={state:'completed',message:String(r.message)}},` +
+				`function(e){${progress}={state:'failed',message:'Fill trolley failed: '+(e&&e.message||e)}});void 0`
 			: ".then(function(r){if(!r.checkout){alert(r.message);return}" +
 				"if(confirm(r.message+'\\n\\n'+r.checkout.question))location.assign(r.checkout.path)}," +
 				"function(e){alert('Fill trolley failed: '+e.message)});void 0";
-	return `(${fill.toString()})(${settings},${helperSource})${report}`;
+	return `${start}(${fill.toString()})(${settings},${helperSource})${report}`;
 }
 
 /** The browser bookmark retains its checkout confirmation dialog. */

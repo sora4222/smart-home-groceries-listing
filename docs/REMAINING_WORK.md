@@ -56,7 +56,7 @@ Done when: both stores return products from the home server, or the `blocked` re
 
 **B1. Recover the lost code on a new branch.**
 Make branch `feat/restore-desktop` from `main`. Restore these paths from `335d60c`:
-- `desktop/` (Tauri project, `setup/` first-run page, `src-tauri/src/` with `commands/`, `windows/`, `settings.rs`, `server_access.rs`, `stores.rs`, `pending_program.rs`, `notify.rs`, `tray.rs`)
+- `desktop/` (Tauri project, `setup/` first-run page, `src-tauri/src/` with `commands/`, `windows/`, `settings.rs`, `server_access.rs`, `stores.rs`, `fill_operation.rs`, `fill_watch.rs`, `fill_status.rs`, `notify.rs`, `tray.rs`)
 - `frontend/src/lib/desktop/`, `frontend/src/hooks/useDesktop.ts`, `useDesktopNotifications.ts`, `frontend/src/components/trolley/desktop-steps.tsx` and their tests
 - `docs/features/FEATURE_DESKTOP_APP.md`, `skills/desktop.md`
 - the desktop lines in `AGENTS.md`

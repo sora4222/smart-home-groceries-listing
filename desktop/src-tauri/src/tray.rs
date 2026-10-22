@@ -9,6 +9,7 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Runtime};
 
+use crate::fill_operation::FillOperations;
 use crate::stores::Store;
 use crate::windows::main_window::{self, MainPage};
 use crate::windows::store_window;
@@ -107,15 +108,22 @@ fn perform<R: Runtime>(app: &AppHandle<R>, action: TrayAction) -> tauri::Result<
             }
             Ok(())
         }
-        TrayAction::Woolworths => {
-            store_window::show_at(app, Store::Woolworths, Store::Woolworths.home_url())
-        }
+        TrayAction::Woolworths => open_woolworths(app),
         TrayAction::ChangeServer => main_window::open(app, MainPage::Setup),
         TrayAction::Quit => {
             app.exit(0);
             Ok(())
         }
     }
+}
+
+/// Shows Woolworths, leaving its page alone while a trolley fill runs there.
+fn open_woolworths<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let store = Store::Woolworths;
+    if app.state::<FillOperations>().is_running(store) && store_window::reveal(app, store)? {
+        return Ok(());
+    }
+    store_window::show_at(app, store, store.home_url())
 }
 
 #[cfg(test)]

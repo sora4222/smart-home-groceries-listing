@@ -16,6 +16,8 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 	const { tab, send, sending, handoff, delivery, setDelivery } = useSend();
 	const { config, failed } = useFillTrolleyConfig();
 	const [problem, setProblem] = useState<string | null>(null);
+	const [filling, setFilling] = useState(false);
+	const [report, setReport] = useState<string | null>(null);
 
 	async function run(action: () => Promise<void>) {
 		setProblem(null);
@@ -26,11 +28,21 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 		}
 	}
 
+	/** The app runs one fill per store; this sheet holds it until it ends. */
 	async function fillInApp() {
-		if (!config) return;
+		if (!config || filling) return;
+		setReport(null);
 		const created = await send(delivery);
 		if (!created) return;
-		await run(() => desktop.fillTrolley(tab.store, tab.buildProgram(config)));
+		setFilling(true);
+		await run(async () => {
+			const result = await desktop.fillTrolley(
+				tab.store,
+				tab.buildProgram(config),
+			);
+			setReport(result.message);
+		});
+		setFilling(false);
 	}
 
 	const filled = handoff !== null && isHandoffFinished(handoff);
@@ -58,10 +70,10 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 					<p>Press the button. A Woolworths window fills your trolley.</p>
 					<Button
 						className="mt-1 w-full sm:w-auto"
-						disabled={sending || !config}
+						disabled={sending || filling || !config}
 						onClick={fillInApp}
 					>
-						{sending ? "Sending…" : "Fill trolley in the app"}
+						{fillLabel(sending, filling)}
 					</Button>
 					{failed && (
 						<p className="text-destructive">
@@ -81,6 +93,11 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 					</li>
 				)}
 			</ol>
+			{report && (
+				<p role="status" className="text-sm">
+					{report}
+				</p>
+			)}
 			{problem && (
 				<p role="alert" className="text-sm text-destructive">
 					{problem}
@@ -88,4 +105,9 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 			)}
 		</>
 	);
+}
+
+function fillLabel(sending: boolean, filling: boolean): string {
+	if (sending) return "Sending…";
+	return filling ? "Filling in the app…" : "Fill trolley in the app";
 }

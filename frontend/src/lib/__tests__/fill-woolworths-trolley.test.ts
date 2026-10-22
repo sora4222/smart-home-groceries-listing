@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deliveryInfo, liveDays } from "#/lib/__tests__/woolworths-fixtures";
+import { FILL_PROGRESS_GLOBAL } from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
@@ -208,14 +209,18 @@ describe("the Woolworths bookmarklet", () => {
 		const assign = vi.fn();
 		const confirm = vi.fn();
 		const alert = vi.fn();
-		const info = vi.spyOn(console, "info").mockImplementation(() => {});
 		vi.stubGlobal("location", { hostname: "www.woolworths.com.au", assign });
 		vi.stubGlobal("confirm", confirm);
 		vi.stubGlobal("alert", alert);
 		const calls = fakeNetwork();
 		try {
 			new Function(WOOLWORTHS_TAB.buildProgram(config))();
-			await vi.waitFor(() => expect(info).toHaveBeenCalled());
+			await vi.waitFor(() =>
+				expect(window).toHaveProperty(
+					`${FILL_PROGRESS_GLOBAL}.state`,
+					"completed",
+				),
+			);
 			expect(calls.some((call) => call.url === "/apis/ui/Fulfilment")).toBe(
 				true,
 			);
@@ -226,7 +231,9 @@ describe("the Woolworths bookmarklet", () => {
 			expect(alert).not.toHaveBeenCalled();
 			expect(assign).not.toHaveBeenCalled();
 		} finally {
-			info.mockRestore();
+			delete (window as unknown as Record<string, unknown>)[
+				FILL_PROGRESS_GLOBAL
+			];
 		}
 	});
 

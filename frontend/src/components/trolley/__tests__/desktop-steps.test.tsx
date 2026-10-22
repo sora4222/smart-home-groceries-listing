@@ -147,6 +147,38 @@ describe("SendToStore in the desktop app", () => {
 		);
 	});
 
+	it("keeps one fill running at a time and shows its result", async () => {
+		vi.spyOn(api.trolleyHandoffs, "create").mockResolvedValue(handoff());
+		let finish: (report: { message: string }) => void = () => {};
+		desktop.fillTrolley.mockReturnValue(
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+		);
+		const user = await openSheet();
+		const fill = await screen.findByRole("button", {
+			name: "Fill trolley in the app",
+		});
+		await vi.waitFor(() => expect(fill).toBeEnabled());
+		await user.click(fill);
+
+		const running = await screen.findByRole("button", {
+			name: "Filling in the app…",
+		});
+		expect(running).toBeDisabled();
+		await user.click(running);
+		expect(desktop.fillTrolley).toHaveBeenCalledTimes(1);
+
+		finish({ message: "Added 2 products." });
+		expect(await screen.findByText("Added 2 products.")).toHaveAttribute(
+			"role",
+			"status",
+		);
+		expect(
+			screen.getByRole("button", { name: "Fill trolley in the app" }),
+		).toBeEnabled();
+	});
+
 	it("shows the app's refusal", async () => {
 		vi.spyOn(api.trolleyHandoffs, "create").mockResolvedValue(handoff());
 		desktop.fillTrolley.mockRejectedValue(

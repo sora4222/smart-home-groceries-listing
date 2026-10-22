@@ -16,6 +16,11 @@ export interface StoreAbilities {
 	checkout: boolean;
 }
 
+/** What the store window's fill program said when it finished. */
+export interface FillReport {
+	message: string;
+}
+
 /** The desktop app's version and abilities. */
 export interface DesktopAbilities {
 	version: string;
@@ -27,9 +32,13 @@ export const desktop = {
 	abilities: () => invokeDesktop<DesktopAbilities>("desktop_abilities"),
 	/** Shows the store's website in its window, to log in. */
 	openStore: (store: StoreId) => invokeDesktop<void>("open_store", { store }),
-	/** Runs the fill program on the store's trolley page in its window. */
+	/**
+	 * Runs the fill program on the store's trolley page in its window and
+	 * resolves when it finishes. The app refuses a second fill at the same
+	 * store while one is going, and rejects with a sentence when it fails.
+	 */
 	fillTrolley: (store: StoreId, program: string) =>
-		invokeDesktop<void>("fill_store_trolley", { store, program }),
+		invokeDesktop<FillReport>("fill_store_trolley", { store, program }),
 	/** Shows the store's checkout page in its window. */
 	openCheckout: (store: StoreId) =>
 		invokeDesktop<void>("open_store_checkout", { store }),

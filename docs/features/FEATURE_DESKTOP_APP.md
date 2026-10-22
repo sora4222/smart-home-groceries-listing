@@ -82,10 +82,18 @@ platforms still need live background-delivery verification.
 3. **Fill trolley:** the web app creates the handoff as usual
    (`POST /api/trolley-handoffs`), builds the same fill program the bookmark
    carries (`lib/store-tab/bookmarklet.ts`), and calls `fill_store_trolley`.
-   The app opens the store window at the trolley page and runs the program
-   once the page has loaded — only if the page is on the store's own
-   address. The program reports to the backend as the bookmark does. The web
-   app's sheet re-reads the handoff and notifies when it is filled.
+   One operation per store owns the fill (`fill_operation.rs`): it waits for
+   the trolley page (a login page on the way does not use it up), starts the
+   program once there — only on the store's own address — and then runs until
+   the program reports. A second fill, **Log in** or **Open checkout** for the
+   same store is refused while the program runs, so nothing moves the window
+   mid-fill. The program keeps its progress in `window.__groceryFill`; the
+   store page gets no app commands, so the app reads that value
+   (`fill_watch.rs`, `fill_status.rs`). The command resolves with the
+   program's message, or rejects with a sentence when the program fails, the
+   page reloads, the window closes, or 15 minutes pass. Any of these ends the
+   operation, so no program is left waiting. The program also reports to the
+   backend as the bookmark does, and the sheet re-reads the handoff.
 4. The store window keeps the webview's own cookies (WKWebView on macOS,
    WebView2 on Windows), which is how the login is kept. The app never reads
    them.
@@ -95,9 +103,9 @@ platforms still need live background-delivery verification.
 | Command | Args | Does |
 |---|---|---|
 | `desktop_abilities` | — | `{version, stores: [{store, fill_trolley, checkout}]}` |
-| `open_store` | `{store}` | shows the store window at the store's home page (to log in) |
-| `fill_store_trolley` | `{store, program}` | shows the store window at the trolley page and runs `program` there once loaded |
-| `open_store_checkout` | `{store}` | shows the store window at the checkout page |
+| `open_store` | `{store}` | shows the store window at the store's home page (to log in); refused while a fill runs there |
+| `fill_store_trolley` | `{store, program}` | shows the store window at the trolley page, runs `program` there once loaded, and answers `{message}` when it finishes; refused while a fill runs at that store |
+| `open_store_checkout` | `{store}` | shows the store window at the checkout page; refused while a fill runs there |
 | `notify` | `{title, body}` | a desktop notification |
 
 Setup page only: `save_server_url {url}` → `200` or an error sentence;
@@ -106,8 +114,9 @@ refuses anything that is not `http(s)://host[:port]`.
 ## Code
 - `desktop/src-tauri/src/`: `lib.rs` (wiring), `settings.rs` (server
   address), `server_access.rs` (capability for the server origin),
-  `stores.rs` (store addresses and abilities), `pending_program.rs` (program
-  waiting for the store page), `windows/` (`main_window.rs`,
+  `stores.rs` (store addresses and abilities), `fill_operation.rs` (one fill
+  per store, waiting to finished), `fill_watch.rs` and `fill_status.rs`
+  (reading the program's progress), `windows/` (`main_window.rs`,
   `store_window.rs`), `commands/` (`desktop.rs`, `store.rs`, `setup.rs`),
   `notify.rs`, `tray.rs`.
 - `desktop/setup/` — the first-run page.
@@ -117,8 +126,9 @@ refuses anything that is not `http(s)://host[:port]`.
 
 ## Tests
 - `cargo test` in `desktop/src-tauri`: settings, server origin capability,
-  store addresses, pending program.
-- Vitest: `lib/desktop/__tests__/`, `hooks/__tests__/useDesktopNotifications.test.tsx`,
+  store addresses, fill operations and progress, async
+  store commands, tray actions.
+- Vitest: `lib/desktop/__tests__/`, `lib/__tests__/desktop-fill-program.test.ts`, `hooks/__tests__/useDesktopNotifications.test.tsx`,
   `components/trolley/__tests__/desktop-steps.test.tsx`.
 
 ## Remote server contract
@@ -146,8 +156,8 @@ identifiers derive from the real worktree path to isolate settings, cookies and
 single-instance locks. Production packages retain the stable application ID.
 
 `SendToStore` reads native abilities per store. Woolworths uses the same fill
-program and delivery helpers as its bookmark. Desktop completion uses a console
-report without a checkout dialog or navigation. The checkout button remains an
+program and delivery helpers as its bookmark. Desktop completion is reported
+to the app without a checkout dialog or navigation. The checkout button remains an
 explicit action. Coles retains its browser bookmark flow while native abilities
 are off. Browser bookmark checkout confirmation remains intact.
 

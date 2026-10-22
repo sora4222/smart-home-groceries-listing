@@ -3,8 +3,10 @@
 //! Spec: `docs/features/FEATURE_DESKTOP_APP.md`.
 
 mod commands;
+mod fill_operation;
+mod fill_status;
+mod fill_watch;
 mod notify;
-mod pending_program;
 mod server_access;
 mod settings;
 mod stores;
@@ -14,7 +16,7 @@ mod windows;
 use tauri::{Manager, WindowEvent};
 use url::Url;
 
-use pending_program::PendingPrograms;
+use fill_operation::FillOperations;
 use windows::main_window::{self, MainPage, MAIN_LABEL};
 
 /// Builds and runs the app.
@@ -31,7 +33,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
-        .manage(PendingPrograms::default())
+        .manage(FillOperations::default())
         .invoke_handler(tauri::generate_handler![
             commands::desktop::desktop_abilities,
             commands::desktop::notify,

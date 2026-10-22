@@ -36,7 +36,10 @@ path; packaged builds retain the installed identity.
 
 `SendToStore` selects native steps by the store's advertised abilities. Keep
 Coles on its browser workflow until native support is verified. Both clients
-use the same `StoreTab` fill implementation. Desktop completion never opens
+use the same `StoreTab` fill implementation. `fill_operation.rs` is the one
+owner of a desktop fill: keep overlap refusal, the result the command returns,
+and cleanup when the ticket drops. Store pages get no IPC; the app reads the
+program's `window.__groceryFill` progress instead. Desktop completion never opens
 checkout automatically. Keep browser checkout confirmation intact.
 
 Run native tests with `make test-desktop`, launcher tests with

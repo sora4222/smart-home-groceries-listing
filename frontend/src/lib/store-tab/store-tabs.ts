@@ -30,7 +30,7 @@ export const WOOLWORTHS_TAB: StoreTab = {
 				chooseWindow: chooseWoolworthsWindow,
 				reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
 			},
-			"log",
+			"report",
 		),
 	buildBookmarklet: (config) =>
 		buildBookmarklet(fillWoolworthsTrolley, config, {
@@ -47,7 +47,7 @@ export const COLES_TAB: StoreTab = {
 	bookmarkName: "Fill Coles trolley",
 	reservesDelivery: false,
 	buildProgram: (config) =>
-		buildFillProgram(fillColesTrolley, config, {}, "log"),
+		buildFillProgram(fillColesTrolley, config, {}, "report"),
 	buildBookmarklet: (config) => buildBookmarklet(fillColesTrolley, config),
 };
 

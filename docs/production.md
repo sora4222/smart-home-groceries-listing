@@ -217,3 +217,57 @@ see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 | Alexa says the skill cannot be reached | Check that the tunnel route points at `http://localhost:8081` (section 3) and that `grocery-tunnel` is running. |
 | `make build`: `missing …` | Install the listed tool (section 1). |
 | Triage says "The checker could not be reached" | `systemctl status ollama`, then `ollama list` should show the model. |
+
+## Grocery production Service on Tailscale
+
+The approved Service is `svc:grocery-list-prod` at
+`grocery-list-prod.tail33d20b.ts.net`. HTTPS port 8100 forwards to the frontend
+on `127.0.0.1:3000`. HTTPS port 8101 forwards to the API on
+`127.0.0.1:8000`, including `/ws`. These routes leave the existing loopback
+listeners and Cloudflare intake tunnel in place.
+
+The Service host configuration is:
+
+```sh
+sudo tailscale serve --service=svc:grocery-list-prod --https=8100 http://127.0.0.1:3000
+sudo tailscale serve --service=svc:grocery-list-prod --https=8101 http://127.0.0.1:8000
+tailscale serve status
+```
+
+Before advertising a replacement host, define Service endpoints `tcp:8100`
+and `tcp:8101`, approve that host in Tailscale's Service hosts, and grant access
+to the intended household devices. Do not reset all Serve configuration or
+rename the shared server. This Service uses its own DNS name and virtual IP.
+See [Tailscale Services](https://tailscale.com/docs/features/tailscale-services).
+
+Proposed production Environment changes, requiring the owner's approval:
+
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://grocery-list-prod.tail33d20b.ts.net:8101` |
+| `VITE_WS_URL` | `wss://grocery-list-prod.tail33d20b.ts.net:8101/ws` |
+| `SERVER_API_BASE_URL` | `http://127.0.0.1:8000` |
+| `GROCERY_DESKTOP_SERVER_URL` | `https://grocery-list-prod.tail33d20b.ts.net:8100` |
+| `CORS_ORIGINS` | `http://localhost:3000,https://grocery-list-prod.tail33d20b.ts.net:8100` |
+
+The CORS proposal retains the live server's existing localhost origin. If more
+origins have been added since this snapshot, merge them before applying it.
+Update the production 1Password Environment with the MCP server, rebuild the
+frontend so its public URLs change, then restart the affected services.
+Keep authentication enabled. Verify the exact CORS response and WebSocket
+handshake from the desktop computer after deployment. A backend health response
+alone does not establish that sign-in or authenticated trolley operations work.
+
+The Service routes and HTTPS backend health check passed from the Mac on
+2026-10-22. The production URL changes and deployment remain pending approval.
+The server checkout has unrelated staged and unstaged work. Deploy an approved
+commit from a separate checkout; do not switch or overwrite that working tree.
+
+Branch validation on 2026-10-22 passed 635 backend tests, 344 frontend tests,
+92 Alexa tests, 136 browser tests and 22 native tests. Repository checks and
+launcher/build tooling tests passed. Both the frontend production build with
+isolated test configuration and the macOS app bundle built successfully.
+The first browser run had one module-fetch failure after dependency installation
+changed during the run; the complete rerun with the final lockfile passed.
+Live Clerk sign-in and authenticated store fills remain unverified. Windows
+and Linux native builds have not been run locally.

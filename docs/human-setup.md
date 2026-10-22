@@ -732,12 +732,16 @@ token, database credential or Clerk secret in the desktop app.
    current page after reconnecting a tunnel. Development builds have separate
    settings, cookies and instance locks for each worktree.
 
-The development Environment has optional `GROCERY_DESKTOP_SERVER_URL` and
-`SERVER_API_BASE_URL` entries, initially blank. Equivalent proposed production
-entries are `GROCERY_DESKTOP_SERVER_URL=` and
-`SERVER_API_BASE_URL=http://127.0.0.1:8000`. These do not replace the production
-API hostname, WebSocket configuration or CORS list. Confirm the existing public
-hostnames and approve production changes before applying them.
+The development Environment's `GROCERY_DESKTOP_SERVER_URL` points to
+`https://grocery-list-prod.tail33d20b.ts.net:8100`. Its optional
+`SERVER_API_BASE_URL` is blank. Use your existing local Environment mount, or
+launch with `op run --environment plbzra5axcjedn7hgppvry52bi -- make hm-dev-desktop`.
+The launcher passes only the public default URL to the native build. Saved
+application settings still take priority.
+
+The exact proposed production settings and current Service host routes are in
+[production operations](production.md#grocery-production-service-on-tailscale).
+These require approval before changing the production Environment or deployment.
 
 Routing references: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve)
 and [Cloudflare Tunnel protocols](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/protocols/).

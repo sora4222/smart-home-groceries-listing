@@ -22,8 +22,9 @@ values into addresses, and `lib/config.ts` exports them for this build.
 ## Running only the web app
 `make hm-dev-frontend` installs frontend packages and runs `vite dev` on `WEB_PORT`
 (default 3000, `--strictPort`). It reads the checkout root `.env`, needs no
-Docker, database or backend settings, and accepts only `CLERK_*`,
-`VITE_*` and `SERVER_API_BASE_URL` keys (`frontend/vite.config.ts`).
+Docker, database or backend settings, and accepts only the `frontend`
+component's keys from `scripts/service-components.mjs` (`CLERK_*`, `VITE_*`
+and `SERVER_API_BASE_URL`), the same rule the production build uses.
 
 Full-stack `make dev` supplies its own local API and socket URLs. Use
 `hm-dev-frontend` for a remote backend. Its separately launched host process

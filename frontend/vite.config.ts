@@ -5,6 +5,7 @@ import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import { loadEnvironment } from "../scripts/environment.mjs";
+import { accepts, component } from "../scripts/service-components.mjs";
 
 /**
  * The repository root, where the one `.env` lives (`docs/human-setup.md`).
@@ -13,19 +14,18 @@ import { loadEnvironment } from "../scripts/environment.mjs";
 const ENV_DIR = "..";
 
 /**
- * Resolve frontend configuration before Vite or Clerk reads it. Backend and
- * tunnel credentials are outside this process's configuration boundary.
+ * Resolve frontend configuration before Vite or Clerk reads it. The keys are
+ * the production `frontend` component's (`scripts/service-components.mjs`);
+ * backend and tunnel credentials are outside this process's boundary.
  */
 function loadFrontendEnvironment(): void {
+	const frontend = component("frontend");
 	Object.assign(
 		process.env,
 		loadEnvironment({
 			required: process.env.GROCERY_ENV_FILE !== undefined,
 			file: process.env.GROCERY_ENV_FILE ?? new URL("../.env", import.meta.url),
-			accepts: (key) =>
-				key.startsWith("CLERK_") ||
-				key.startsWith("VITE_") ||
-				key === "SERVER_API_BASE_URL",
+			accepts: (key) => accepts(frontend, key),
 		}),
 	);
 }

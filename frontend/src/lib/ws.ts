@@ -34,6 +34,18 @@ export type ServerEvent = CountEvent | CountsSnapshotEvent;
 /** The `type` of an event that carries a count. */
 export type CountEventType = CountEvent["type"];
 
+/**
+ * The `eventType` count `event` carries: from a connection snapshot or a live
+ * event of that type. `null` when the event says nothing about it.
+ */
+export function countIn(
+	event: ServerEvent,
+	eventType: CountEventType,
+): number | null {
+	if (event.type === "counts_snapshot") return event.counts[eventType];
+	return event.type === eventType ? event.count : null;
+}
+
 type Listener = (event: ServerEvent) => void;
 
 const listeners = new Set<Listener>();

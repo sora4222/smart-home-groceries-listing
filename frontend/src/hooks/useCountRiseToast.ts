@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { type CountEventType, connect, subscribe } from "#/lib/ws";
+import { type CountEventType, connect, countIn, subscribe } from "#/lib/ws";
 
 /**
  * Calls `onRise` when a pushed count of `eventType` goes up — a new item, not
@@ -18,18 +18,14 @@ export function useCountRiseToast(
 	useEffect(() => {
 		connect();
 		return subscribe((event) => {
-			if (event.type === "counts_snapshot") {
-				previousCount.current = event.counts[eventType];
-				return;
-			}
-			if (event.type !== eventType) return;
-			if (
+			const count = countIn(event, eventType);
+			if (count === null) return;
+			const rose =
+				event.type !== "counts_snapshot" &&
 				previousCount.current !== null &&
-				event.count > previousCount.current
-			) {
-				latestOnRise.current();
-			}
-			previousCount.current = event.count;
+				count > previousCount.current;
+			previousCount.current = count;
+			if (rose) latestOnRise.current();
 		});
 	}, [eventType]);
 }

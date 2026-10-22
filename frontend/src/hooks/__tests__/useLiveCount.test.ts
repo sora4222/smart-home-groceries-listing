@@ -6,7 +6,8 @@ import type { ServerEvent } from "#/lib/ws";
 
 const listeners = new Set<(event: ServerEvent) => void>();
 
-vi.mock("#/lib/ws", () => ({
+vi.mock("#/lib/ws", async (original) => ({
+	countIn: (await original<typeof import("#/lib/ws")>()).countIn,
 	connect: vi.fn(),
 	subscribe: (listener: (event: ServerEvent) => void) => {
 		listeners.add(listener);

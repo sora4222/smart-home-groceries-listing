@@ -10,7 +10,8 @@ const { listeners, notify, desktopState } = vi.hoisted(() => ({
 	desktopState: { on: true },
 }));
 
-vi.mock("#/lib/ws", () => ({
+vi.mock("#/lib/ws", async (original) => ({
+	countIn: (await original<typeof import("#/lib/ws")>()).countIn,
 	connect: vi.fn(),
 	subscribe: (listener: (event: ServerEvent) => void) => {
 		listeners.add(listener);

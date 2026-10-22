@@ -9,6 +9,11 @@ if command -v cloudflared > /dev/null; then
   exit 0
 fi
 
+[ "${ALLOW_DEPENDENCY_INSTALL:-}" = 1 ] || {
+  echo 'cloudflared is missing. Install it first or explicitly allow installation with ALLOW_DEPENDENCY_INSTALL=1.' >&2
+  exit 1
+}
+
 keyring=/usr/share/keyrings/cloudflare-main.gpg
 key=$(mktemp)
 trap 'rm -f "$key"' EXIT

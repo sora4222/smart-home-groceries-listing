@@ -1,95 +1,86 @@
-.PHONY: all dev stop-all setup setup-env run-env hm-dev-frontend hm-compose test test-backend \
-        test-frontend test-alexa test-tooling test-frontend-playwright \
-        update-db migration-new check check-format lint type-backend type-frontend \
-        check-file-length format hm-fix build hm-install-server hm-update-server \
-        hm-uninstall-server hm-status hm-logs hm-dev hm-test hm-test-backend \
-        hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright \
-        hm-dev-desktop build-desktop test-desktop check-desktop
-
-# Tests provision their own Docker databases and random host ports.
-
-# Any local command can use the same source and provider boundary.
-run-env:
-	@node scripts/run-env.mjs $(cmd)
-
-## First-time setup
-setup:
-	@pnpm install --frozen-lockfile --silent
-	@cd frontend && pnpm install --frozen-lockfile --silent
-	@cd frontend && pnpm exec playwright install chromium
-	@cd sidecars/alexa-bridge && uv sync --frozen
-	@cd backend && cargo fetch --locked --quiet
-	@cd desktop && pnpm install --frozen-lockfile --silent
-
-# Makes .env from .env.example and fills every random secret that is still
-# empty. Never overwrites a value. See docs/human-setup.md, part 1.
-setup-env:
-	@sh scripts/fill-env.sh
-
-## Lifecycle
+# Predictable lifecycle commands. Use human=1 or the legacy hm- aliases for full logs.
 .DEFAULT_GOAL := check
+# Fixers modify shared component files, so one invocation runs targets in order.
+.NOTPARALLEL:
+HUMAN = $(if $(filter 1 true,$(human)),--human,)
+RUN = node scripts/command.mjs $(HUMAN) $@ --
+COMPONENTS := backend frontend alexa desktop
+.PHONY: all setup setup-env run-env dev dev-stop stop-all hm-compose hm-dev-frontend \
+        test test-tooling test-frontend-playwright update-db reset-db migration-new \
+        check check-format check-file-length check-desktop format lint hm-fix \
+        type-backend type-frontend type-desktop build install-server uninstall-server \
+        hm-install-server hm-uninstall-server hm-update-server hm-status hm-logs \
+        hm-dev hm-test hm-test-tooling hm-test-frontend-playwright hm-dev-desktop \
+        create-application-desktop $(addprefix test-,$(COMPONENTS)) \
+        $(addprefix hm-test-,$(COMPONENTS)) $(addprefix build-,$(COMPONENTS)) \
+        $(addprefix format-,$(COMPONENTS)) $(addprefix lint-,$(COMPONENTS))
 
 all: check test build
 
-dev:
-	@node scripts/dev.mjs
+# Any local command can use the shared configuration and provider boundary.
+run-env:
+	@node scripts/run-env.mjs $(cmd)
 
-stop-all:
+## Setup. Never replace an existing environment file or its database credentials.
+setup:
+	@$(RUN) pnpm install --frozen-lockfile --silent
+	@$(RUN) pnpm --dir frontend install --frozen-lockfile --silent
+	@cd frontend && node ../scripts/command.mjs $(HUMAN) $@ -- pnpm exec playwright install chromium
+	@cd sidecars/alexa-bridge && node ../../scripts/command.mjs $(HUMAN) $@ -- uv sync --frozen
+	@cd backend && node ../scripts/command.mjs $(HUMAN) $@ -- cargo fetch --locked --quiet
+	@$(RUN) pnpm --dir desktop install --frozen-lockfile --silent
+	@cd desktop/src-tauri && node ../../scripts/command.mjs $(HUMAN) $@ -- cargo fetch --locked --quiet
+
+setup-env:
+	@sh scripts/fill-env.sh
+
+## Development. Context and cleanup are scoped to this worktree.
+dev:
+	@node scripts/dev.mjs $(HUMAN)
+
+dev-stop:
 	@node scripts/dev-compose.mjs down
 
-# Diagnostics and one-off service commands share the development project context.
+stop-all: dev-stop
+
 hm-compose:
 	@node scripts/dev-compose.mjs $(args)
 
-# Only the web app, on this computer, talking to the backend at
-# VITE_API_BASE_URL (for example a home server behind a Cloudflare Tunnel).
-# No Docker, no database here. See docs/human-setup.md, "Optional: web app
-# on your own computer". WEB_PORT must match an origin in the backend's
-# CORS_ORIGINS.
+# Frontend only, against the configured remote backend; no local database.
 WEB_PORT ?= 3000
 hm-dev-frontend:
-	@cd frontend && pnpm install --frozen-lockfile --silent
+	@pnpm --dir frontend install --frozen-lockfile --silent
 	@cd frontend && pnpm exec vite dev --port $(WEB_PORT) --strictPort
 
-## Tests (compact — for agent use)
-test: test-backend test-frontend test-alexa test-tooling test-frontend-playwright test-desktop
+## Tests. Database runners own disposable containers on random ports.
+test: $(addprefix test-,$(COMPONENTS)) test-tooling test-frontend-playwright
 
 test-backend:
-	@sh scripts/backend-tests.sh --compact
+	@sh scripts/backend-tests.sh $(if $(HUMAN),,--compact)
 
-# Tests for the scripts the Makefile itself relies on.
 test-tooling:
-	@sh scripts/compose-config.test.sh
-	@sh scripts/desktop.test.sh
-	@sh scripts/environment.test.sh
-	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/dev.test.mjs scripts/dev-context.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
-	@node --test scripts/service-env.test.mjs scripts/op-environment.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs scripts/build-frontend.test.mjs
-	@sh scripts/grocery-env.test.sh
-	@sh scripts/test-database.test.sh
-	@sh scripts/fill-env.test.sh
-	@sh scripts/check-file-length.test.sh
-	@sh scripts/check-migrations.test.sh
-	@sh scripts/database-profiles.test.sh
+	@$(RUN) sh scripts/tooling-tests.sh
 
 test-frontend:
-	@node scripts/test-command.mjs vitest frontend pnpm test:run
+	@node scripts/test-command.mjs $(HUMAN) vitest frontend pnpm test:run
 
 test-alexa:
-	@node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -q --disable-warnings
+	@node scripts/test-command.mjs $(HUMAN) pytest sidecars/alexa-bridge uv run pytest -q --disable-warnings
 
-# Owns its database, backend, and frontend; never uses a running household stack.
 test-frontend-playwright:
-	@node scripts/e2e-tests.mjs
+	@node scripts/e2e-tests.mjs $(HUMAN)
 
-## Database
-# Migrations are embedded in the binary and applied at startup, so the running
-# backend is already migrated. This target is for applying them without
-# starting the server.
+test-desktop:
+	@node scripts/desktop-tests.mjs $(HUMAN)
+
+## Database. Forward-only SQLx migrations, also applied at backend startup.
 update-db:
 	@node scripts/run-env.mjs cargo run --quiet --manifest-path backend/Cargo.toml --bin grocery-backend -- --migrate-only
 
-# sqlx names migrations <version>_<description>.sql. Numbering is sequential,
-# so check the highest existing file before adding one.
+# Deliberately explicit and limited to the owned Compose database, never DATABASE_URL.
+reset-db:
+	@node scripts/reset-db.mjs $(if $(filter reset,$(confirm)),--confirm,)
+
 migration-new:
 	@cd backend/migrations && \
 	 next=$$(printf "%04d" $$(( $$(ls -1 *.sql 2>/dev/null | sed 's/_.*//' | sort -n | tail -1 | sed 's/^0*//' | grep . || echo 0) + 1 ))) && \
@@ -97,59 +88,79 @@ migration-new:
 	 touch "$${next}_$${slug}.sql" && \
 	 echo "created backend/migrations/$${next}_$${slug}.sql"
 
-## Checks and formatting
-check: check-format lint type-backend type-frontend check-file-length check-desktop
+## Checks. Complete automatic fixes before checks/tests, including with make -j.
+check: format lint type-backend type-frontend type-desktop check-file-length test
 
-check-format:
-	@cd backend && cargo fmt --check
-	@cd sidecars/alexa-bridge && uv run ruff format --check .
-	@cd frontend && pnpm exec biome format .
+format: $(addprefix format-,$(COMPONENTS))
+lint: $(addprefix lint-,$(COMPONENTS))
 
-lint:
-	@cd backend && cargo clippy --all-targets --quiet -- -D warnings
-	@cd sidecars/alexa-bridge && uv run ruff check .
-	@cd frontend && pnpm check
+format-backend:
+	@cd backend && node ../scripts/command.mjs $(HUMAN) $@ -- cargo fmt
+format-frontend:
+	@cd frontend && node ../scripts/command.mjs $(HUMAN) $@ -- pnpm exec biome format --write .
+format-alexa:
+	@cd sidecars/alexa-bridge && node ../../scripts/command.mjs $(HUMAN) $@ -- uv run ruff format .
+format-desktop:
+	@cd desktop/src-tauri && node ../../scripts/command.mjs $(HUMAN) $@ -- cargo fmt
+
+lint-backend:
+	@cd backend && node ../scripts/command.mjs $(HUMAN) $@ -- cargo clippy --all-targets --fix --allow-dirty --quiet -- -D warnings
+lint-frontend:
+	@cd frontend && node ../scripts/command.mjs $(HUMAN) $@ -- pnpm check --write
+lint-alexa:
+	@cd sidecars/alexa-bridge && node ../../scripts/command.mjs $(HUMAN) $@ -- uv run ruff check --fix .
+lint-desktop:
+	@cd desktop/src-tauri && node ../../scripts/command.mjs $(HUMAN) $@ -- cargo clippy --locked --all-targets --fix --allow-dirty --quiet -- -D warnings
 
 type-backend:
-	@cd backend && cargo check --all-targets --quiet
-
+	@cd backend && node ../scripts/command.mjs $(HUMAN) $@ -- cargo check --all-targets --quiet
 type-frontend:
-	@cd frontend && pnpm exec tsc --noEmit
+	@cd frontend && node ../scripts/command.mjs $(HUMAN) $@ -- pnpm exec tsc --noEmit
+type-desktop:
+	@cd desktop/src-tauri && node ../../scripts/command.mjs $(HUMAN) $@ -- cargo check --locked --all-targets --quiet
+
+# Read-only formatting gate retained for CI and focused checks.
+check-format:
+	@cd backend && cargo fmt --check
+	@cd desktop/src-tauri && cargo fmt --check
+	@cd sidecars/alexa-bridge && uv run ruff format --check .
+	@cd frontend && pnpm exec biome format .
 
 check-file-length:
 	@git ls-files backend frontend/src sidecars desktop/src-tauri/src | sh scripts/check-file-length.sh
 
-format:
-	@cd backend && cargo fmt
-	@cd sidecars/alexa-bridge && uv run ruff format .
-	@cd frontend && pnpm exec biome format --write .
+check-desktop: format-desktop
+	@$(MAKE) --no-print-directory lint-desktop type-desktop
 
-hm-fix:
-	@cd backend && cargo clippy --all-targets --fix --allow-dirty --quiet
-	@cd sidecars/alexa-bridge && uv run ruff check --fix .
-	@cd frontend && pnpm check --write
-	@$(MAKE) --no-print-directory format
+hm-fix: format
+	@$(MAKE) --no-print-directory lint
 
-## Production server (no Docker) — docs/production.md
-# Compiles every component into build/production as your own user.
-build:
-	@bash deploy/build.sh
+## Builds. Individual outputs in build/<component>; installable server in build/production.
+build: build-backend build-frontend build-alexa
+	@$(RUN) bash deploy/build.sh --assemble
 
-# Run with sudo. Installs build/production to /opt/grocery as systemd
-# services, plus PostgreSQL role, Ollama and cloudflared as configured.
-hm-install-server:
-	@bash deploy/install.sh
+build-backend build-frontend build-alexa:
+	@$(RUN) bash deploy/build-component.sh $(@:build-%=%)
 
-# Run as yourself (it asks for sudo). Deploys the checked-out branch:
-# fast-forward pull, build, check pending migrations (stops on destructive
-# ones unless ALLOW_DESTRUCTIVE=1), back up the database, install.
+build-desktop:
+	@$(RUN) bash deploy/build-component.sh desktop
+
+create-application-desktop: build-desktop
+
+## Production server. Explicit opt-in permits missing system dependency installation.
+install-server:
+	@ALLOW_DEPENDENCY_INSTALL=$(ALLOW_DEPENDENCY_INSTALL) bash deploy/install.sh
+
+uninstall-server:
+	@bash deploy/uninstall.sh
+
+hm-install-server: install-server
+hm-uninstall-server: uninstall-server
+
 hm-update-server:
 	@sh deploy/pull.sh
 	@$(MAKE) --no-print-directory build
-	@sudo env ALLOW_DESTRUCTIVE=$(ALLOW_DESTRUCTIVE) bash deploy/update.sh
-
-hm-uninstall-server:
-	@bash deploy/uninstall.sh
+	@sudo env ALLOW_DESTRUCTIVE=$(ALLOW_DESTRUCTIVE) ALLOW_DEPENDENCY_INSTALL=$(ALLOW_DEPENDENCY_INSTALL) bash deploy/update.sh
 
 hm-status:
 	@systemctl --no-pager status grocery.target 'grocery-*.service' ollama.service 2>/dev/null | grep -E '^(●|○|×)|Active:' || true
@@ -157,38 +168,13 @@ hm-status:
 hm-logs:
 	@journalctl --no-pager -n 100 -u 'grocery-*'
 
-## Human-readable output
-hm-dev:
-	@node scripts/dev.mjs --human
+## Human output aliases share the canonical recipes and verdict policy.
+hm-dev hm-test hm-test-tooling hm-test-frontend-playwright $(addprefix hm-test-,$(COMPONENTS)): human=1
+hm-dev: dev
+hm-test: test
+hm-test-tooling: test-tooling
+hm-test-frontend-playwright: test-frontend-playwright
+$(addprefix hm-test-,$(COMPONENTS)): hm-test-%: test-%
 
-hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright test-desktop
-
-hm-test-backend:
-	@sh scripts/backend-tests.sh
-
-hm-test-tooling:
-	@$(MAKE) test-tooling
-
-hm-test-frontend:
-	node scripts/test-command.mjs vitest frontend pnpm test:run
-
-hm-test-alexa:
-	node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -v
-
-hm-test-frontend-playwright:
-	@node scripts/e2e-tests.mjs
-
-## Desktop client, no local server or database required
 hm-dev-desktop:
 	@cd desktop && pnpm dev
-
-# Build only the native client. The public default URL is optional.
-build-desktop:
-	@cd desktop && pnpm build
-
-test-desktop:
-	@node scripts/desktop-tests.mjs
-
-check-desktop:
-	@cd desktop/src-tauri && cargo fmt --check
-	@cd desktop/src-tauri && cargo clippy --locked --all-targets --quiet -- -D warnings

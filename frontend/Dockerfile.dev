@@ -8,5 +8,6 @@ COPY --chown=node:node frontend/package.json frontend/pnpm-lock.yaml frontend/pn
 RUN pnpm install --frozen-lockfile
 COPY --chown=node:node frontend/ ./
 COPY --chown=node:node scripts/environment.mjs scripts/environment.d.mts \
+  scripts/op-auth.mjs scripts/op-environment.mjs \
   scripts/service-components.mjs scripts/service-components.d.mts /workspace/scripts/
 CMD ["pnpm", "exec", "vite", "dev", "--host", "0.0.0.0", "--port", "3000", "--strictPort"]

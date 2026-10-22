@@ -205,4 +205,21 @@ describe("SendToStore in the desktop app", () => {
 		).toBeNull();
 		expect(desktop.fillTrolley).not.toHaveBeenCalled();
 	});
+
+	it("names the store the app can fill, not always Woolworths", async () => {
+		desktop.abilities.mockResolvedValue({
+			version: "0.1.0",
+			stores: [
+				{ store: "coles", login: true, fill_trolley: true, checkout: true },
+			],
+		});
+		await openSheet("coles");
+
+		expect(
+			await screen.findByRole("button", { name: "Log in to Coles" }),
+		).toBeInTheDocument();
+		expect(screen.getByText(/log in to Coles in the app/)).toBeVisible();
+		expect(screen.getByText(/A Coles window fills/)).toBeVisible();
+		expect(screen.queryByText(/Woolworths/)).toBeNull();
+	});
 });

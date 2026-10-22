@@ -9,12 +9,13 @@ import { desktop, type StoreAbilities } from "#/lib/desktop/commands";
 import { desktopProgram } from "#/lib/store-tab/bookmarklet";
 
 /**
- * The desktop app's steps: no bookmark. Log in once in the app's Woolworths
+ * The desktop app's steps: no bookmark. Log in once in the app's store
  * window, pick a delivery time, press **Fill trolley in the app**. Once
  * filled, **Open checkout** shows the checkout page to check and pay.
  */
 export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 	const { tab, send, sending, handoff, delivery, setDelivery } = useSend();
+	const name = tab.storeName;
 	const { config, failed } = useFillTrolleyConfig();
 	const [problem, setProblem] = useState<string | null>(null);
 	const [filling, setFilling] = useState(false);
@@ -51,24 +52,24 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 		<>
 			<ol className="flex list-decimal flex-col gap-3 pl-5 text-sm">
 				<li>
-					<p>Only once: log in to Woolworths in the app. It remembers you.</p>
+					<p>Only once: log in to {name} in the app. It remembers you.</p>
 					<Button
 						variant="outline"
 						className="mt-1 w-full sm:w-auto"
 						disabled={!abilities.login}
 						onClick={() => run(() => desktop.openStore(tab.store))}
 					>
-						Log in to Woolworths
+						Log in to {name}
 					</Button>
 				</li>
 				<li>
-					<p>Pick a delivery time. You can change it on Woolworths later.</p>
+					<p>Pick a delivery time. You can change it on {name} later.</p>
 					<div className="mt-1">
 						<DeliveryTimeChooser value={delivery} onChange={setDelivery} />
 					</div>
 				</li>
 				<li>
-					<p>Press the button. A Woolworths window fills your trolley.</p>
+					<p>Press the button. A {name} window fills your trolley.</p>
 					<Button
 						className="mt-1 w-full sm:w-auto"
 						disabled={sending || filling || !config}

@@ -1,7 +1,5 @@
 import { useCountRiseToast } from "#/hooks/useCountRiseToast";
-import { isDesktop } from "#/lib/desktop/bridge";
-import { desktop } from "#/lib/desktop/commands";
-import type { Notice } from "#/lib/desktop/handoff-notice";
+import { type Notice, notifyDesktop } from "#/lib/desktop/notify";
 
 /** The notice for a new item reaching Pending Requests. */
 export const NEW_ITEM_NOTICE: Notice = {
@@ -15,19 +13,14 @@ export const HELD_ITEM_NOTICE: Notice = {
 	body: "Open Triage to accept or reject it.",
 };
 
-function send(notice: Notice) {
-	if (!isDesktop()) return;
-	desktop
-		.notify(notice.title, notice.body)
-		.catch((err) => console.warn("[desktop] notice failed", err));
-}
-
 /**
  * In the desktop app, adds a desktop notification next to the in-page toast
  * when a new item arrives or one is held for review. Mount once, at the root
  * layout. Does nothing in a browser.
  */
 export function useDesktopNotifications(): void {
-	useCountRiseToast("voice_request_added", () => send(NEW_ITEM_NOTICE));
-	useCountRiseToast("triage_held", () => send(HELD_ITEM_NOTICE));
+	useCountRiseToast("voice_request_added", () =>
+		notifyDesktop(NEW_ITEM_NOTICE),
+	);
+	useCountRiseToast("triage_held", () => notifyDesktop(HELD_ITEM_NOTICE));
 }

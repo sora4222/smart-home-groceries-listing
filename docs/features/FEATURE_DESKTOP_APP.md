@@ -120,7 +120,8 @@ refuses anything that is not `http(s)://host[:port]`.
   `store_window.rs`), `commands/` (`desktop.rs`, `store.rs`, `setup.rs`),
   `notify.rs`, `tray.rs`.
 - `desktop/setup/` — the first-run page.
-- Web app: `lib/desktop/` (`bridge.ts`, `commands.ts`), `hooks/useDesktop.ts`,
+- Web app: `lib/desktop/` (`bridge.ts`, `commands.ts`, `notify.ts`: the one
+  `notifyDesktop`), `hooks/useDesktop.ts`,
   `hooks/useDesktopNotifications.ts`, `hooks/useHandoffNotice.ts`,
   `components/trolley/` (`bookmark-steps.tsx`, `desktop-steps.tsx`).
 

@@ -3,12 +3,7 @@
  * went in, how many did not, and what to do next.
  */
 import type { TrolleyHandoff } from "#/lib/api/trolley-handoffs";
-
-/** A notification's title and body. */
-export interface Notice {
-	title: string;
-	body: string;
-}
+import type { Notice } from "#/lib/desktop/notify";
 
 /** The notice for `handoff`, or `null` while it is not filled yet. */
 export function handoffNotice(handoff: TrolleyHandoff): Notice | null {

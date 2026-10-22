@@ -1,5 +1,5 @@
 /**
- * Decide whether `make update` may migrate the production database.
+ * Decide whether `make hm-update-server` may migrate the production database.
  *
  *   psql -Atc 'select version from _sqlx_migrations where success' \
  *     | node migration-plan.mjs MIGRATIONS_DIR

@@ -1,14 +1,14 @@
 # Production server (no Docker)
 
 Runs the app on an Ubuntu 26.04 home server as systemd services, without
-Docker. `make build` compiles everything as your user; `sudo make install`
-installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
+Docker. `make build` compiles everything as your user, using sudo to resolve
+frontend configuration. `sudo make hm-install-server` installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
 the services. Re-running both is also how an update is deployed.
 
 Do the vendor-console parts of [`human-setup.md`](human-setup.md) first
 (Clerk, Cloudflare Tunnel token, Alexa skill). This page replaces its
 section 6 and "Optional: PostgreSQL installed on the server" on the server.
-Developer machines keep Docker Compose (`make up`) and Testcontainers.
+Developer machines keep Docker Compose (`make dev`) and Testcontainers.
 
 ## What runs
 
@@ -62,7 +62,16 @@ not under a home directory, because the web app service runs it.
 |---|---|---|
 | Per-app service account | `/etc/1password/grocery.token` | Unattended boot (recommended) |
 | Shared service account | `/etc/1password/token` | Unattended boot |
-| Desktop app | `sudo make install OP_DESKTOP_USER=<login>` | Someone approves the 1Password prompt on each start |
+| Desktop app | `sudo make hm-install-server OP_DESKTOP_USER=<login>` | Someone approves the 1Password prompt on each start |
+
+A 1Password Developer Environment can supply settings too. Install it once
+with `sudo make hm-install-server OP_ENVIRONMENT_ID=<id>`; this writes
+`/etc/grocery/op-environment-id`. `grocery-env` then reads the Environment
+through `op run --environment` (1Password CLI 2.41 or later) with the same
+access option above. Environment values override `.env`, which may then be
+absent. The frontend build reads the same ID file, so `make build` and the
+services use one source. A 1Password community report says service accounts
+could not read Environments in CLI 2.33 beta; verify the token on the server.
 
 Save a token without putting it in shell history or command arguments:
 
@@ -73,10 +82,17 @@ sudo sh -c 'umask 077; cat > /etc/1password/grocery.token'   # paste, Enter, Ctr
 
 The service account needs read access to the project vault only.
 
+The frontend build uses this same resolver and token-file priority through
+sudo, reading the checkout's `.env`. Only resolved `CLERK_*` and `VITE_*`
+settings reach the unprivileged build; the token stays in the resolver.
+A token-file authentication failure stops the build or service startup without
+falling back to a desktop account. Local development retains desktop fallback.
+No token file permissions need to be relaxed or token exported in your shell.
+
 ## 2. `.env`
 
 **Where:** the repository checkout on the server. Make it with
-`make setup-env` if it does not exist yet. `sudo make install` copies it to
+`make setup-env` if it does not exist yet. `sudo make hm-install-server` copies it to
 `/etc/grocery/grocery.env` (root, `0600`) every time. Edit `.env`, not the
 copy.
 
@@ -95,7 +111,7 @@ These keys are ignored in production, so you can leave them as they are:
 - `COMPOSE_PROFILES`, `POSTGRES_PORT` and `BIND_ADDRESS`.
 - `ACCESS_LOG_DIR`: logs go to `/var/log/grocery`.
 
-`make install` stops with a clear message if `DATABASE_URL` or
+`make hm-install-server` stops with a clear message if `DATABASE_URL` or
 `INTAKE_LLM_BASE_URL` still names a Docker Compose host.
 
 `VITE_*` values are built into the web app by `make build`, so re-run
@@ -120,10 +136,10 @@ hostname for
 
 ```bash
 make build          # as yourself: cargo, uv, pnpm into build/production
-sudo make install   # /opt/grocery, PostgreSQL role, Ollama, cloudflared, services
+sudo make hm-install-server   # /opt/grocery, PostgreSQL role, Ollama, cloudflared, services
 ```
 
-On each run, `make install`:
+On each run, `make hm-install-server`:
 
 - creates the `DATABASE_URL` role and database if they are missing, and
   re-sets the role's password from 1Password. The password is sent as a
@@ -135,7 +151,7 @@ On each run, `make install`:
   package: to update it, re-run its installer
   (`curl -fsSL https://ollama.com/install.sh | sh`).
 
-**Verify:** `make install` ends with `backend is healthy`, `make status`
+**Verify:** `make hm-install-server` ends with `backend is healthy`, `make hm-status`
 shows each unit `active (running)`, and the Cloudflare tunnel reports
 **Healthy**. On the server, [localhost:3000](http://localhost:3000) redirects
 to `/sign-in`.
@@ -143,7 +159,7 @@ to `/sign-in`.
 ## Updating
 
 ```bash
-make update        # as yourself; asks for your sudo password once
+make hm-update-server        # as yourself; asks for your sudo password once
 ```
 
 Deploys the branch that is checked out:
@@ -156,12 +172,12 @@ Deploys the branch that is checked out:
    when:
    - a pending migration contains `DROP TABLE/COLUMN/SCHEMA`, `TRUNCATE`,
      `DELETE FROM` or a column type change. Read the file, then run
-     `make update ALLOW_DESTRUCTIVE=1`.
+     `make hm-update-server ALLOW_DESTRUCTIVE=1`.
    - the database has migrations the checkout does not know, which means
      an older branch. Its code would run against a newer schema.
 4. Backs the database up with `pg_dump -Fc` to `/var/backups/grocery/`
    (root only, newest 10 kept).
-5. Runs `make install`. The new backend binary applies the pending
+5. Runs `make hm-install-server`. The new backend binary applies the pending
    migrations (`--migrate-only`, as `nobody`) *before* `/opt/grocery` is
    switched over. If a migration fails, sqlx rolls it back and the running
    version is left untouched.
@@ -177,18 +193,18 @@ sudo systemctl stop grocery.target
 sudo cat /var/backups/grocery/<file>.dump | sudo -u postgres pg_restore --clean --if-exists -d grocery
 ```
 
-Then check out the matching commit and run `make update` again.
+Then check out the matching commit and run `make hm-update-server` again.
 
 ## Operating
 
 | Task | Command |
 |---|---|
-| State of every unit | `make status` |
-| Recent logs | `make logs`, or `journalctl -u grocery-backend -f` |
-| Deploy the checked-out branch | `make update` |
+| State of every unit | `make hm-status` |
+| Recent logs | `make hm-logs`, or `journalctl -u grocery-backend -f` |
+| Deploy the checked-out branch | `make hm-update-server` |
 | Restart everything | `sudo systemctl restart grocery.target` |
 | Stop everything | `sudo systemctl stop grocery.target` |
-| Remove (keeps `/etc/grocery`, the database and logs) | `sudo make uninstall` |
+| Remove (keeps `/etc/grocery`, the database and logs) | `sudo make hm-uninstall-server` |
 
 **Reaching the web app from another device:** the backend and web app
 listen on loopback, and the browser calls the backend at
@@ -204,9 +220,106 @@ see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 | Symptom | Fix |
 |---|---|
 | `grocery-env: cannot load KEY from 1Password` in `journalctl -u grocery-<unit>` | The token file is missing or lacks vault access, or the reference is wrong. Test it with `sudo /opt/grocery/libexec/grocery-env json <unit>` (this prints secrets; clear the terminal afterwards). The unit retries every 15 s. |
-| `make install`: `DATABASE_URL names "db"` | Set the host to `localhost` (section 2). |
-| Backend logs `password authentication failed` | Re-run `sudo make install`. It re-sets the role's password from `DATABASE_URL`. |
+| `make hm-install-server`: `DATABASE_URL names "db"` | Set the host to `localhost` (section 2). |
+| Backend logs `password authentication failed` | Re-run `sudo make hm-install-server`. It re-sets the role's password from `DATABASE_URL`. |
 | Backend logs `no pg_hba.conf entry` | Ubuntu's default `host all all 127.0.0.1/32 scram-sha-256` line was removed. Restore it and restart PostgreSQL. |
 | Alexa says the skill cannot be reached | Check that the tunnel route points at `http://localhost:8081` (section 3) and that `grocery-tunnel` is running. |
 | `make build`: `missing …` | Install the listed tool (section 1). |
 | Triage says "The checker could not be reached" | `systemctl status ollama`, then `ollama list` should show the model. |
+
+## Grocery production Service on Tailscale
+
+The approved Service is `svc:grocery-list-prod` at
+`grocery-list-prod.tail33d20b.ts.net`. HTTPS port 8100 forwards to the frontend
+on `127.0.0.1:3000`. HTTPS port 8101 forwards to the API on
+`127.0.0.1:8000`, including `/ws`. These routes leave the existing loopback
+listeners and Cloudflare intake tunnel in place.
+
+The Service host configuration is:
+
+```sh
+sudo tailscale serve --service=svc:grocery-list-prod --https=8100 http://127.0.0.1:3000
+sudo tailscale serve --service=svc:grocery-list-prod --https=8101 http://127.0.0.1:8000
+tailscale serve status
+```
+
+Before advertising a replacement host, define Service endpoints `tcp:8100`
+and `tcp:8101`, approve that host in Tailscale's Service hosts, and grant access
+to the intended household devices. Do not reset all Serve configuration or
+rename the shared server. This Service uses its own DNS name and virtual IP.
+See [Tailscale Services](https://tailscale.com/docs/features/tailscale-services).
+
+Production Environment changes approved and saved on 2026-10-22:
+
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://grocery-list-prod.tail33d20b.ts.net:8101` |
+| `VITE_WS_URL` | `wss://grocery-list-prod.tail33d20b.ts.net:8101/ws` |
+| `SERVER_API_BASE_URL` | `http://127.0.0.1:8000` |
+| `GROCERY_DESKTOP_SERVER_URL` | `https://grocery-list-prod.tail33d20b.ts.net:8100` |
+| `CORS_ORIGINS` | `http://localhost:3000,https://grocery-list-prod.tail33d20b.ts.net:8100` |
+
+The CORS proposal retains the live server's existing localhost origin. If more
+origins have been added since this snapshot, merge them before applying it.
+Update the production 1Password Environment with the MCP server, rebuild the
+frontend so its public URLs change, then restart the affected services.
+Keep authentication enabled. Verify the exact CORS response and WebSocket
+handshake from the desktop computer after deployment. A backend health response
+alone does not establish that sign-in or authenticated trolley operations work.
+
+The Service routes and HTTPS backend health check passed from the Mac on
+2026-10-22. All five approved settings are saved in the production 1Password
+Environment, with one variable per name. Existing URL and CORS variables were
+edited in place through the desktop UI because the MCP append operation had
+previously created duplicates. The existing localhost CORS origin was retained.
+Deployment completed on 2026-10-22 at 20:03 Melbourne time after the owner
+approved 1Password CLI access. Application commit `f49fad4` was built from an
+isolated detached checkout at
+`/home/sora/projects/grocery-desktop-deploy-20261022-D4tQHy/checkout`.
+The existing server checkout's staged and unstaged work was preserved.
+
+That deployment preserved a manually installed loader that read the
+Developer Environment from `/etc/grocery/op-environment-id`, because the
+branch's loader could not. The versioned loader now reads the same file (see
+section 1), so `make build` and `sudo make hm-install-server` no longer need
+that overlay. This has not yet been run on the server. Before the next install,
+confirm that the Environment ID file exists there, then check that the built
+browser assets contain the approved API and WebSocket URLs.
+
+The normal migration check found only the additive
+`20261018100000_selection_images.sql` migration. The database was backed up to
+`/var/backups/grocery/grocery-20261022-200341-f49fad4.dump` before applying it;
+the archive is readable and sqlx records the migration as successful.
+Pre-deployment application and configuration snapshots remain under
+`/var/backups/grocery/desktop-before-f49fad4/`.
+
+All four grocery services are active. Checks of the running frontend and
+backend confirm the approved configuration and absence of 1Password provider
+credentials. Built browser assets contain the approved API and WebSocket URLs.
+From the Mac, the frontend returns 307 to sign-in, API health returns 200,
+and the `/api/grocery-items` preflight allows the exact Tailscale frontend
+origin with credentials. Unauthenticated grocery API and WebSocket upgrade
+requests both return 401. These checks do not establish a successful
+authenticated WebSocket session. Desktop UI inspection was blocked by the
+locked Mac; live Clerk sign-in and authenticated store fills remain unverified.
+
+Branch validation on 2026-10-22 passed 635 backend tests, 344 frontend tests,
+92 Alexa tests, 136 browser tests and 22 native tests. Repository checks and
+launcher/build tooling tests passed. Both the frontend production build with
+isolated test configuration and the macOS app bundle built successfully.
+The first browser run had one module-fetch failure after dependency installation
+changed during the run; the complete rerun with the final lockfile passed.
+Live Clerk sign-in and authenticated store fills remain unverified. Windows
+and Linux native builds have not been run locally.
+
+After merging current main (`c70e157`) into the desktop branch on 2026-10-22,
+`make check`, tooling tests, 359 frontend unit tests, 22 desktop tests and
+12 price-comparison browser tests passed. The broader suite counts above are
+from the earlier branch validation, not a rerun after that merge.
+PR #40's initial GitHub functional, build, native, CodeQL and secret checks
+passed. Its four failing audit/Compose checks prompted a separate follow-up:
+`rustls-webpki` 0.103.16, webpki roots 1.0.10, `certifi` 2026.10.19 and
+`launch-editor` 2.14.2, plus Compose 5.6.1 pinned in both tooling jobs.
+The shared Compose test validates profiles, watched source sync and loopback
+port mappings using only the committed example configuration. These follow-up
+changes are in the PR; the deployed application remains at `f49fad4`.

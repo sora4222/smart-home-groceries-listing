@@ -1,75 +1,66 @@
 # Backend
 
-Rust + Axum. REST and WebSocket, PostgreSQL via `sqlx`. No Python.
+The Rust and Axum service owns grocery-list rules, household authentication,
+store integrations, Google Tasks polling, and REST/WebSocket endpoints. It uses
+PostgreSQL through sqlx with literal SQL and migrations embedded in the binary.
+The Alexa verification process is a separate Python sidecar.
 
-```
-src/
-├── main.rs             # read config, open the pool, migrate, serve
-├── lib.rs              # build_app: state, routes, middleware
-├── config.rs           # Settings from the environment
-├── error.rs            # ApiError → HTTP, in the {"detail": ...} shape the web app parses
-├── state.rs            # AppState handed to every handler
-├── auth/
-│   ├── mod.rs          # AuthUser extractor + AuthProvider trait — swap provider here only
-│   ├── clerk.rs        # Clerk JWKS verification (current implementation)
-│   └── secret.rs       # constant-time shared-secret checks for the intake endpoints
-├── db/mod.rs           # pool + embedded migrations
-├── models/
-│   ├── db.rs           # row types
-│   └── schemas/        # request/response bodies per domain, with validation limits
-├── routes/             # one module per domain, merged in routes/mod.rs
-│   ├── voice.rs        # /api/voice-requests — generic intake webhook + confirmation queue
-│   ├── alexa.rs        # /api/intake/alexa — from the Alexa bridge sidecar
-│   ├── grocery.rs      # /api/grocery-items
-│   ├── item_rules.rs   # /api/item-rules
-│   ├── ws.rs           # /ws
-│   ├── health.rs       # /api/health
-│   └── extract.rs      # validating body extractors
-└── services/
-    ├── grocery/        # the list: rules, duplicates, log events, SQL
-    ├── voice/          # confirmation-queue rules (mod.rs) and SQL (repository.rs)
-    ├── item_rules/     # item rules: CRUD, matching, applying, SQL
-    ├── filter_terms.rs # tidying chip lists
-    ├── ws_hub.rs       # broadcast fan-out to browser sessions
-    └── encryption.rs   # AES-256-GCM for store credentials
-migrations/             # sqlx migrations, embedded into the binary
-tests/                  # integration tests over the real router (#[sqlx::test])
-```
+## Development
 
-See `AGENTS.md` here for the patterns, and the repository root `AGENTS.md` for
-the project-wide rules.
+Run `make dev` from the repository root for the complete local stack. It rebuilds
+this service when backend files change. The printed API address is bound to
+loopback. `make stop-all` removes development containers while retaining volumes.
 
-## Running it
+For direct host execution, run `cargo run --bin grocery-backend` here with a
+reachable PostgreSQL server and a host-appropriate `DATABASE_URL`.
+The Compose development database is not published to the host.
+Startup loads configuration before logging and applies embedded migrations.
+`make update-db` applies migrations without starting HTTP; it uses the selected
+`DATABASE_URL`, so select the intended database first.
 
-```bash
-make up                 # Postgres (+ Cloudflare Tunnel) from the repo root
-cargo run               # reads .env at the repo root via the environment
-```
+## Environment variables required
 
-Migrations run automatically at startup. To apply them without starting the
-server, use `make migrate` from the repository root.
+The loader discovers the root `.env` or uses the required `GROCERY_ENV_FILE`.
+Exported values override file values; `op://` references resolve through the host
+1Password CLI. See [configuration sources](../docs/features/FEATURE_CONFIGURATION.md)
+and [`.env.example`](../.env.example) for the full settings contract.
 
-## Tests
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection. Use explicit credentials for the intended database. |
+| `CREDENTIAL_ENCRYPTION_KEY` | Base64-encoded 32-byte AES key for stored integration credentials. |
+| `CLERK_JWKS_URL` | Verify household JWTs. Local development can explicitly use `DEV_AUTH_BYPASS=true`. |
+| `VOICE_WEBHOOK_SECRET` | Authenticate the generic intake webhook. |
+| `ALEXA_BRIDGE_SECRET` | Authenticate forwarded Alexa requests. |
+| `STORE_TAB_SECRET` | Authenticate store bookmark handoffs. |
 
-```bash
-make test-backend       # from the repository root
-cargo test              # here, with DATABASE_URL set
-```
+`BIND_ADDRESS` defaults to `0.0.0.0:8000`; `CORS_ORIGINS` lists exact permitted
+browser origins. `STORE_CLIENTS=fake` selects the offline catalogue. LLM and
+Google Tasks settings are optional integration configuration. Missing integration
+credentials leave those integrations unavailable; never publish an auth-bypassed API.
 
-`#[sqlx::test]` creates a fresh database per test, applies `migrations/`, and
-drops it afterwards. It needs a PostgreSQL server at `DATABASE_URL` whose user
-may `CREATE DATABASE` — no Docker daemon required, unlike the previous
-testcontainers setup.
+## Checks and tests
 
-## Endpoints
+From the root, `make check` includes Clippy, rustfmt, cargo check and the
+repository file-length gate. `make test-backend` owns a disposable PostgreSQL
+Testcontainer and ignores application database settings. Docker and the root
+pnpm dependencies are required. SQLx creates a fresh database per integration
+test. Direct `cargo test` requires a separate test PostgreSQL role that can create
+databases; use the owned runner for routine development.
 
-| Method | Path | Auth |
-|---|---|---|
-| `GET` | `/api/health` | none |
-| `POST` | `/api/voice-requests` | `X-Webhook-Secret` |
-| `POST` | `/api/intake/alexa` | `X-Bridge-Secret` (from the sidecar) |
-| `GET` | `/api/voice-requests` | Clerk JWT |
-| `POST` | `/api/voice-requests/{id}/accept` | Clerk JWT |
-| `POST` | `/api/voice-requests/{id}/reject` | Clerk JWT |
-| `GET` | `/api/grocery-items` | Clerk JWT |
-| `GET` | `/ws` | none (read-only event stream) |
+## Source ownership
+
+| Path | Responsibility |
+|---|---|
+| `src/main.rs`, `src/lib.rs`, `src/state.rs` | Process startup and application wiring. |
+| `src/environment/`, `src/config/`, `src/config.rs` | Configuration sources and typed settings. |
+| `src/auth/` | Clerk verification and shared-secret authentication. |
+| `src/routes/` | HTTP/WebSocket boundaries, grouped by domain. |
+| `src/models/` | Database rows and request/response schemas. |
+| `src/services/` | Business rules, provider adapters and SQL repositories. |
+| `migrations/` | Embedded schema history. |
+| `tests/` | Router, authentication, database and integration coverage. |
+
+Household routes and WebSocket sessions require authentication; intake endpoints
+use their channel's shared secret. See [AGENTS.md](AGENTS.md) for architecture
+rules and the [feature specs](../docs/features/) for endpoint contracts.

@@ -4,9 +4,8 @@
 //! `?token=` because browsers cannot set headers on a WebSocket (see
 //! `auth/socket.rs`).
 //!
-//! Currently only `voice_request_added` is emitted (see
-//! `services/ws_hub.rs`). The web app uses it to update the Pending Requests
-//! badge and raise a toast without polling.
+//! Each connection starts with a count snapshot, followed by live pending and
+//! held count changes. Snapshots establish notification baselines silently.
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::State;
@@ -16,6 +15,7 @@ use axum::Router;
 use tokio::sync::broadcast::error::RecvError;
 
 use crate::auth::socket::SocketUser;
+use crate::services::voice::counts;
 use crate::services::ws_hub::ServerEvent;
 use crate::state::AppState;
 
@@ -41,6 +41,19 @@ async fn upgrade(
 /// socket is dropped promptly instead of only on the next event.
 async fn run_socket(mut socket: WebSocket, state: AppState) {
     let mut events = state.hub.subscribe();
+    let counts = match counts::current(&state.pool).await {
+        Ok(counts) => counts,
+        Err(err) => {
+            tracing::error!(error = ?err, "could not load websocket count snapshot");
+            return;
+        }
+    };
+    if send_event(&mut socket, &ServerEvent::CountsSnapshot { counts })
+        .await
+        .is_err()
+    {
+        return;
+    }
 
     loop {
         tokio::select! {

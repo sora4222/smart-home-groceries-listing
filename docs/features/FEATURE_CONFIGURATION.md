@@ -14,13 +14,14 @@ does not rewrite the connection URL or change a running database password.
 |---|---|
 | Compose startup / `make run-env` | `scripts/environment.mjs` merges sources and calls a replaceable resolver; `run-env.mjs` removes `OP_*` credentials before starting its child |
 | Backend binary / migrations | `backend/src/environment/` initializes backend settings before threads and logging; only `onepassword.rs` calls the CLI |
-| Vite dev/build / `pnpm start` | Shared JavaScript loader resolves `CLERK_*` and `VITE_*`; only Vite's public prefix reaches the browser |
+| Vite dev/build / `pnpm start` | Shared JavaScript loader resolves `CLERK_*`, `VITE_*` and `SERVER_API_BASE_URL`; only Vite's public prefix reaches the browser |
 | Alexa `load_settings()` | `alexa_bridge/environment.py` loads bridge settings only; database settings are neither retained nor resolved |
-| Production systemd units | `deploy/bin/grocery-env` runs as root before each start, calls `scripts/service-env.mjs` with the token file, and writes only that service's keys (`scripts/service-components.mjs`) for `EnvironmentFile=`; services get `GROCERY_ENV_FILE=/dev/null` and no `OP_*` |
+| Production systemd units | `deploy/bin/grocery-env` runs as root before each start, calls `scripts/service-env.mjs` with the token file and the optional Developer Environment ID (`/etc/grocery/op-environment-id`, read through `op run --environment` and overriding `.env`), and writes only that service's keys (`scripts/service-components.mjs`) for `EnvironmentFile=`; services get `GROCERY_ENV_FILE=/dev/null` and no `OP_*` |
 
 The backend and bridge search the working directory and ancestors for `.env`.
 JavaScript entry points use the checkout root. `GROCERY_ENV_FILE` overrides
-that path. Explicit selection is required: a missing, unreadable, empty-string, or
+that path; `selectedEnvironmentFile()` in `scripts/environment.mjs` is the one
+place that applies this rule. Explicit selection is required: a missing, unreadable, empty-string, or
 directory path fails before exported values or provider resolution. Missing
 default discovery is optional. The shared fixtures in
 `scripts/environment-contract.json` run in JavaScript, Python, and Rust.
@@ -59,6 +60,9 @@ by desktop access. Provider tests use fixtures, never real accounts.
 Provisioning: [human setup](../human-setup.md#1password).
 Commands: [operations](../using-the-app.md#configuration-and-1password).
 
-Compose lifecycle commands share `scripts/compose.mjs` and pass the selected
-file explicitly to Compose. Shutdown selects only Compose configuration and
-does not unlock application secrets. Compose failures propagate to Make.
+Compose lifecycle commands share `runCompose` in `scripts/compose.mjs` and
+pass the selected file explicitly to Compose. Actions that need only Compose
+settings (`COMPOSE_ONLY_ACTIONS`: shutdown, `stop`, `exec`, `logs`, `ps`)
+select only Compose configuration and do not unlock application secrets. Development commands (`scripts/dev.mjs`,
+`scripts/dev-compose.mjs`) add the worktree project and ports from
+`scripts/dev-context.mjs`. Compose failures propagate to Make.

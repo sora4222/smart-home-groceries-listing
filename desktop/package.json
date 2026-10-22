@@ -1,0 +1,16 @@
+{
+	"name": "grocery-desktop",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Tauri desktop app for the grocery list. See docs/features/FEATURE_DESKTOP_APP.md.",
+	"type": "module",
+	"scripts": {
+		"dev": "node ../scripts/desktop.mjs dev",
+		"build": "node ../scripts/desktop.mjs build",
+		"icon": "tauri icon icon-source.svg",
+		"test": "node ../scripts/desktop-tests.mjs"
+	},
+	"devDependencies": {
+		"@tauri-apps/cli": "^2.12.1"
+	}
+}

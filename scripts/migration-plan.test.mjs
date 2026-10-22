@@ -1,4 +1,4 @@
-/** `make update` migration checks: pending files, destructive statements, downgrades. */
+/** `make hm-update-server` migration checks: pending files, destructive statements, downgrades. */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

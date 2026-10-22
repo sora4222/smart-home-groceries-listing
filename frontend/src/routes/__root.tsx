@@ -14,6 +14,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "#/components/auth/auth-provider";
 import { SignInOffNotice } from "#/components/auth/sign-in-off-notice";
 import { Nav } from "#/components/nav";
+import { useDesktopNotifications } from "#/hooks/useDesktopNotifications";
 import { useHydrated } from "#/hooks/useHydrated";
 import { useTriageToasts } from "#/hooks/useTriageToasts";
 import { useVoiceRequestToasts } from "#/hooks/useVoiceRequestToasts";
@@ -76,6 +77,7 @@ function RootComponent() {
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 	useVoiceRequestToasts();
 	useTriageToasts();
+	useDesktopNotifications();
 	const hydrated = useHydrated();
 
 	return (

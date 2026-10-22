@@ -1,6 +1,6 @@
 #!/bin/sh
-# Fails when a file is longer than AGENTS.md rule 1 allows:
-# Rust and Python 300 lines, TypeScript 400.
+# Enforces the existing 500-line repository gate for Rust, Python and TypeScript.
+# Authoring instructions may impose stricter limits; this gate remains unchanged.
 #
 # Reads file paths on stdin, one per line (CI passes the files a pull
 # request adds or changes). Paths that no longer exist are skipped, and so

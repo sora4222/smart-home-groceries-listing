@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Last step of `make update` (after deploy/pull.sh and `make build`), as root:
+# Last step of `make hm-update-server` (after deploy/pull.sh and `make build`), as root:
 # check the database migrations the new build would apply, back up the
-# database, then run `make install`, which migrates before switching over.
+# database, then run `make hm-install-server`, which migrates before switching over.
 #
 # Stops before touching anything when:
 #   - a pending migration drops, truncates, deletes or retypes data
@@ -17,7 +17,7 @@ backups=/var/backups/grocery
 keep=10
 
 log() { printf '==> %s\n' "$*"; }
-die() { printf 'make update: %s\n' "$*" >&2; exit 1; }
+die() { printf 'make hm-update-server: %s\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || die "run with sudo"
 [ -d "$staged/migrations" ] || die "nothing built yet; run 'make build' first"
@@ -35,7 +35,7 @@ if [ "$where" != local ]; then
 elif ! systemctl is-active --quiet postgresql; then
   die "postgresql.service is not running"
 elif [ "$(psql_db postgres -c "select count(*) from pg_database where datname = '${database//\'/\'\'}'")" = 0 ]; then
-  log "database $database does not exist yet; make install creates it"
+  log "database $database does not exist yet; make hm-install-server creates it"
 else
   log "checking migrations against database $database"
   applied=""
@@ -48,7 +48,7 @@ else
     0) ;;
     3)
       [ "${ALLOW_DESTRUCTIVE:-}" = 1 ] \
-        || die "a pending migration above can destroy data. Read it, then: make update ALLOW_DESTRUCTIVE=1" ;;
+        || die "a pending migration above can destroy data. Read it, then: make hm-update-server ALLOW_DESTRUCTIVE=1" ;;
     4) die "the database is newer than this checkout (unknown migrations above); check out a newer branch" ;;
     *) die "could not check the migrations" ;;
   esac

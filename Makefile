@@ -1,7 +1,10 @@
-.PHONY: up down restart test test-backend test-frontend test-alexa test-tooling e2e \
-        migrate migration-new check lint lint-fix build install update uninstall status logs \
-        alexa-up setup-env web \
-        run-env hm-up hm-test hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
+.PHONY: all dev stop-all setup setup-env run-env hm-dev-frontend hm-compose test test-backend \
+        test-frontend test-alexa test-tooling test-frontend-playwright \
+        update-db migration-new check check-format lint type-backend type-frontend \
+        check-file-length format hm-fix build hm-install-server hm-update-server \
+        hm-uninstall-server hm-status hm-logs hm-dev hm-test hm-test-backend \
+        hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright \
+        hm-dev-desktop build-desktop test-desktop check-desktop
 
 # Tests provision their own Docker databases and random host ports.
 
@@ -10,24 +13,33 @@ run-env:
 	@node scripts/run-env.mjs $(cmd)
 
 ## First-time setup
+setup:
+	@pnpm install --frozen-lockfile --silent
+	@cd frontend && pnpm install --frozen-lockfile --silent
+	@cd frontend && pnpm exec playwright install chromium
+	@cd sidecars/alexa-bridge && uv sync --frozen
+	@cd backend && cargo fetch --locked --quiet
+	@cd desktop && pnpm install --frozen-lockfile --silent
+
 # Makes .env from .env.example and fills every random secret that is still
 # empty. Never overwrites a value. See docs/human-setup.md, part 1.
 setup-env:
 	@sh scripts/fill-env.sh
 
 ## Lifecycle
-# Database profiles follow the resolved URL, including older .env files.
-up:
-	@node scripts/compose.mjs up -d
+.DEFAULT_GOAL := check
 
-# Shutdown selects the same project without resolving application secrets.
-down:
-	@node scripts/compose.mjs down
+all: check test build
 
-restart: down up
+dev:
+	@node scripts/dev.mjs
 
-alexa-up:
-	@node scripts/compose.mjs up -d alexa-bridge
+stop-all:
+	@node scripts/dev-compose.mjs down
+
+# Diagnostics and one-off service commands share the development project context.
+hm-compose:
+	@node scripts/dev-compose.mjs $(args)
 
 # Only the web app, on this computer, talking to the backend at
 # VITE_API_BASE_URL (for example a home server behind a Cloudflare Tunnel).
@@ -35,21 +47,23 @@ alexa-up:
 # on your own computer". WEB_PORT must match an origin in the backend's
 # CORS_ORIGINS.
 WEB_PORT ?= 3000
-web:
+hm-dev-frontend:
 	@cd frontend && pnpm install --frozen-lockfile --silent
 	@cd frontend && pnpm exec vite dev --port $(WEB_PORT) --strictPort
 
 ## Tests (compact — for agent use)
-test: test-backend test-frontend test-alexa test-tooling e2e
+test: test-backend test-frontend test-alexa test-tooling test-frontend-playwright test-desktop
 
 test-backend:
 	@sh scripts/backend-tests.sh --compact
 
 # Tests for the scripts the Makefile itself relies on.
 test-tooling:
+	@sh scripts/compose-config.test.sh
+	@sh scripts/desktop.test.sh
 	@sh scripts/environment.test.sh
-	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
-	@node --test scripts/service-env.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs
+	@node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs scripts/dev.test.mjs scripts/dev-context.test.mjs scripts/process.test.mjs scripts/test-results.test.mjs
+	@node --test scripts/service-env.test.mjs scripts/op-environment.test.mjs scripts/deploy-setup.test.mjs scripts/migration-plan.test.mjs scripts/build-frontend.test.mjs
 	@sh scripts/grocery-env.test.sh
 	@sh scripts/test-database.test.sh
 	@sh scripts/fill-env.test.sh
@@ -64,16 +78,15 @@ test-alexa:
 	@node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -q --disable-warnings
 
 # Owns its database, backend, and frontend; never uses a running household stack.
-e2e:
+test-frontend-playwright:
 	@node scripts/e2e-tests.mjs
 
 ## Database
 # Migrations are embedded in the binary and applied at startup, so the running
 # backend is already migrated. This target is for applying them without
 # starting the server.
-migrate:
-	@cd backend && cargo run --quiet --bin grocery-backend -- --migrate-only 2>&1 | tail -3 || \
-	 docker compose exec backend grocery-backend --migrate-only 2>&1 | tail -3
+update-db:
+	@node scripts/run-env.mjs cargo run --quiet --manifest-path backend/Cargo.toml --bin grocery-backend -- --migrate-only
 
 # sqlx names migrations <version>_<description>.sql. Numbering is sequential,
 # so check the highest existing file before adding one.
@@ -84,20 +97,38 @@ migration-new:
 	 touch "$${next}_$${slug}.sql" && \
 	 echo "created backend/migrations/$${next}_$${slug}.sql"
 
-## Lint
+## Checks and formatting
+check: check-format lint type-backend type-frontend check-file-length check-desktop
+
+check-format:
+	@cd backend && cargo fmt --check
+	@cd sidecars/alexa-bridge && uv run ruff format --check .
+	@cd frontend && pnpm exec biome format .
+
 lint:
 	@cd backend && cargo clippy --all-targets --quiet -- -D warnings
-	@cd backend && cargo fmt --check
 	@cd sidecars/alexa-bridge && uv run ruff check .
-	@cd sidecars/alexa-bridge && uv run ruff format --check .
 	@cd frontend && pnpm check
+
+type-backend:
+	@cd backend && cargo check --all-targets --quiet
+
+type-frontend:
 	@cd frontend && pnpm exec tsc --noEmit
 
-lint-fix:
-	@cd backend && cargo clippy --all-targets --fix --allow-dirty --quiet 2>&1 | tail -2
+check-file-length:
+	@git ls-files backend frontend/src sidecars desktop/src-tauri/src | sh scripts/check-file-length.sh
+
+format:
 	@cd backend && cargo fmt
-	@cd sidecars/alexa-bridge && uv run ruff check --fix . && uv run ruff format .
+	@cd sidecars/alexa-bridge && uv run ruff format .
+	@cd frontend && pnpm exec biome format --write .
+
+hm-fix:
+	@cd backend && cargo clippy --all-targets --fix --allow-dirty --quiet
+	@cd sidecars/alexa-bridge && uv run ruff check --fix .
 	@cd frontend && pnpm check --write
+	@$(MAKE) --no-print-directory format
 
 ## Production server (no Docker) — docs/production.md
 # Compiles every component into build/production as your own user.
@@ -106,35 +137,31 @@ build:
 
 # Run with sudo. Installs build/production to /opt/grocery as systemd
 # services, plus PostgreSQL role, Ollama and cloudflared as configured.
-install:
+hm-install-server:
 	@bash deploy/install.sh
 
 # Run as yourself (it asks for sudo). Deploys the checked-out branch:
 # fast-forward pull, build, check pending migrations (stops on destructive
 # ones unless ALLOW_DESTRUCTIVE=1), back up the database, install.
-update:
+hm-update-server:
 	@sh deploy/pull.sh
 	@$(MAKE) --no-print-directory build
 	@sudo env ALLOW_DESTRUCTIVE=$(ALLOW_DESTRUCTIVE) bash deploy/update.sh
 
-uninstall:
+hm-uninstall-server:
 	@bash deploy/uninstall.sh
 
-status:
+hm-status:
 	@systemctl --no-pager status grocery.target 'grocery-*.service' ollama.service 2>/dev/null | grep -E '^(●|○|×)|Active:' || true
 
-logs:
+hm-logs:
 	@journalctl --no-pager -n 100 -u 'grocery-*'
 
-check: lint
-	@cd backend && cargo check --all-targets --quiet
-	@git ls-files backend frontend/src sidecars | sh scripts/check-file-length.sh
+## Human-readable output
+hm-dev:
+	@node scripts/dev.mjs --human
 
-## Human-readable variants (hm-*)
-hm-up:
-	@node scripts/compose.mjs up
-
-hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-e2e
+hm-test: hm-test-backend hm-test-frontend hm-test-alexa hm-test-tooling hm-test-frontend-playwright test-desktop
 
 hm-test-backend:
 	@sh scripts/backend-tests.sh
@@ -148,5 +175,20 @@ hm-test-frontend:
 hm-test-alexa:
 	node scripts/test-command.mjs pytest sidecars/alexa-bridge uv run pytest -v
 
-hm-e2e:
+hm-test-frontend-playwright:
 	@node scripts/e2e-tests.mjs
+
+## Desktop client, no local server or database required
+hm-dev-desktop:
+	@cd desktop && pnpm dev
+
+# Build only the native client. The public default URL is optional.
+build-desktop:
+	@cd desktop && pnpm build
+
+test-desktop:
+	@node scripts/desktop-tests.mjs
+
+check-desktop:
+	@cd desktop/src-tauri && cargo fmt --check
+	@cd desktop/src-tauri && cargo clippy --locked --all-targets --quiet -- -D warnings

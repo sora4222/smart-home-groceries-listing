@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Grocery list">
+  <title>Grocery list</title>
+  <rect width="32" height="32" rx="7" fill="#18181b"/>
+  <g fill="none" stroke="#fafafa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 10.5h13M9 16h13M9 21.5h8"/>
+  </g>
+  <path d="M6 9.5l1.6 1.6L10 8.2" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

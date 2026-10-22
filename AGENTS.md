@@ -52,7 +52,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   └── AGENTS.md            # Backend-specific rules
 ├── sidecars/
 │   └── alexa-bridge/        # Python ask-sdk bridge — AGENTS.md of its own
-├── skills/                  # Agent reference files ← read before acting
+├── desktop/                 # Tauri client, loads the server web app
+├── .claude/skills/           # Agent reference files, read before acting
 ├── docs/
 │   ├── features/            # FEATURE_*.md specs
 │   ├── human-setup.md       # One-time manual provisioning (developer audience)
@@ -67,18 +68,18 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ## Make targets
 | Target | Action |
 |---|---|
-| `make up` | Start all services; adapt the port for multi-agent development |
-| `make web` | Only the web app, against the backend at `VITE_API_BASE_URL` |
-| `make down` | Stop all |
+| `make dev` | Start the complete watched stack with worktree-specific ports |
+| `make hm-dev-frontend` | Only the web app, against the backend at `VITE_API_BASE_URL` |
+| `make stop-all` | Remove this worktree's development containers; retain volumes |
 | `make test` | All tests (compact output) |
-| `make migrate` | Apply pending `sqlx` migrations |
+| `make update-db` | Apply pending `sqlx` migrations |
 | `make migration-new name="desc"` | Create a new migration file |
-| `make lint` | `cargo clippy` + `cargo fmt --check` + `ruff` + `biome` |
-| `make lint-fix` | Apply what can be fixed automatically |
-| `make hm-up` | Human-readable startup with logs |
+| `make check` | Formatting, lint, type checks and file-length gate |
+| `make hm-fix` | Apply what can be fixed automatically |
+| `make hm-dev` | Full-stack development with streamed logs |
 | `make build` | Production build into `build/production` (no Docker) |
-| `sudo make install` | Install `build/production` as systemd services |
-| `make update` | Pull the current branch, build, check migrations, back up the DB, install |
+| `sudo make hm-install-server` | Install `build/production` as systemd services |
+| `make hm-update-server` | Pull the current branch, build, check migrations, back up the DB, install |
 | `make hm-test` | Human-readable test output |
 
 ## Rules (non-negotiable)
@@ -174,3 +175,5 @@ Rust.
 
 Use the thermo-nuclear-code-review skill when performing a code review.
 Always give simple to understand language.
+For desktop connection, native commands or launch changes, read
+`.claude/skills/desktop/SKILL.md` and `docs/features/FEATURE_DESKTOP_APP.md`.

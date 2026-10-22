@@ -141,6 +141,7 @@ describe("SendToStore at Woolworths", () => {
 						problem: null,
 					},
 				})}
+				waitingText="Waiting."
 			/>,
 		);
 
@@ -148,6 +149,17 @@ describe("SendToStore at Woolworths", () => {
 			screen.getByText(/Delivery: Sat,? 3 Oct, 7:00am - 10:00am \(\$15\.00\)/),
 		).toBeInTheDocument();
 		expect(screen.getByText(/change it on Woolworths/)).toBeInTheDocument();
+	});
+
+	it("shows the waiting sentence the chosen steps give", async () => {
+		const { HandoffStatus } = await import(
+			"#/components/trolley/handoff-status"
+		);
+		render(
+			<HandoffStatus handoff={handoff()} waitingText="Waiting for the tab." />,
+		);
+
+		expect(screen.getByText("Waiting for the tab.")).toBeInTheDocument();
 	});
 
 	it("shows the backend's reason when nothing can be sent", async () => {

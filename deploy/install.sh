@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `sudo make install`: put the output of `make build` into service on this
+# `sudo make hm-install-server`: put the output of `make build` into service on this
 # server. Safe to re-run; each run is also how an update is deployed.
 #
 #   1. .env               -> /etc/grocery/grocery.env (root only)
@@ -12,6 +12,8 @@
 #
 # Optional: OP_DESKTOP_USER=<login> resolves op:// values through that
 # user's 1Password desktop app when no service-account token is installed.
+# Optional: OP_ENVIRONMENT_ID=<id> adds that 1Password Developer Environment
+# as a configuration source; its values override .env.
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -23,9 +25,9 @@ services=(grocery-backend grocery-alexa-bridge grocery-frontend)
 
 log() { printf '==> %s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
-die() { printf 'make install: %s\n' "$*" >&2; exit 1; }
+die() { printf 'make hm-install-server: %s\n' "$*" >&2; exit 1; }
 
-[ "$(id -u)" -eq 0 ] || die "run with sudo: sudo make install"
+[ "$(id -u)" -eq 0 ] || die "run with sudo: sudo make hm-install-server"
 [ -x "$staged/bin/grocery-backend" ] || die "nothing built yet; run 'make build' as your own user first"
 [ -f "$root/.env" ] || die "no .env in $root; run 'make setup-env' and fill it in (docs/production.md)"
 node=$(command -v node) || die "node is not on root's PATH; install Node 22 system-wide"
@@ -41,6 +43,11 @@ if [ -n "${OP_DESKTOP_USER:-}" ]; then
   id -u "$OP_DESKTOP_USER" > /dev/null 2>&1 || die "OP_DESKTOP_USER $OP_DESKTOP_USER does not exist"
   printf '%s\n' "$OP_DESKTOP_USER" > "$etc/op-desktop-user"
   chmod 600 "$etc/op-desktop-user"
+fi
+if [ -n "${OP_ENVIRONMENT_ID:-}" ]; then
+  [[ $OP_ENVIRONMENT_ID =~ ^[A-Za-z0-9]+$ ]] || die "OP_ENVIRONMENT_ID must contain only letters and digits"
+  printf '%s\n' "$OP_ENVIRONMENT_ID" > "$etc/op-environment-id"
+  chmod 600 "$etc/op-environment-id"
 fi
 
 log "program files -> $prefix ($(cat "$staged/VERSION"))"

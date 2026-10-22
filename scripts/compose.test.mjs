@@ -5,6 +5,12 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { COMPOSE_ONLY_ACTIONS } from './compose.mjs';
+
+test('service commands and shutdown need only Compose settings, never startup', () => {
+  for (const action of ['down', 'stop', 'exec', 'logs', 'ps']) assert.ok(COMPOSE_ONLY_ACTIONS.includes(action), action);
+  assert.ok(!COMPOSE_ONLY_ACTIONS.includes('up'));
+});
 
 test('up and down share selected Compose identity; down needs no provider and preserves failures', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-lifecycle-'));
@@ -14,15 +20,47 @@ test('up and down share selected Compose identity; down needs no provider and pr
     writeFileSync(join(dir, 'op'), '#!/bin/sh\nprintf fixture-secret\n', { mode: 0o700 });
     writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s|%s\\n" "$COMPOSE_PROJECT_NAME" "$*"\nexit "${DOCKER_EXIT:-0}"\n', { mode: 0o700 });
     const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file };
-    const up = spawnSync('make', ['up'], { env, encoding: 'utf8' });
+    const up = spawnSync('node', ['scripts/compose.mjs', 'up', '-d'], { env, encoding: 'utf8' });
     assert.equal(up.status, 0, up.stderr);
     assert.match(up.stdout, /^grocery-selected\|/);
     writeFileSync(join(dir, 'op'), '#!/bin/sh\nexit 99\n', { mode: 0o700 });
-    const down = spawnSync('make', ['down'], { env, encoding: 'utf8' });
+    const down = spawnSync('node', ['scripts/compose.mjs', 'down'], { env, encoding: 'utf8' });
     assert.equal(down.status, 0, down.stderr);
     assert.match(down.stdout, /^grocery-selected\|/);
     assert.ok(up.stdout.includes(`--env-file ${file}`));
+    assert.ok(!up.stdout.includes('docker-compose.dev.yml'));
     assert.ok(down.stdout.includes(`--env-file ${file}`));
-    assert.notEqual(spawnSync('make', ['down'], { env: { ...env, DOCKER_EXIT: '7' } }).status, 0);
+    assert.notEqual(spawnSync('node', ['scripts/compose.mjs', 'down'], { env: { ...env, DOCKER_EXIT: '7' } }).status, 0);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('development stop is repeatable without resolving application references', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'grocery-dev-stop-'));
+  try {
+    const file = join(dir, 'selected.env');
+    writeFileSync(file, 'DATABASE_URL=op://unavailable/db\nCOMPOSE_PROJECT_NAME=isolated-dev\nWEB_PORT=44001\nBACKEND_PORT=44002\n');
+    writeFileSync(join(dir, 'op'), '#!/bin/sh\nexit 99\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s|%s|%s|%s\\n" "$COMPOSE_PROJECT_NAME" "$WEB_PORT" "$BACKEND_PORT" "$*"\n', { mode: 0o700 });
+    const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const stopped = spawnSync('make', ['stop-all'], { env, encoding: 'utf8' });
+      assert.equal(stopped.status, 0, stopped.stderr);
+      assert.match(stopped.stdout, /^isolated-dev\|44001\|44002\|/);
+      assert.match(stopped.stdout, /docker-compose.dev.yml.*down/);
+    }
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('development service commands use the worktree project without resolving application references', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'grocery-dev-compose-'));
+  try {
+    const file = join(dir, 'selected.env');
+    writeFileSync(file, 'DATABASE_URL=op://unavailable/db\nWEB_PORT=44011\n');
+    writeFileSync(join(dir, 'op'), '#!/bin/sh\nexit 99\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s|%s|%s|%s\\n" "$COMPOSE_PROJECT_NAME" "$WEB_PORT" "$BACKEND_PORT" "$*"\n', { mode: 0o700 });
+    const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file };
+    const listed = spawnSync('make', ['hm-compose', 'args=ps'], { env, encoding: 'utf8' });
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.match(listed.stdout, /^grocery-dev-[0-9a-f]{12}\|44011\|\d+\|compose -f docker-compose.yml -f docker-compose.dev.yml --env-file \S+ ps$/m);
   } finally { rmSync(dir, { recursive: true }); }
 });

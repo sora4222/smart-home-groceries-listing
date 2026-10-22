@@ -54,6 +54,35 @@ where
 }
 
 #[sqlx::test]
+async fn connections_and_reconnections_start_with_current_counts(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let first = app.create_pending("milk", 1).await;
+    let address = app.serve().await;
+    let url = format!("ws://{address}/ws");
+    let (mut socket, _) = tokio_tungstenite::connect_async(&url).await.unwrap();
+    assert_eq!(
+        next_frame(&mut socket).await,
+        json!({
+            "type": "counts_snapshot",
+            "counts": { "voice_request_added": 1, "triage_held": 0 }
+        })
+    );
+    app.create_pending("bread", 1).await;
+    assert_eq!(next_event(&mut socket).await["count"], 2);
+    socket.close(None).await.unwrap();
+    app.post(&format!("/api/voice-requests/{first}/reject"))
+        .await;
+    let (mut reconnected, _) = tokio_tungstenite::connect_async(&url).await.unwrap();
+    assert_eq!(
+        next_frame(&mut reconnected).await,
+        json!({
+            "type": "counts_snapshot",
+            "counts": { "voice_request_added": 1, "triage_held": 0 }
+        })
+    );
+}
+
+#[sqlx::test]
 async fn a_new_intake_request_pushes_the_pending_count(pool: PgPool) {
     let app = TestApp::new(pool);
     let address = app.serve().await;

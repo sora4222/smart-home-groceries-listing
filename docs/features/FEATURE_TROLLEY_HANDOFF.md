@@ -13,8 +13,10 @@ with this spec.
 ## One interface for every store
 The web app sees a store's trolley only as a `StoreTab`
 (`frontend/src/lib/store-tab/store-tab.ts`): its name, the page to open, the
-bookmark's label, whether the bookmark reserves a delivery time, and
-`buildBookmarklet(config)`. `store-tabs.ts` lists one per store
+bookmark's label, whether the bookmark reserves a delivery time, its
+self-contained `fill` script and `helpers`. `bookmarklet.ts` builds both
+programs from that data: `bookmarklet(tab, config)` for the browser and
+`desktopProgram(tab, config)` for the desktop app. `store-tabs.ts` lists one per store
 (`STORE_TABS`), and `<SendToStore store="…">` is the same sheet for both.
 The backend's handoff routes take `{store}` and never branch on it; the
 store-tab CORS rule allows every store's configured website
@@ -155,6 +157,11 @@ outcome, problem). Lines are a snapshot; deleting the list item keeps them.
   `components/trolley/` (`SendToStore` compound, `DeliveryTimeChooser`,
   `FillTrolleyBookmark`, `HandoffStatus`).
 - Setting: `STORE_TAB_SECRET`.
+
+## Desktop app
+In the desktop app the same handoff is filled by the app's own Woolworths
+window instead of the bookmark (**Fill trolley in the app**), with the same
+program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
 
 ## Not built
 - A full Coles bookmark run against the household's backend (the trolley

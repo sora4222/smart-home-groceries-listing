@@ -122,6 +122,7 @@ Clerk, through `@clerk/tanstack-react-start`, styled with `@clerk/ui`'s
 //         { type: 'triage_held', count }         — Triage badge
 // Badges: hooks/useLiveCount (usePendingCount, useHeldCount)
 // Toasts: hooks/useCountRiseToast — fires only when a count rises
+// Both read counts with countIn(event, type) from lib/ws.ts (snapshot or live event)
 ```
 
 ## API client pattern

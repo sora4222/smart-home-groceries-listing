@@ -23,13 +23,19 @@ export function deliverySummary(
 	return `Delivery: ${when}${fee}${kept}. You can change it on ${storeName}.`;
 }
 
-/** One short sentence for where the handoff is. */
-export function handoffSummary(handoff: TrolleyHandoff): string {
+/**
+ * One short sentence for where the handoff is. `waitingText` is what the
+ * chosen steps wait for before anything has claimed the handoff.
+ */
+export function handoffSummary(
+	handoff: TrolleyHandoff,
+	waitingText: string,
+): string {
 	const name = handoff.store_name;
 	if (isExpired(handoff)) return `Too late — press “Send to ${name}” again.`;
 	switch (handoff.status) {
 		case "waiting_for_store_tab":
-			return `Waiting. On ${name}, press the “Fill ${name} trolley” bookmark.`;
+			return waitingText;
 		case "claimed_by_store_tab":
 			return "Adding to your trolley…";
 		case "filled":
@@ -43,11 +49,19 @@ export function handoffSummary(handoff: TrolleyHandoff): string {
 
 /** Where the handoff is, what happened to each product, and — once filled —
  * the shop saved as bought, with Undo. */
-export function HandoffStatus({ handoff }: { handoff: TrolleyHandoff }) {
+export function HandoffStatus({
+	handoff,
+	waitingText,
+}: {
+	handoff: TrolleyHandoff;
+	waitingText: string;
+}) {
 	const delivery = deliverySummary(handoff.delivery, handoff.store_name);
 	return (
 		<section aria-label="Trolley progress" className="flex flex-col gap-2">
-			<output className="text-sm font-medium">{handoffSummary(handoff)}</output>
+			<output className="text-sm font-medium">
+				{handoffSummary(handoff, waitingText)}
+			</output>
 			{delivery && <p className="text-sm">{delivery}</p>}
 			{handoff.delivery.problem && handoff.delivery.outcome !== "failed" && (
 				<p className="text-xs text-muted-foreground">

@@ -7,7 +7,7 @@ description: Change the PostgreSQL schema through this Rust/sqlx project's embed
 
 Migrations are forward-only SQL files in `backend/migrations/`, embedded by
 `sqlx::migrate!`. Create one with `make migration-new name="description"` and
-apply it with `make migrate`.
+apply it with `make update-db`.
 
 - Never edit a migration that may have been applied: sqlx verifies checksums.
   Add a new migration instead.

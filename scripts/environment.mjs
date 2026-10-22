@@ -1,38 +1,47 @@
 /** Load dotenv configuration without executing shell code or printing values. */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
+import { withOnePassword } from './op-auth.mjs';
+import { readEnvironmentVariables } from './op-environment.mjs';
 
-/** Try the exported service account, then retry once through the desktop app. */
+/** Resolve one `op://` reference with the shared 1Password authentication policy. */
 export function readSecret(reference, inherited) {
-  const desktop = { ...inherited, OP_BIOMETRIC_UNLOCK_ENABLED: 'true' };
-  for (const key of Object.keys(desktop)) {
-    if (key === 'OP_SERVICE_ACCOUNT_TOKEN' || key.startsWith('OP_CONNECT_') || key === 'OP_SESSION' || key.startsWith('OP_SESSION_')) delete desktop[key];
-  }
-  const read = env => {
+  return withOnePassword(inherited, env => {
     const value = execFileSync('op', ['read', '--no-newline', reference], {
       env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     });
     if (!value || value.startsWith('op://')) throw new Error('Unresolved 1Password value');
     return value;
-  };
-  if (inherited.OP_SERVICE_ACCOUNT_TOKEN) {
-    const service = { ...desktop, OP_SERVICE_ACCOUNT_TOKEN: inherited.OP_SERVICE_ACCOUNT_TOKEN, OP_BIOMETRIC_UNLOCK_ENABLED: 'false' };
-    delete service.OP_ACCOUNT;
-    try { return read(service); }
-    catch { /* A failed service-account read gets one desktop attempt. */ }
-  }
-  return read(desktop);
+  });
 }
 
-/** Merge .env with exported overrides, then resolve only the selected keys. */
-export function loadEnvironment({ file, required = true, inherited = process.env, accepts = () => true, resolve = readSecret }) {
+/**
+ * The dotenv file every loader reads: an explicit `GROCERY_ENV_FILE` must
+ * exist; the checkout's own `.env` is optional.
+ */
+export function selectedEnvironmentFile(inherited = process.env) {
+  const explicit = inherited.GROCERY_ENV_FILE;
+  return { file: explicit ?? fileURLToPath(new URL('../.env', import.meta.url)), required: explicit !== undefined };
+}
+
+/**
+ * Merge .env, then the optional 1Password Environment, then exported overrides,
+ * and resolve only the selected keys. This matches `op run` precedence for the
+ * first two sources.
+ */
+export function loadEnvironment({
+  file, required = true, inherited = process.env, accepts = () => true, resolve = readSecret,
+  environmentId, readEnvironment = readEnvironmentVariables,
+}) {
   let values = {};
   try { values = parseEnv(readFileSync(file, 'utf8')); }
   catch (error) {
     if (required || error.code !== 'ENOENT') throw new Error('Cannot read environment file');
   }
-  const merged = { ...values, ...inherited };
+  const environment = environmentId ? readEnvironment(environmentId, inherited) : {};
+  const merged = { ...values, ...environment, ...inherited };
   const result = {};
   for (const [key, raw] of Object.entries(merged)) {
     if (!accepts(key) || raw === undefined) continue;

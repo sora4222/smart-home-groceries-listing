@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deliveryInfo, liveDays } from "#/lib/__tests__/woolworths-fixtures";
+import {
+	bookmarklet,
+	desktopProgram,
+	FILL_PROGRESS_GLOBAL,
+} from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
@@ -204,13 +209,45 @@ describe("fillWoolworthsTrolley", () => {
 });
 
 describe("the Woolworths bookmarklet", () => {
+	it("runs the desktop program with delivery helpers and leaves checkout to the person", async () => {
+		const assign = vi.fn();
+		const confirm = vi.fn();
+		const alert = vi.fn();
+		vi.stubGlobal("location", { hostname: "www.woolworths.com.au", assign });
+		vi.stubGlobal("confirm", confirm);
+		vi.stubGlobal("alert", alert);
+		const calls = fakeNetwork();
+		try {
+			new Function(desktopProgram(WOOLWORTHS_TAB, config))();
+			await vi.waitFor(() =>
+				expect(window).toHaveProperty(
+					`${FILL_PROGRESS_GLOBAL}.state`,
+					"completed",
+				),
+			);
+			expect(calls.some((call) => call.url === "/apis/ui/Fulfilment")).toBe(
+				true,
+			);
+			expect(calls[0].url).toBe(
+				"https://grocery.test/api/store-tab/trolley-handoffs/claim",
+			);
+			expect(confirm).not.toHaveBeenCalled();
+			expect(alert).not.toHaveBeenCalled();
+			expect(assign).not.toHaveBeenCalled();
+		} finally {
+			delete (window as unknown as Record<string, unknown>)[
+				FILL_PROGRESS_GLOBAL
+			];
+		}
+	});
+
 	it("opens checkout when the person says OK", async () => {
 		const assign = vi.fn();
 		vi.stubGlobal("location", { hostname: "www.woolworths.com.au", assign });
 		fakeNetwork();
 		vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
 
-		const href = WOOLWORTHS_TAB.buildBookmarklet(config);
+		const href = bookmarklet(WOOLWORTHS_TAB, config);
 		new Function(decodeURIComponent(href.slice(11)))();
 
 		await vi.waitFor(() =>
@@ -230,7 +267,7 @@ describe("the Woolworths bookmarklet", () => {
 		const confirm = vi.fn().mockReturnValue(false);
 		vi.stubGlobal("confirm", confirm);
 
-		const href = WOOLWORTHS_TAB.buildBookmarklet({
+		const href = bookmarklet(WOOLWORTHS_TAB, {
 			...config,
 			apiBaseUrl: "https://grocery.test/",
 		});

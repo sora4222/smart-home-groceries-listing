@@ -1,9 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { type ReactNode, useState } from "react";
 
-import { DeliveryTimeChooser } from "#/components/trolley/delivery-time-chooser";
-import { FillTrolleyBookmark } from "#/components/trolley/fill-trolley-bookmark";
+import { BookmarkSteps } from "#/components/trolley/bookmark-steps";
+import { DesktopSteps } from "#/components/trolley/desktop-steps";
 import { HandoffStatus } from "#/components/trolley/handoff-status";
+import { SendContext, useSend } from "#/components/trolley/send-context";
 import { Button } from "#/components/ui/button";
 import {
 	Sheet,
@@ -13,15 +14,15 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "#/components/ui/sheet";
-import {
-	type TrolleyHandoffState,
-	useTrolleyHandoff,
-} from "#/hooks/useTrolleyHandoff";
+import { useDesktop } from "#/hooks/useDesktop";
+import { useHandoffNotice } from "#/hooks/useHandoffNotice";
+import { useTrolleyHandoff } from "#/hooks/useTrolleyHandoff";
 import {
 	type DeliveryWanted,
 	isHandoffFinished,
 	type StoreId,
 } from "#/lib/api";
+import { abilitiesAt, type StoreAbilities } from "#/lib/desktop/commands";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 import { STORE_TABS } from "#/lib/store-tab/store-tabs";
 
@@ -30,24 +31,6 @@ export const DEFAULT_DELIVERY: DeliveryWanted = {
 	date: null,
 	time_of_day: "any",
 };
-
-interface SendContext extends TrolleyHandoffState {
-	/** The store's trolley handoff: names, links and its bookmark. */
-	tab: StoreTab;
-	/** How many list items have a product chosen at this store. */
-	chosenCount: number;
-	/** The delivery time to reserve; tomorrow, any time, until changed. */
-	delivery: DeliveryWanted;
-	setDelivery: (delivery: DeliveryWanted) => void;
-}
-
-const Context = createContext<SendContext | null>(null);
-
-function useSend(): SendContext {
-	const value = useContext(Context);
-	if (!value) throw new Error("SendToStore parts must be inside <SendToStore>");
-	return value;
-}
 
 /**
  * Puts every product chosen at one store into the household's own trolley
@@ -76,6 +59,7 @@ function SendToStoreRoot({
 	children: ReactNode;
 }) {
 	const handoff = useTrolleyHandoff(store);
+	useHandoffNotice(handoff.handoff);
 	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
 	const router = useRouter({ warn: false });
 	// A filled trolley is saved as bought and its items leave the list (or
@@ -87,7 +71,7 @@ function SendToStoreRoot({
 		}
 	}
 	return (
-		<Context.Provider
+		<SendContext.Provider
 			value={{
 				...handoff,
 				tab: STORE_TABS[store],
@@ -97,7 +81,7 @@ function SendToStoreRoot({
 			}}
 		>
 			<Sheet onOpenChange={onOpenChange}>{children}</Sheet>
-		</Context.Provider>
+		</SendContext.Provider>
 	);
 }
 
@@ -118,18 +102,31 @@ function Trigger() {
 	);
 }
 
+/** One way to fill the trolley: its steps, and what they wait for. */
+interface FillMode {
+	steps: ReactNode;
+	waitingText: string;
+}
+
+/** The app's own store window where it can fill; otherwise the bookmark. */
+function fillMode(tab: StoreTab, abilities: StoreAbilities | null): FillMode {
+	if (abilities?.fill_trolley) {
+		return {
+			steps: <DesktopSteps abilities={abilities} />,
+			waitingText: `Waiting for the ${tab.storeName} window.`,
+		};
+	}
+	return {
+		steps: <BookmarkSteps />,
+		waitingText: `Waiting. On ${tab.storeName}, press the “${tab.bookmarkName}” bookmark.`,
+	};
+}
+
 /** The steps, and the result once the bookmark reports back. */
 function Content() {
-	const { tab, send, sending, handoff, error, delivery, setDelivery } =
-		useSend();
+	const { tab, handoff, error } = useSend();
 	const name = tab.storeName;
-
-	async function sendAndOpen() {
-		// Open the tab now, while the click still counts, or it is blocked.
-		const opened = window.open(tab.trolleyUrl, "_blank");
-		const created = await send(delivery);
-		if (!created) opened?.close();
-	}
+	const mode = fillMode(tab, abilitiesAt(useDesktop(), tab.store));
 
 	return (
 		<SheetContent className="flex flex-col gap-4 overflow-y-auto p-4">
@@ -140,40 +137,16 @@ function Content() {
 					{name}.
 				</SheetDescription>
 			</SheetHeader>
-			<ol className="flex list-decimal flex-col gap-3 pl-5 text-sm">
-				<li>
-					<p>Only once: drag this to your bookmarks bar.</p>
-					<FillTrolleyBookmark tab={tab} />
-				</li>
-				{tab.reservesDelivery && (
-					<li>
-						<p>Pick a delivery time. You can change it on {name} later.</p>
-						<div className="mt-1">
-							<DeliveryTimeChooser value={delivery} onChange={setDelivery} />
-						</div>
-					</li>
-				)}
-				<li>
-					<p>Press the button. {name} opens. Log in if asked.</p>
-					<Button
-						className="mt-1 w-full sm:w-auto"
-						disabled={sending}
-						onClick={sendAndOpen}
-					>
-						{sending ? "Sending…" : `Send and open ${name}`}
-					</Button>
-				</li>
-				<li>
-					On {name}, press the “{tab.bookmarkName}” bookmark.
-					{!tab.reservesDelivery && ` Then pick a delivery time on ${name}.`}
-				</li>
-			</ol>
+			{mode.steps}
+
 			{error && (
 				<p role="alert" className="text-sm text-destructive">
 					{error}
 				</p>
 			)}
-			{handoff && <HandoffStatus handoff={handoff} />}
+			{handoff && (
+				<HandoffStatus handoff={handoff} waitingText={mode.waitingText} />
+			)}
 		</SheetContent>
 	);
 }

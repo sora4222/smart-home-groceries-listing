@@ -45,3 +45,14 @@ function requireScheme(key: string, url: string, schemes: string[]): void {
 		throw new Error(`${key} must start with ${schemes.join(" or ")}: "${url}"`);
 	}
 }
+
+/** Selects an optional internal HTTP address for server rendering only. */
+export function resolveServerApiUrl(
+	browserBaseUrl: string,
+	internalBaseUrl?: string,
+): string {
+	const address = internalBaseUrl?.trim();
+	if (!address) return browserBaseUrl;
+	requireScheme("SERVER_API_BASE_URL", address, ["http://", "https://"]);
+	return withoutTrailingSlash(address);
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { type CountEventType, connect, subscribe } from "#/lib/ws";
+import { type CountEventType, connect, countIn, subscribe } from "#/lib/ws";
 
 /**
  * A count the backend keeps fresh: loaded once with `load`, then replaced by
@@ -17,9 +17,11 @@ export function useLiveCount(
 
 	useEffect(() => {
 		let cancelled = false;
+		// A pushed count is fresher than a late answer to the initial load.
+		let pushed = false;
 		load()
 			.then((initial) => {
-				if (!cancelled) setCount(initial);
+				if (!cancelled && !pushed) setCount(initial);
 			})
 			.catch(() => {
 				// A nav badge is not worth an error on every page.
@@ -27,7 +29,10 @@ export function useLiveCount(
 
 		connect();
 		const unsubscribe = subscribe((event) => {
-			if (event.type === eventType) setCount(event.count);
+			const next = countIn(event, eventType);
+			if (next === null) return;
+			pushed = true;
+			setCount(next);
 		});
 
 		return () => {

@@ -11,7 +11,7 @@ use tauri::{
 };
 use url::Url;
 
-use crate::fill_operation::FillOperations;
+use crate::fill_operation::{FillFailure, FillOperations};
 use crate::fill_watch;
 use crate::stores::{Store, StorePage};
 
@@ -34,7 +34,7 @@ pub fn show_at<R: Runtime>(app: &AppHandle<R>, store: Store, page: StorePage) ->
     let handle = app.clone();
     window.on_window_event(move |event| {
         if let WindowEvent::Destroyed = event {
-            let closed = Err(fill_watch::WINDOW_CLOSED.into());
+            let closed = Err(FillFailure::WindowClosed);
             handle.state::<FillOperations>().finish(store, closed);
         }
     });
@@ -72,10 +72,7 @@ fn start_waiting_fill<R: Runtime>(webview: &WebviewWindow<R>, store: Store, page
     log::info!("[store-window] running the fill program for {store:?}");
     if let Err(err) = webview.eval(&program) {
         log::error!("[store-window] could not run the fill program: {err}");
-        operations.finish(
-            store,
-            Err("The fill could not start in the store window.".into()),
-        );
+        operations.finish(store, Err(FillFailure::CouldNotStart));
         return;
     }
     tauri::async_runtime::spawn(fill_watch::watch(app.clone(), store));

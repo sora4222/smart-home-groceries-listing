@@ -91,7 +91,9 @@ platforms still need live background-delivery verification.
    store page gets no app commands, so the app reads that value
    (`fill_watch.rs`, `fill_status.rs`). The command resolves with the
    program's message, or rejects with a sentence when the program fails, the
-   page reloads, the window closes, or 15 minutes pass. Any of these ends the
+   page reloads, the window closes, or 15 minutes pass. Each reason is a
+   `FillFailure` variant whose `Display` owns its sentence; the command turns
+   it into text only at the IPC boundary. Any of these ends the
    operation, so no program is left waiting. The program also reports to the
    backend as the bookmark does, and the sheet re-reads the handoff.
 4. The store window keeps the webview's own cookies (WKWebView on macOS,
@@ -117,7 +119,7 @@ refuses anything that is not `http(s)://host[:port]`.
   `stores.rs` (`Store::url(StorePage)`, the one table of store addresses;
   abilities with `StoreAbilities::allows(page)`; which page is the trolley),
   `fill_operation.rs` (one fill
-  per store, waiting to finished), `fill_watch.rs` and `fill_status.rs`
+  per store, waiting to finished, and every `FillFailure`), `fill_watch.rs` and `fill_status.rs`
   (reading the program's progress), `windows/` (`main_window.rs`,
   `store_window.rs`), `commands/` (`desktop.rs`, `store.rs`, `setup.rs`),
   `notify.rs`, `tray.rs`.

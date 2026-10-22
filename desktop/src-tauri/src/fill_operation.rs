@@ -10,6 +10,7 @@
 //! cancelled command) ends the operation, so no program is left behind.
 
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Mutex;
 
 use serde::Serialize;
@@ -25,8 +26,52 @@ pub struct FillReport {
     pub message: String,
 }
 
-/// How an operation ended: the report, or a sentence saying why it failed.
-pub type FillOutcome = Result<FillReport, String>;
+/// Every way a fill can end without a report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FillFailure {
+    /// Another fill is already going at this store.
+    Busy(Store),
+    /// The store window closed first.
+    WindowClosed,
+    /// The store page loaded again and lost the program's progress.
+    PageChanged,
+    /// The store window refused to run the program.
+    CouldNotStart,
+    /// The fill took longer than the command waits.
+    TimedOut,
+    /// The operation ended without saying how.
+    Stopped,
+    /// The program's own sentence from the store page.
+    Program(String),
+}
+
+/// The one place the sentences a person reads about a failed fill live.
+impl fmt::Display for FillFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FillFailure::Busy(store) => write!(
+                f,
+                "A trolley fill is already running at {}. Wait for it to finish.",
+                store.display_name()
+            ),
+            FillFailure::WindowClosed => {
+                f.write_str("The store window was closed before the trolley was filled.")
+            }
+            FillFailure::PageChanged => {
+                f.write_str("The store page changed before the trolley was filled. Try again.")
+            }
+            FillFailure::CouldNotStart => {
+                f.write_str("The fill could not start in the store window.")
+            }
+            FillFailure::TimedOut => f.write_str("The trolley fill took too long and was stopped."),
+            FillFailure::Stopped => f.write_str("The trolley fill stopped unexpectedly."),
+            FillFailure::Program(message) => f.write_str(message),
+        }
+    }
+}
+
+/// How an operation ended: the report, or why it failed.
+pub type FillOutcome = Result<FillReport, FillFailure>;
 
 /// Where an operation is.
 enum Phase {
@@ -63,13 +108,10 @@ pub struct FillTicket<'a> {
 
 impl FillOperations {
     /// Begins a fill of `store` with `program`, unless one is already going.
-    pub fn begin(&self, store: Store, program: String) -> Result<FillTicket<'_>, String> {
+    pub fn begin(&self, store: Store, program: String) -> Result<FillTicket<'_>, FillFailure> {
         let mut state = self.lock();
         if state.operations.contains_key(&store) {
-            return Err(format!(
-                "A trolley fill is already running at {}. Wait for it to finish.",
-                store.display_name()
-            ));
+            return Err(FillFailure::Busy(store));
         }
         state.next_id += 1;
         let id = state.next_id;
@@ -143,8 +185,7 @@ impl FillTicket<'_> {
     /// Waits for the operation to end.
     pub async fn outcome(mut self) -> FillOutcome {
         let done = self.done.take().expect("outcome is awaited once");
-        done.await
-            .unwrap_or_else(|_| Err("The trolley fill stopped unexpectedly.".into()))
+        done.await.unwrap_or(Err(FillFailure::Stopped))
     }
 }
 
@@ -214,10 +255,7 @@ mod tests {
         let operations = FillOperations::default();
         let _first = operations.begin(Store::Woolworths, "one()".into()).unwrap();
         let refused = operations.begin(Store::Woolworths, "two()".into());
-        assert_eq!(
-            refused.err(),
-            Some("A trolley fill is already running at Woolworths. Wait for it to finish.".into())
-        );
+        assert_eq!(refused.err(), Some(FillFailure::Busy(Store::Woolworths)));
         assert!(operations.begin(Store::Coles, "other()".into()).is_ok());
     }
 
@@ -236,6 +274,38 @@ mod tests {
     }
 
     #[test]
+    fn a_vanished_operation_is_stopped() {
+        let operations = FillOperations::default();
+        let ticket = operations
+            .begin(Store::Woolworths, "fill()".into())
+            .unwrap();
+        operations.lock().operations.clear();
+        assert_eq!(block_on(ticket.outcome()), Err(FillFailure::Stopped));
+    }
+
+    #[test]
+    fn each_failure_says_what_happened_in_one_sentence() {
+        let sentences = [
+            FillFailure::Busy(Store::Coles).to_string(),
+            FillFailure::WindowClosed.to_string(),
+            FillFailure::PageChanged.to_string(),
+            FillFailure::CouldNotStart.to_string(),
+            FillFailure::TimedOut.to_string(),
+            FillFailure::Stopped.to_string(),
+        ];
+        assert!(sentences[0].contains("Coles"));
+        for sentence in &sentences {
+            assert!(sentence.ends_with('.'), "{sentence}");
+        }
+        let unique: std::collections::HashSet<_> = sentences.iter().collect();
+        assert_eq!(unique.len(), sentences.len());
+        assert_eq!(
+            FillFailure::Program("Fill trolley failed: 401".into()).to_string(),
+            "Fill trolley failed: 401"
+        );
+    }
+
+    #[test]
     fn dropping_the_ticket_abandons_the_waiting_program() {
         let operations = FillOperations::default();
         let ticket = operations
@@ -250,7 +320,7 @@ mod tests {
     fn an_old_ticket_never_abandons_a_newer_operation() {
         let operations = FillOperations::default();
         let old = operations.begin(Store::Woolworths, "old()".into()).unwrap();
-        operations.finish(Store::Woolworths, Err("failed".into()));
+        operations.finish(Store::Woolworths, Err(FillFailure::PageChanged));
         let _new = operations.begin(Store::Woolworths, "new()".into()).unwrap();
         drop(old);
         assert_eq!(

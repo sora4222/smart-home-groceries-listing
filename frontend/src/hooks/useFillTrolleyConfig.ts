@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "#/lib/api";
 import { API_BASE_URL } from "#/lib/config";
 import { absoluteApiBaseUrl } from "#/lib/store-tab/bookmarklet";
-import type { FillTrolleyConfig } from "#/lib/store-tab/fill-woolworths-trolley";
+import type { FillTrolleyConfig } from "#/lib/store-tab/store-tab";
 
 /** The fill program's settings, once the store-tab secret has arrived. */
 export interface FillTrolleyConfigState {

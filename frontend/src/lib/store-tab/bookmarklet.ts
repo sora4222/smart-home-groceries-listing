@@ -17,15 +17,19 @@ import type { FillTrolleyConfig } from "#/lib/store-tab/store-tab";
 type SelfContained = (...args: any[]) => unknown;
 
 /**
- * The bookmarklet's `href` for `fill`, called as `fill(settings, helpers)`.
+ * Builds the program shared by bookmarks and the desktop store window.
+ * `log` reports completion without opening checkout or showing a dialog.
+ *
+ * The fill function is called as `fill(settings, helpers)`.
  *
  * Each helper is self-contained too. They are handed in as an argument, so a
  * minifier renaming them cannot break the link.
  */
-export function buildBookmarklet(
+export function buildFillProgram(
 	fill: SelfContained,
 	config: FillTrolleyConfig,
 	helpers: Record<string, SelfContained> = {},
+	finish: "alert" | "log" = "alert",
 ): string {
 	const settings = JSON.stringify({
 		apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ""),
@@ -34,12 +38,22 @@ export function buildBookmarklet(
 	const helperSource = `{${Object.entries(helpers)
 		.map(([name, helper]) => `${name}:${helper.toString()}`)
 		.join(",")}}`;
-	const program =
-		`(${fill.toString()})(${settings},${helperSource})` +
-		".then(function(r){if(!r.checkout){alert(r.message);return}" +
-		"if(confirm(r.message+'\\n\\n'+r.checkout.question))location.assign(r.checkout.path)}," +
-		"function(e){alert('Fill trolley failed: '+e.message)});void 0";
-	return `javascript:${encodeURIComponent(program)}`;
+	const report =
+		finish === "log"
+			? ".then(function(r){console.info(r.message)},function(){console.error('Fill trolley failed')});void 0"
+			: ".then(function(r){if(!r.checkout){alert(r.message);return}" +
+				"if(confirm(r.message+'\\n\\n'+r.checkout.question))location.assign(r.checkout.path)}," +
+				"function(e){alert('Fill trolley failed: '+e.message)});void 0";
+	return `(${fill.toString()})(${settings},${helperSource})${report}`;
+}
+
+/** The browser bookmark retains its checkout confirmation dialog. */
+export function buildBookmarklet(
+	fill: SelfContained,
+	config: FillTrolleyConfig,
+	helpers: Record<string, SelfContained> = {},
+): string {
+	return `javascript:${encodeURIComponent(buildFillProgram(fill, config, helpers))}`;
 }
 
 /** The absolute backend URL a script on another website must call. */

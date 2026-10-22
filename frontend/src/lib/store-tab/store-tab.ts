@@ -50,6 +50,8 @@ export interface StoreTab {
 	bookmarkName: string;
 	/** Whether the bookmark reserves a delivery time itself. */
 	reservesDelivery: boolean;
+	/** The program for the desktop store window, without browser dialogs. */
+	buildProgram: (config: FillTrolleyConfig) => string;
 	/** The bookmarklet's `javascript:` address. */
 	buildBookmarklet: (config: FillTrolleyConfig) => string;
 }

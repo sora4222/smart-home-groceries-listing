@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-import { api } from "#/lib/api";
-import { API_BASE_URL } from "#/lib/config";
-import { absoluteApiBaseUrl } from "#/lib/store-tab/bookmarklet";
+import { useFillTrolleyConfig } from "#/hooks/useFillTrolleyConfig";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 
 /**
@@ -14,29 +12,8 @@ import type { StoreTab } from "#/lib/store-tab/store-tab";
  */
 export function FillTrolleyBookmark({ tab }: { tab: StoreTab }) {
 	const link = useRef<HTMLAnchorElement>(null);
-	const [href, setHref] = useState<string | null>(null);
-	const [failed, setFailed] = useState(false);
-
-	useEffect(() => {
-		let cancelled = false;
-		api.trolleyHandoffs
-			.storeTabSecret()
-			.then(({ secret }) => {
-				if (cancelled) return;
-				const apiBaseUrl = absoluteApiBaseUrl(
-					API_BASE_URL,
-					window.location.origin,
-				);
-				setHref(tab.buildBookmarklet({ apiBaseUrl, secret }));
-			})
-			.catch((err) => {
-				console.error("[trolley-handoff] no store-tab secret", err);
-				if (!cancelled) setFailed(true);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [tab]);
+	const { config, failed } = useFillTrolleyConfig();
+	const href = config ? tab.buildBookmarklet(config) : null;
 
 	useEffect(() => {
 		if (href) link.current?.setAttribute("href", href);

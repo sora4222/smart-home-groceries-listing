@@ -5,7 +5,10 @@
  * picks a store by its id and nothing else.
  */
 import type { StoreId } from "#/lib/api/products";
-import { buildBookmarklet } from "#/lib/store-tab/bookmarklet";
+import {
+	buildBookmarklet,
+	buildFillProgram,
+} from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillColesTrolley } from "#/lib/store-tab/fill-coles-trolley";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
@@ -19,6 +22,16 @@ export const WOOLWORTHS_TAB: StoreTab = {
 	trolleyUrl: "https://www.woolworths.com.au/shop/mytrolley",
 	bookmarkName: "Fill Woolworths trolley",
 	reservesDelivery: true,
+	buildProgram: (config) =>
+		buildFillProgram(
+			fillWoolworthsTrolley,
+			config,
+			{
+				chooseWindow: chooseWoolworthsWindow,
+				reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
+			},
+			"log",
+		),
 	buildBookmarklet: (config) =>
 		buildBookmarklet(fillWoolworthsTrolley, config, {
 			chooseWindow: chooseWoolworthsWindow,
@@ -33,6 +46,8 @@ export const COLES_TAB: StoreTab = {
 	trolleyUrl: "https://www.coles.com.au/",
 	bookmarkName: "Fill Coles trolley",
 	reservesDelivery: false,
+	buildProgram: (config) =>
+		buildFillProgram(fillColesTrolley, config, {}, "log"),
 	buildBookmarklet: (config) => buildBookmarklet(fillColesTrolley, config),
 };
 

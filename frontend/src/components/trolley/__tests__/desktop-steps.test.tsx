@@ -19,7 +19,7 @@ vi.mock("#/lib/desktop/commands", async (original) => ({
 	desktop,
 }));
 
-import { SendToWoolworths } from "#/components/trolley/send-to-woolworths";
+import { SendToStore } from "#/components/trolley/send-to-store";
 import { api } from "#/lib/api";
 
 function handoff(overrides: Partial<TrolleyHandoff> = {}): TrolleyHandoff {
@@ -46,21 +46,23 @@ function handoff(overrides: Partial<TrolleyHandoff> = {}): TrolleyHandoff {
 	} as TrolleyHandoff;
 }
 
-async function openSheet() {
+async function openSheet(store: "woolworths" | "coles" = "woolworths") {
 	const user = userEvent.setup();
 	render(
-		<SendToWoolworths chosenCount={1}>
-			<SendToWoolworths.Trigger />
-			<SendToWoolworths.Content />
-		</SendToWoolworths>,
+		<SendToStore store={store} chosenCount={1}>
+			<SendToStore.Trigger />
+			<SendToStore.Content />
+		</SendToStore>,
 	);
 	await user.click(
-		screen.getByRole("button", { name: /Send to Woolworths \(1 item\)/ }),
+		screen.getByRole("button", {
+			name: store === "coles" ? /Send to Coles/ : /Send to Woolworths/,
+		}),
 	);
 	return user;
 }
 
-describe("SendToWoolworths in the desktop app", () => {
+describe("SendToStore in the desktop app", () => {
 	beforeEach(() => {
 		for (const command of Object.values(desktop)) command.mockReset();
 		desktop.abilities.mockResolvedValue({
@@ -159,5 +161,16 @@ describe("SendToWoolworths in the desktop app", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"The store window could not be opened.",
 		);
+	});
+	it("keeps the Coles browser workflow when native support is unavailable", async () => {
+		await openSheet("coles");
+		expect(await screen.findByText("Fill Coles trolley")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Send and open Coles" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Fill trolley in the app" }),
+		).toBeNull();
+		expect(desktop.fillTrolley).not.toHaveBeenCalled();
 	});
 });

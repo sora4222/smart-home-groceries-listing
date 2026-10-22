@@ -1,11 +1,11 @@
-# Feature: Desktop App (Tauri)
+# Feature: desktop app
 
 Status: **first part built** — the app, its window on the server, the
 Woolworths window that keeps you logged in, "Fill trolley in the app",
 "Open checkout", and desktop notifications. **Planned:** one tap to place the
 order, Coles, start at login. Code: `desktop/`. Steps for people:
 `docs/human-setup.md` (part "Desktop app") and `docs/using-the-app.md`
-("Do a Woolworths shop in the desktop app").
+("Desktop connection and shopping").
 
 ## Why it exists
 The server cannot log in to Woolworths or Coles: passkeys, MFA and Akamai bot
@@ -109,3 +109,38 @@ refuses anything that is not `http(s)://host[:port]`.
   store addresses, pending program.
 - Vitest: `lib/desktop/__tests__/`, `hooks/__tests__/useDesktopNotifications.test.tsx`,
   `components/trolley/__tests__/desktop-steps.test.tsx`.
+
+## Remote server contract
+
+The app uses one frontend origin through Tailscale or Cloudflare. A saved
+`settings.json` address wins over `GROCERY_DESKTOP_SERVER_URL` at runtime, then
+its optional build default. Blank defaults show setup. Invalid addresses show
+setup without granting remote commands. Normalize saved origins before granting
+access and reject wildcard hosts, credentials, paths, queries and fragments.
+The tray can reload the current page after reconnecting the network. Changing
+the origin restarts the app to replace the remote capability.
+
+The server's built `VITE_API_BASE_URL` and optional `VITE_WS_URL` must be reachable
+from the desktop. `SERVER_API_BASE_URL` is private SSR configuration and can use
+loopback. HTTPS API routing is required for fetches from the stores' HTTPS pages.
+Tailscale Serve can publish loopback services with HTTPS inside the tailnet.
+Cloudflare routing must preserve both HTTP API requests and `/ws`. Keep the
+frontend origin in the backend CORS allowlist and retain Clerk authentication.
+Manual routing and login steps live in `docs/human-setup.md`.
+
+The native launcher resolves only the public desktop URL and passes an explicit
+toolchain environment allowlist. It never passes database, Clerk-secret, store
+or 1Password credentials. Build defaults contain no secrets. Development
+identifiers derive from the real worktree path to isolate settings, cookies and
+single-instance locks. Production packages retain the stable application ID.
+
+`SendToStore` reads native abilities per store. Woolworths uses the same fill
+program and delivery helpers as its bookmark. Desktop completion uses a console
+report without a checkout dialog or navigation. The checkout button remains an
+explicit action. Coles retains its browser bookmark flow while native abilities
+are off. Browser bookmark checkout confirmation remains intact.
+
+Validation includes launcher isolation and credential-boundary tests, native
+origin/default tests and frontend trolley tests. The macOS native workflow runs
+formatting, Clippy and unit tests. Local unit tests and a built application do
+not establish live Tailscale, Cloudflare, Clerk or authenticated store behavior.

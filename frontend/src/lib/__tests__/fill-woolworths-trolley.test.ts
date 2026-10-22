@@ -204,6 +204,32 @@ describe("fillWoolworthsTrolley", () => {
 });
 
 describe("the Woolworths bookmarklet", () => {
+	it("runs the desktop program with delivery helpers and leaves checkout to the person", async () => {
+		const assign = vi.fn();
+		const confirm = vi.fn();
+		const alert = vi.fn();
+		const info = vi.spyOn(console, "info").mockImplementation(() => {});
+		vi.stubGlobal("location", { hostname: "www.woolworths.com.au", assign });
+		vi.stubGlobal("confirm", confirm);
+		vi.stubGlobal("alert", alert);
+		const calls = fakeNetwork();
+		try {
+			new Function(WOOLWORTHS_TAB.buildProgram(config))();
+			await vi.waitFor(() => expect(info).toHaveBeenCalled());
+			expect(calls.some((call) => call.url === "/apis/ui/Fulfilment")).toBe(
+				true,
+			);
+			expect(calls[0].url).toBe(
+				"https://grocery.test/api/store-tab/trolley-handoffs/claim",
+			);
+			expect(confirm).not.toHaveBeenCalled();
+			expect(alert).not.toHaveBeenCalled();
+			expect(assign).not.toHaveBeenCalled();
+		} finally {
+			info.mockRestore();
+		}
+	});
+
 	it("opens checkout when the person says OK", async () => {
 		const assign = vi.fn();
 		vi.stubGlobal("location", { hostname: "www.woolworths.com.au", assign });

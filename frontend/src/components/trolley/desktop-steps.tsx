@@ -6,7 +6,6 @@ import { Button } from "#/components/ui/button";
 import { useFillTrolleyConfig } from "#/hooks/useFillTrolleyConfig";
 import { isHandoffFinished } from "#/lib/api";
 import { desktop, type StoreAbilities } from "#/lib/desktop/commands";
-import { buildFillWoolworthsTrolleyProgram } from "#/lib/store-tab/bookmarklet";
 
 /**
  * The desktop app's steps: no bookmark. Log in once in the app's Woolworths
@@ -14,7 +13,7 @@ import { buildFillWoolworthsTrolleyProgram } from "#/lib/store-tab/bookmarklet";
  * filled, **Open checkout** shows the checkout page to check and pay.
  */
 export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
-	const { send, sending, handoff, delivery, setDelivery } = useSend();
+	const { tab, send, sending, handoff, delivery, setDelivery } = useSend();
 	const { config, failed } = useFillTrolleyConfig();
 	const [problem, setProblem] = useState<string | null>(null);
 
@@ -31,12 +30,7 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 		if (!config) return;
 		const created = await send(delivery);
 		if (!created) return;
-		await run(() =>
-			desktop.fillTrolley(
-				"woolworths",
-				buildFillWoolworthsTrolleyProgram(config, "log"),
-			),
-		);
+		await run(() => desktop.fillTrolley(tab.store, tab.buildProgram(config)));
 	}
 
 	const filled = handoff !== null && isHandoffFinished(handoff);
@@ -49,7 +43,7 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 						variant="outline"
 						className="mt-1 w-full sm:w-auto"
 						disabled={!abilities.login}
-						onClick={() => run(() => desktop.openStore("woolworths"))}
+						onClick={() => run(() => desktop.openStore(tab.store))}
 					>
 						Log in to Woolworths
 					</Button>
@@ -80,7 +74,7 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 						<p>Check the trolley and pay at checkout.</p>
 						<Button
 							className="mt-1 w-full sm:w-auto"
-							onClick={() => run(() => desktop.openCheckout("woolworths"))}
+							onClick={() => run(() => desktop.openCheckout(tab.store))}
 						>
 							Open checkout
 						</Button>

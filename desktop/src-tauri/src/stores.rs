@@ -48,6 +48,13 @@ impl Store {
         }
     }
 
+    /// True when `page` is this store's own trolley page (any query string),
+    /// where the fill program may start.
+    pub fn is_trolley_page(self, page: &Url) -> bool {
+        let trolley = Url::parse(self.trolley_url()).expect("store trolley URLs are valid");
+        self.owns(page) && page.path().trim_end_matches('/') == trolley.path()
+    }
+
     /// The checkout page, to check and pay.
     pub fn checkout_url(self) -> &'static str {
         match self {
@@ -124,6 +131,18 @@ mod tests {
                 assert!(store.owns(&url(page)), "{page}");
             }
         }
+    }
+
+    #[test]
+    fn the_trolley_page_is_found_by_path_on_the_store_only() {
+        let w = Store::Woolworths;
+        assert!(w.is_trolley_page(&url(w.trolley_url())));
+        assert!(w.is_trolley_page(&url(
+            "https://www.woolworths.com.au/shop/mytrolley/?from=login"
+        )));
+        assert!(!w.is_trolley_page(&url(w.checkout_url())));
+        assert!(!w.is_trolley_page(&url("http://www.woolworths.com.au/shop/mytrolley")));
+        assert!(!Store::Coles.is_trolley_page(&url(w.trolley_url())));
     }
 
     #[test]

@@ -20,12 +20,7 @@ const FILL_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 /// Shows the store's website, to log in.
 #[tauri::command]
 pub async fn open_store<R: Runtime>(app: AppHandle<R>, store: Store) -> Result<(), String> {
-    if !store.abilities().login {
-        return Err(not_yet(store));
-    }
-    refuse_while_filling(&app, store)?;
-    log::info!("[store] opening {store:?} to log in");
-    store_window::show_at(&app, store, store.home_url()).map_err(window_failed)
+    show_page(&app, store, store.abilities().login, store.home_url())
 }
 
 /// Shows the store's trolley page, runs `program` there once it loads, and
@@ -63,12 +58,28 @@ pub async fn open_store_checkout<R: Runtime>(
     app: AppHandle<R>,
     store: Store,
 ) -> Result<(), String> {
-    if !store.abilities().checkout {
+    show_page(
+        &app,
+        store,
+        store.abilities().checkout,
+        store.checkout_url(),
+    )
+}
+
+/// Shows `page` in `store`'s window when the app is `able` to act there, unless a
+/// fill is running in that window.
+fn show_page<R: Runtime>(
+    app: &AppHandle<R>,
+    store: Store,
+    able: bool,
+    page: &str,
+) -> Result<(), String> {
+    if !able {
         return Err(not_yet(store));
     }
-    refuse_while_filling(&app, store)?;
-    log::info!("[store] opening {store:?} checkout");
-    store_window::show_at(&app, store, store.checkout_url()).map_err(window_failed)
+    refuse_while_filling(app, store)?;
+    log::info!("[store] opening {store:?} at {page}");
+    store_window::show_at(app, store, page).map_err(window_failed)
 }
 
 /// Refuses an empty or oversized program.

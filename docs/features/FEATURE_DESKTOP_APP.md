@@ -114,7 +114,8 @@ refuses anything that is not `http(s)://host[:port]`.
 ## Code
 - `desktop/src-tauri/src/`: `lib.rs` (wiring), `settings.rs` (server
   address), `server_access.rs` (capability for the server origin),
-  `stores.rs` (store addresses and abilities), `fill_operation.rs` (one fill
+  `stores.rs` (store addresses, abilities and which page is the trolley),
+  `fill_operation.rs` (one fill
   per store, waiting to finished), `fill_watch.rs` and `fill_status.rs`
   (reading the program's progress), `windows/` (`main_window.rs`,
   `store_window.rs`), `commands/` (`desktop.rs`, `store.rs`, `setup.rs`),

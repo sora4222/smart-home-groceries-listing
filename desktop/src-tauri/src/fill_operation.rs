@@ -90,7 +90,7 @@ impl FillOperations {
     /// operation is waiting for it. The operation is then running, so the
     /// program starts once.
     pub fn start_on(&self, store: Store, page: &Url) -> Option<String> {
-        if !is_trolley_page(store, page) {
+        if !store.is_trolley_page(page) {
             return None;
         }
         let mut state = self.lock();
@@ -152,12 +152,6 @@ impl Drop for FillTicket<'_> {
     fn drop(&mut self) {
         self.operations.abandon(self.store, self.id);
     }
-}
-
-/// True when `page` is `store`'s own trolley page (any query string).
-fn is_trolley_page(store: Store, page: &Url) -> bool {
-    let trolley = Url::parse(store.trolley_url()).expect("store trolley URLs are valid");
-    store.owns(page) && page.path().trim_end_matches('/') == trolley.path()
 }
 
 #[cfg(test)]

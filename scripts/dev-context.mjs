@@ -2,6 +2,13 @@
 import { createHash } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { loadEnvironment } from './environment.mjs';
+import { selectedEnvironmentFile } from './compose.mjs';
+
+/** Compose files of the watched development stack. */
+export const DEVELOPMENT_FILES = ['docker-compose.yml', 'docker-compose.dev.yml'];
+
+const CONTEXT_KEYS = ['COMPOSE_PROJECT_NAME', 'WEB_PORT', 'BACKEND_PORT'];
 
 /** Explicit settings override the defaults; collisions fail rather than reuse a port. */
 export function developmentContext(env, root = fileURLToPath(new URL('../', import.meta.url))) {
@@ -17,4 +24,10 @@ export function developmentContext(env, root = fileURLToPath(new URL('../', impo
     COMPOSE_PROJECT_NAME: env.COMPOSE_PROJECT_NAME || `grocery-dev-${hash.slice(0, 12)}`,
     WEB_PORT: port('WEB_PORT', base), BACKEND_PORT: port('BACKEND_PORT', base + 1),
   };
+}
+
+/** Read only the project name and ports from the selected settings, then apply the defaults. */
+export function loadDevelopmentContext() {
+  const { file, required } = selectedEnvironmentFile();
+  return developmentContext(loadEnvironment({ file, required, accepts: key => CONTEXT_KEYS.includes(key) }));
 }

@@ -22,11 +22,11 @@ test('up and down share selected Compose identity; down needs no provider and pr
     assert.equal(down.status, 0, down.stderr);
     assert.match(down.stdout, /^grocery-selected\|/);
     assert.ok(up.stdout.includes(`--env-file ${file}`));
+    assert.ok(!up.stdout.includes('docker-compose.dev.yml'));
     assert.ok(down.stdout.includes(`--env-file ${file}`));
     assert.notEqual(spawnSync('node', ['scripts/compose.mjs', 'down'], { env: { ...env, DOCKER_EXIT: '7' } }).status, 0);
   } finally { rmSync(dir, { recursive: true }); }
 });
-
 
 test('development stop is repeatable without resolving application references', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-dev-stop-'));
@@ -42,5 +42,19 @@ test('development stop is repeatable without resolving application references', 
       assert.match(stopped.stdout, /^isolated-dev\|44001\|44002\|/);
       assert.match(stopped.stdout, /docker-compose.dev.yml.*down/);
     }
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('development service commands use the worktree project without resolving application references', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'grocery-dev-compose-'));
+  try {
+    const file = join(dir, 'selected.env');
+    writeFileSync(file, 'DATABASE_URL=op://unavailable/db\nWEB_PORT=44011\n');
+    writeFileSync(join(dir, 'op'), '#!/bin/sh\nexit 99\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s|%s|%s|%s\\n" "$COMPOSE_PROJECT_NAME" "$WEB_PORT" "$BACKEND_PORT" "$*"\n', { mode: 0o700 });
+    const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file };
+    const listed = spawnSync('make', ['hm-compose', 'args=ps'], { env, encoding: 'utf8' });
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.match(listed.stdout, /^grocery-dev-[0-9a-f]{12}\|44011\|\d+\|compose -f docker-compose.yml -f docker-compose.dev.yml --env-file \S+ ps$/m);
   } finally { rmSync(dir, { recursive: true }); }
 });

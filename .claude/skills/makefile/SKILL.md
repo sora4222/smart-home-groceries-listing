@@ -22,9 +22,12 @@ infrastructure. See the testing skill for runner contracts.
 It supplies `SERVER_API_BASE_URL=http://backend:8000` for SSR while browsers
 use the published API port. It waits for health, watches frontend source and rebuilds backend/bridge images.
 Its finally block runs shutdown even on failure or cancellation. `stop-all`
-uses the same overlay and worktree context, needs no application secrets, and
-retains volumes. `scripts/dev-context.mjs` derives defaults from the real checkout
-path; exported or selected-file project names and ports override them. Verify
+and `hm-compose` use `scripts/dev-compose.mjs` with the same overlay and
+worktree context; they need no application secrets, and shutdown retains
+volumes. `scripts/dev-context.mjs` owns that context: it derives defaults from
+the real checkout path; exported or selected-file project names and ports
+override them. Development callers pass it to `runCompose` as overrides;
+`compose.mjs` itself has no development mode. Verify
 startup failure, child failure, interruption, repeated shutdown and isolation.
 Compose configuration contracts run through `scripts/compose-config.test.sh`
 in both `test-tooling` and CI, without reading application configuration.

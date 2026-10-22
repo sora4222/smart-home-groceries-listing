@@ -18,6 +18,7 @@ for (const fail of ['', '--wait', '--watch', 'down']) {
         env: { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file, CALLS: calls, FAIL: fail }, encoding: 'utf8',
       });
       assert.notEqual(run.status, 0, run.stderr);
+      if (fail !== '--wait') assert.match(run.stdout, /^dev: http:\/\/localhost:\d+ \(API http:\/\/localhost:\d+\)$/m);
       const args = readFileSync(calls, 'utf8');
       assert.match(args, /up --build --wait/);
       assert.match(args, /down/);

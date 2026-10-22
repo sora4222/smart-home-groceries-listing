@@ -59,6 +59,9 @@ by desktop access. Provider tests use fixtures, never real accounts.
 Provisioning: [human setup](../human-setup.md#1password).
 Commands: [operations](../using-the-app.md#configuration-and-1password).
 
-Compose lifecycle commands share `scripts/compose.mjs` and pass the selected
-file explicitly to Compose. Shutdown selects only Compose configuration and
-does not unlock application secrets. Compose failures propagate to Make.
+Compose lifecycle commands share `runCompose` in `scripts/compose.mjs` and
+pass the selected file explicitly to Compose. Read-only actions
+(`READ_ONLY_ACTIONS`, including shutdown) select only Compose configuration and
+do not unlock application secrets. Development commands (`scripts/dev.mjs`,
+`scripts/dev-compose.mjs`) add the worktree project and ports from
+`scripts/dev-context.mjs`. Compose failures propagate to Make.

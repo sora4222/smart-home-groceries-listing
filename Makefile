@@ -35,11 +35,11 @@ dev:
 	@node scripts/dev.mjs
 
 stop-all:
-	@node scripts/compose.mjs --development down
+	@node scripts/dev-compose.mjs down
 
 # Diagnostics and one-off service commands share the development project context.
 hm-compose:
-	@node scripts/compose.mjs --development $(args)
+	@node scripts/dev-compose.mjs $(args)
 
 # Only the web app, on this computer, talking to the backend at
 # VITE_API_BASE_URL (for example a home server behind a Cloudflare Tunnel).

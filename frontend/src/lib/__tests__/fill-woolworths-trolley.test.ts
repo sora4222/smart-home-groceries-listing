@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deliveryInfo, liveDays } from "#/lib/__tests__/woolworths-fixtures";
-import { FILL_PROGRESS_GLOBAL } from "#/lib/store-tab/bookmarklet";
+import {
+	bookmarklet,
+	desktopProgram,
+	FILL_PROGRESS_GLOBAL,
+} from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
@@ -214,7 +218,7 @@ describe("the Woolworths bookmarklet", () => {
 		vi.stubGlobal("alert", alert);
 		const calls = fakeNetwork();
 		try {
-			new Function(WOOLWORTHS_TAB.buildProgram(config))();
+			new Function(desktopProgram(WOOLWORTHS_TAB, config))();
 			await vi.waitFor(() =>
 				expect(window).toHaveProperty(
 					`${FILL_PROGRESS_GLOBAL}.state`,
@@ -243,7 +247,7 @@ describe("the Woolworths bookmarklet", () => {
 		fakeNetwork();
 		vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
 
-		const href = WOOLWORTHS_TAB.buildBookmarklet(config);
+		const href = bookmarklet(WOOLWORTHS_TAB, config);
 		new Function(decodeURIComponent(href.slice(11)))();
 
 		await vi.waitFor(() =>
@@ -263,7 +267,7 @@ describe("the Woolworths bookmarklet", () => {
 		const confirm = vi.fn().mockReturnValue(false);
 		vi.stubGlobal("confirm", confirm);
 
-		const href = WOOLWORTHS_TAB.buildBookmarklet({
+		const href = bookmarklet(WOOLWORTHS_TAB, {
 			...config,
 			apiBaseUrl: "https://grocery.test/",
 		});

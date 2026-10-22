@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { useFillTrolleyConfig } from "#/hooks/useFillTrolleyConfig";
 import { isHandoffFinished } from "#/lib/api";
 import { desktop, type StoreAbilities } from "#/lib/desktop/commands";
+import { desktopProgram } from "#/lib/store-tab/bookmarklet";
 
 /**
  * The desktop app's steps: no bookmark. Log in once in the app's Woolworths
@@ -38,7 +39,7 @@ export function DesktopSteps({ abilities }: { abilities: StoreAbilities }) {
 		await run(async () => {
 			const result = await desktop.fillTrolley(
 				tab.store,
-				tab.buildProgram(config),
+				desktopProgram(tab, config),
 			);
 			setReport(result.message);
 		});

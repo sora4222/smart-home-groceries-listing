@@ -9,10 +9,15 @@
  * already (`/api/trolley-handoffs`, `/api/store-tab/*`).
  *
  * Adding a store: write its self-contained fill script, describe it as a
- * `StoreTab`, and list it in `store-tabs.ts`.
+ * `StoreTab`, and list it in `store-tabs.ts`. `bookmarklet.ts` builds both
+ * programs from that data.
  */
 import type { StoreId } from "#/lib/api/products";
 import type { DeliveryReport } from "#/lib/store-tab/reserve-woolworths-delivery-window";
+
+/** A self-contained function: the fill program carries its source text. */
+// biome-ignore lint/suspicious/noExplicitAny: any script and helper shape is carried as text.
+export type SelfContained = (...args: any[]) => unknown;
 
 /** What every store's bookmarklet is built with. */
 export interface FillTrolleyConfig {
@@ -50,8 +55,8 @@ export interface StoreTab {
 	bookmarkName: string;
 	/** Whether the bookmark reserves a delivery time itself. */
 	reservesDelivery: boolean;
-	/** The program for the desktop store window, without browser dialogs. */
-	buildProgram: (config: FillTrolleyConfig) => string;
-	/** The bookmarklet's `javascript:` address. */
-	buildBookmarklet: (config: FillTrolleyConfig) => string;
+	/** The self-contained fill script, called as `fill(settings, helpers)`. */
+	fill: SelfContained;
+	/** Self-contained helpers handed to `fill`, by name. */
+	helpers: Record<string, SelfContained>;
 }

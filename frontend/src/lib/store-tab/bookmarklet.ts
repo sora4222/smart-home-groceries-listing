@@ -10,11 +10,7 @@
  * stops there and never places the order. Rebuild it (drag it
  * again) if the backend URL or `STORE_TAB_SECRET` changes.
  */
-import type { FillTrolleyConfig } from "#/lib/store-tab/store-tab";
-
-/** A self-contained function: the bookmarklet carries its source text. */
-// biome-ignore lint/suspicious/noExplicitAny: any script and helper shape is carried as text.
-type SelfContained = (...args: any[]) => unknown;
+import type { FillTrolleyConfig, StoreTab } from "#/lib/store-tab/store-tab";
 
 /**
  * Where the desktop program keeps its progress on the store page:
@@ -24,22 +20,28 @@ type SelfContained = (...args: any[]) => unknown;
  */
 export const FILL_PROGRESS_GLOBAL = "__groceryFill";
 
+const PROGRESS = `window.${FILL_PROGRESS_GLOBAL}`;
+
+/** Keeps the result in {@link FILL_PROGRESS_GLOBAL}; no checkout, no dialog. */
+const REPORT_PROGRESS =
+	`.then(function(r){${PROGRESS}={state:'completed',message:String(r.message)}},` +
+	`function(e){${PROGRESS}={state:'failed',message:'Fill trolley failed: '+(e&&e.message||e)}});void 0`;
+
+/** Shows the result, or asks the checkout question when one is offered. */
+const SHOW_RESULT =
+	".then(function(r){if(!r.checkout){alert(r.message);return}" +
+	"if(confirm(r.message+'\\n\\n'+r.checkout.question))location.assign(r.checkout.path)}," +
+	"function(e){alert('Fill trolley failed: '+e.message)});void 0";
+
+/** What a fill program is built from. */
+type FillSource = Pick<StoreTab, "fill" | "helpers">;
+
 /**
- * Builds the program shared by bookmarks and the desktop store window.
- * `report` keeps the progress in {@link FILL_PROGRESS_GLOBAL} without opening
- * checkout or showing a dialog.
- *
- * The fill function is called as `fill(settings, helpers)`.
- *
- * Each helper is self-contained too. They are handed in as an argument, so a
- * minifier renaming them cannot break the link.
+ * Calls the store's fill as `fill(settings, helpers)`. Each helper is
+ * self-contained too. They are handed in as an argument, so a minifier
+ * renaming them cannot break the program.
  */
-export function buildFillProgram(
-	fill: SelfContained,
-	config: FillTrolleyConfig,
-	helpers: Record<string, SelfContained> = {},
-	finish: "alert" | "report" = "alert",
-): string {
+function fillCall({ fill, helpers }: FillSource, config: FillTrolleyConfig) {
 	const settings = JSON.stringify({
 		apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ""),
 		secret: config.secret,
@@ -47,25 +49,23 @@ export function buildFillProgram(
 	const helperSource = `{${Object.entries(helpers)
 		.map(([name, helper]) => `${name}:${helper.toString()}`)
 		.join(",")}}`;
-	const progress = `window.${FILL_PROGRESS_GLOBAL}`;
-	const start = finish === "report" ? `${progress}={state:'running'};` : "";
-	const report =
-		finish === "report"
-			? `.then(function(r){${progress}={state:'completed',message:String(r.message)}},` +
-				`function(e){${progress}={state:'failed',message:'Fill trolley failed: '+(e&&e.message||e)}});void 0`
-			: ".then(function(r){if(!r.checkout){alert(r.message);return}" +
-				"if(confirm(r.message+'\\n\\n'+r.checkout.question))location.assign(r.checkout.path)}," +
-				"function(e){alert('Fill trolley failed: '+e.message)});void 0";
-	return `${start}(${fill.toString()})(${settings},${helperSource})${report}`;
+	return `(${fill.toString()})(${settings},${helperSource})`;
 }
 
-/** The browser bookmark retains its checkout confirmation dialog. */
-export function buildBookmarklet(
-	fill: SelfContained,
+/** The program for the desktop store window: progress only, no dialogs. */
+export function desktopProgram(
+	tab: FillSource,
 	config: FillTrolleyConfig,
-	helpers: Record<string, SelfContained> = {},
 ): string {
-	return `javascript:${encodeURIComponent(buildFillProgram(fill, config, helpers))}`;
+	return `${PROGRESS}={state:'running'};${fillCall(tab, config)}${REPORT_PROGRESS}`;
+}
+
+/** The browser bookmark's `javascript:` address, with its checkout question. */
+export function bookmarklet(
+	tab: FillSource,
+	config: FillTrolleyConfig,
+): string {
+	return `javascript:${encodeURIComponent(fillCall(tab, config) + SHOW_RESULT)}`;
 }
 
 /** The absolute backend URL a script on another website must call. */

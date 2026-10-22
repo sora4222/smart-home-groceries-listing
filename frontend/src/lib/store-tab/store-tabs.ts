@@ -5,10 +5,6 @@
  * picks a store by its id and nothing else.
  */
 import type { StoreId } from "#/lib/api/products";
-import {
-	buildBookmarklet,
-	buildFillProgram,
-} from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillColesTrolley } from "#/lib/store-tab/fill-coles-trolley";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
@@ -22,21 +18,11 @@ export const WOOLWORTHS_TAB: StoreTab = {
 	trolleyUrl: "https://www.woolworths.com.au/shop/mytrolley",
 	bookmarkName: "Fill Woolworths trolley",
 	reservesDelivery: true,
-	buildProgram: (config) =>
-		buildFillProgram(
-			fillWoolworthsTrolley,
-			config,
-			{
-				chooseWindow: chooseWoolworthsWindow,
-				reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
-			},
-			"report",
-		),
-	buildBookmarklet: (config) =>
-		buildBookmarklet(fillWoolworthsTrolley, config, {
-			chooseWindow: chooseWoolworthsWindow,
-			reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
-		}),
+	fill: fillWoolworthsTrolley,
+	helpers: {
+		chooseWindow: chooseWoolworthsWindow,
+		reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
+	},
 };
 
 /** Coles: fills the trolley; the delivery time is picked on Coles. */
@@ -46,9 +32,8 @@ export const COLES_TAB: StoreTab = {
 	trolleyUrl: "https://www.coles.com.au/",
 	bookmarkName: "Fill Coles trolley",
 	reservesDelivery: false,
-	buildProgram: (config) =>
-		buildFillProgram(fillColesTrolley, config, {}, "report"),
-	buildBookmarklet: (config) => buildBookmarklet(fillColesTrolley, config),
+	fill: fillColesTrolley,
+	helpers: {},
 };
 
 /** Each store's trolley handoff, by store id. */

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-	buildFillProgram,
+	desktopProgram,
 	FILL_PROGRESS_GLOBAL,
 } from "#/lib/store-tab/bookmarklet";
 
@@ -11,7 +11,7 @@ const progress = () => page[FILL_PROGRESS_GLOBAL];
 
 /** Runs a desktop program as the store window does: as page script. */
 function runProgram(fill: (...args: unknown[]) => unknown) {
-	new Function(buildFillProgram(fill, config, {}, "report"))();
+	new Function(desktopProgram({ fill, helpers: {} }, config))();
 }
 
 describe("the desktop fill program", () => {

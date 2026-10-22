@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useFillTrolleyConfig } from "#/hooks/useFillTrolleyConfig";
+import { bookmarklet } from "#/lib/store-tab/bookmarklet";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 
 /**
@@ -13,7 +14,7 @@ import type { StoreTab } from "#/lib/store-tab/store-tab";
 export function FillTrolleyBookmark({ tab }: { tab: StoreTab }) {
 	const link = useRef<HTMLAnchorElement>(null);
 	const { config, failed } = useFillTrolleyConfig();
-	const href = config ? tab.buildBookmarklet(config) : null;
+	const href = config ? bookmarklet(tab, config) : null;
 
 	useEffect(() => {
 		if (href) link.current?.setAttribute("href", href);

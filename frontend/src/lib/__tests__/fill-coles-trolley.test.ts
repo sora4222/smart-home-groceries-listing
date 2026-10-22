@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { bookmarklet } from "#/lib/store-tab/bookmarklet";
 import { fillColesTrolley } from "#/lib/store-tab/fill-coles-trolley";
 import { COLES_TAB } from "#/lib/store-tab/store-tabs";
 
@@ -327,7 +328,7 @@ describe("the Coles bookmarklet", () => {
 		const confirm = vi.fn().mockReturnValue(false);
 		vi.stubGlobal("confirm", confirm);
 
-		const href = COLES_TAB.buildBookmarklet({
+		const href = bookmarklet(COLES_TAB, {
 			...config,
 			apiBaseUrl: "https://grocery.test/",
 		});

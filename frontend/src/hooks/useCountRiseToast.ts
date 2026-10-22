@@ -4,8 +4,8 @@ import { type CountEventType, connect, subscribe } from "#/lib/ws";
 
 /**
  * Calls `onRise` when a pushed count of `eventType` goes up — a new item, not
- * a decision that lowered it. The first event only sets the baseline, so
- * opening the app never toasts for items that were already waiting.
+ * a decision that lowered it. Connection snapshots silently reset the baseline.
+ * Without a snapshot, the first count is a baseline for older servers.
  */
 export function useCountRiseToast(
 	eventType: CountEventType,
@@ -18,6 +18,10 @@ export function useCountRiseToast(
 	useEffect(() => {
 		connect();
 		return subscribe((event) => {
+			if (event.type === "counts_snapshot") {
+				previousCount.current = event.counts[eventType];
+				return;
+			}
 			if (event.type !== eventType) return;
 			if (
 				previousCount.current !== null &&

@@ -92,6 +92,11 @@ when exports supply every key; only absent default discovery is optional.
 
 ## Desktop
 
+Count notification tests must start from a connection snapshot, then exercise
+the first pending and held increases. Cover silent reconnect baselines and a
+late HTTP response after a socket count. Backend socket tests verify snapshots
+on both initial connection and reconnection over a real isolated test server.
+
 `make test-desktop` uses the shared Cargo result adapter without a database or
 application secrets. `scripts/desktop.test.sh` checks worktree identity and the
 launcher environment boundary. Keep frontend coverage for the native trolley

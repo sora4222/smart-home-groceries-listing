@@ -61,6 +61,12 @@ Outside the desktop app nothing changes.
 | New item / held item | in-page toast | toast **and** a desktop notification |
 | Trolley filled | sheet shows the result | sheet shows it **and** a desktop notification |
 
+Every WebSocket connection starts with a `counts_snapshot` for pending and held
+items. Both toast and desktop listeners use it as a silent baseline, including
+after reconnects, so the first subsequent increase produces a notice. Existing
+items on connection never produce notices. Nav badges also use the snapshot;
+a delayed initial HTTP response cannot overwrite a pushed count.
+
 ## How it works
 1. The main window (`main`) loads the server address saved in
    `settings.json` in the app's config folder. With none saved it shows the

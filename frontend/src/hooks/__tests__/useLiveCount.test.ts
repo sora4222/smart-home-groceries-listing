@@ -41,4 +41,25 @@ describe("useLiveCount", () => {
 		await Promise.resolve();
 		expect(result.current).toBe(0);
 	});
+
+	it("uses connection snapshots and never overwrites them with a late HTTP load", async () => {
+		let resolveLoad!: (count: number) => void;
+		const load = () =>
+			new Promise<number>((resolve) => {
+				resolveLoad = resolve;
+			});
+		const { result } = renderHook(() => useLiveCount("triage_held", load));
+		push({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 4, triage_held: 2 },
+		});
+		expect(result.current).toBe(2);
+		await act(async () => resolveLoad(8));
+		expect(result.current).toBe(2);
+		push({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 0, triage_held: 1 },
+		});
+		expect(result.current).toBe(1);
+	});
 });

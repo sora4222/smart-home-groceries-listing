@@ -17,9 +17,10 @@ export function useLiveCount(
 
 	useEffect(() => {
 		let cancelled = false;
+		let receivedCount = false;
 		load()
 			.then((initial) => {
-				if (!cancelled) setCount(initial);
+				if (!cancelled && !receivedCount) setCount(initial);
 			})
 			.catch(() => {
 				// A nav badge is not worth an error on every page.
@@ -27,7 +28,13 @@ export function useLiveCount(
 
 		connect();
 		const unsubscribe = subscribe((event) => {
-			if (event.type === eventType) setCount(event.count);
+			if (event.type === "counts_snapshot") {
+				receivedCount = true;
+				setCount(event.counts[eventType]);
+			} else if (event.type === eventType) {
+				receivedCount = true;
+				setCount(event.count);
+			}
 		});
 
 		return () => {

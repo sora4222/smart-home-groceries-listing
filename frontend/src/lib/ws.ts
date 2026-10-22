@@ -19,11 +19,20 @@ export interface TriageHeldEvent {
 	count: number;
 }
 
-/** Every event the backend pushes. Each carries a fresh count. */
-export type ServerEvent = VoiceRequestAddedEvent | TriageHeldEvent;
+/** Live changes to a queue count. */
+type CountEvent = VoiceRequestAddedEvent | TriageHeldEvent;
+
+/** Initial counts on each connection, including reconnects. Never a new-item notice. */
+export interface CountsSnapshotEvent {
+	type: "counts_snapshot";
+	counts: Record<CountEventType, number>;
+}
+
+/** Every event the backend pushes, including connection baselines. */
+export type ServerEvent = CountEvent | CountsSnapshotEvent;
 
 /** The `type` of an event that carries a count. */
-export type CountEventType = ServerEvent["type"];
+export type CountEventType = CountEvent["type"];
 
 type Listener = (event: ServerEvent) => void;
 

@@ -41,11 +41,33 @@ describe("desktop notifications", () => {
 
 	it("notifies when a new item arrives or one is held", () => {
 		renderHook(() => useDesktopNotifications());
-		push({ type: "voice_request_added", count: 0 });
-		push({ type: "triage_held", count: 0 });
+		push({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 0, triage_held: 0 },
+		});
+		expect(notify).not.toHaveBeenCalled();
 		push({ type: "voice_request_added", count: 1 });
 		push({ type: "triage_held", count: 1 });
 
+		expect(notify.mock.calls).toEqual([
+			[NEW_ITEM_NOTICE.title, NEW_ITEM_NOTICE.body],
+			[HELD_ITEM_NOTICE.title, HELD_ITEM_NOTICE.body],
+		]);
+	});
+
+	it("silently resets both baselines on reconnect and notices the next rises", () => {
+		renderHook(() => useDesktopNotifications());
+		push({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 2, triage_held: 3 },
+		});
+		push({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 5, triage_held: 1 },
+		});
+		expect(notify).not.toHaveBeenCalled();
+		push({ type: "voice_request_added", count: 6 });
+		push({ type: "triage_held", count: 2 });
 		expect(notify.mock.calls).toEqual([
 			[NEW_ITEM_NOTICE.title, NEW_ITEM_NOTICE.body],
 			[HELD_ITEM_NOTICE.title, HELD_ITEM_NOTICE.body],

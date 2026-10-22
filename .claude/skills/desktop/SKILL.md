@@ -14,6 +14,9 @@ Record any preserved server-loader overlay alongside the deployed application
 commit so the next installation can retain the same configuration source.
 `desktop/src-tauri/` owns native commands and settings. The frontend owns all
 screens and shared trolley programs. Keep each module responsible for one task.
+Queue notifications use the WebSocket `counts_snapshot` as a silent baseline
+on every connection. Keep pending and held coverage for the first live increase
+and reconnects; an initial HTTP count must not overwrite fresher socket data.
 
 One saved frontend origin wins over the runtime `GROCERY_DESKTOP_SERVER_URL`,
 then the build default. Validate origins before granting commands. Never grant

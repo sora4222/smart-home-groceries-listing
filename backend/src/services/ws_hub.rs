@@ -18,16 +18,26 @@ const CHANNEL_CAPACITY: usize = 64;
 
 /// An event pushed to every open browser session.
 ///
-/// The wire shape is unchanged from the previous implementation, so the web
-/// app's WebSocket client needs no changes.
+/// Live counts retain their original wire shape; snapshots seed new sessions.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerEvent {
+    /// Current counts when a session connects; establishes a silent baseline.
+    CountsSnapshot { counts: QueueCounts },
     /// The pending-request count changed (an item arrived, or one was decided).
     VoiceRequestAdded { count: i64 },
     /// The held-for-review count changed (triage held an item, or a person
     /// moved or rejected one). Drives the Triage nav badge and its toast.
     TriageHeld { count: i64 },
+}
+
+/// Queue counts keyed by the corresponding live event types.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct QueueCounts {
+    /// Items waiting in Pending Requests.
+    pub voice_request_added: i64,
+    /// Items held in Triage for a household decision.
+    pub triage_held: i64,
 }
 
 /// Publishes [`ServerEvent`]s to all subscribed connections.

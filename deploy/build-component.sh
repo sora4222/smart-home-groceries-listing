@@ -17,7 +17,6 @@ case $component in
     install -m 755 "$target/release/grocery-backend" "$stage/grocery-backend"
     ;;
   frontend)
-    [ -f "$root/.env" ] || { echo 'make setup-env before the production frontend build' >&2; exit 1; }
     pnpm --dir "$root/frontend" install --frozen-lockfile --silent
     node "$root/scripts/build-frontend.mjs"
     cp -a "$root/frontend/.output" "$stage/.output"

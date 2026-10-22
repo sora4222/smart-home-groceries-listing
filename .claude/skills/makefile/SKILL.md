@@ -55,3 +55,7 @@ only the public default URL and isolates development application identities by
 worktree. `setup` installs the desktop CLI. `check` and `test` include native
 checks and unit tests. Native tests share `cargo-results.mjs`; no household
 server or database is needed for them.
+
+Native and frontend build subprocesses share `toolchain-environment.mjs` for
+OS/compiler settings. Add component settings explicitly after that allowlist.
+Inherited application credentials must never reach a build subprocess.

@@ -1,5 +1,6 @@
 /** Worktree identity and the desktop toolchain's environment boundary. */
 import { createHash } from 'node:crypto';
+import { toolchainEnvironment } from './toolchain-environment.mjs';
 
 /** Development instances have separate settings, cookies and single-instance locks. */
 export function desktopContext(root, action) {
@@ -9,21 +10,13 @@ export function desktopContext(root, action) {
   return { identifier: `com.sora4222.grocerylist.dev.w${suffix}`, productName: 'Grocery List Dev' };
 }
 
-const TOOLCHAIN_KEYS = new Set([
-  'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'TMP', 'TEMP',
-  'SystemRoot', 'SYSTEMROOT', 'COMSPEC', 'PATHEXT', 'APPDATA', 'LOCALAPPDATA',
-  'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH', 'PROGRAMFILES', 'ProgramFiles',
-  'LANG', 'DISPLAY', 'WAYLAND_DISPLAY', 'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME',
-  'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'DBUS_SESSION_BUS_ADDRESS',
-  'CARGO_HOME', 'CARGO_TARGET_DIR', 'CARGO_BUILD_JOBS', 'RUSTUP_HOME',
-  'RUSTUP_TOOLCHAIN', 'RUSTFLAGS', 'SDKROOT', 'DEVELOPER_DIR', 'MACOSX_DEPLOYMENT_TARGET',
-  'CC', 'CXX', 'AR', 'PKG_CONFIG_PATH', 'GROCERY_DESKTOP_SERVER_URL',
-]);
-
-/** Never pass backend, store or 1Password credentials to Cargo, Tauri or the app. */
+/** Native tools receive the shared toolchain settings and one public URL. */
 export function desktopEnvironment(values) {
-  return Object.fromEntries(Object.entries(values).filter(([key, value]) =>
-    value !== undefined && (TOOLCHAIN_KEYS.has(key) || key.startsWith('LC_'))));
+  const env = toolchainEnvironment(values);
+  if (values.GROCERY_DESKTOP_SERVER_URL !== undefined) {
+    env.GROCERY_DESKTOP_SERVER_URL = values.GROCERY_DESKTOP_SERVER_URL;
+  }
+  return env;
 }
 
 /** Validate the optional public default before it can be embedded in a binary. */

@@ -2,6 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { cancellation, runProcess } from './test-process.mjs';
+import { toolchainEnvironment } from './toolchain-environment.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 try {
@@ -12,10 +13,7 @@ try {
     'sh', `${root}deploy/bin/grocery-env`, 'json', 'frontend',
   ], { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8' });
   if (result.error || result.status !== 0) throw new Error('Cannot resolve production frontend configuration; check sudo and the installed 1Password account');
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith('OP_') || key.startsWith('CLERK_') || key.startsWith('VITE_')) delete env[key];
-  }
+  const env = toolchainEnvironment(process.env);
   let values;
   try { values = JSON.parse(result.stdout); }
   catch { throw new Error('Invalid frontend configuration from resolver'); }

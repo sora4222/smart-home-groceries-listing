@@ -16,7 +16,7 @@ saved origin restarts the app. Only the configured main-window origin may call
 native store commands.
 
 `scripts/desktop.mjs` resolves only the optional public URL and passes the
-`desktopEnvironment` allowlist to Cargo and Tauri. Never forward backend or
+`desktopEnvironment` and shared `toolchainEnvironment` allowlists to Cargo and Tauri. Never forward backend or
 1Password credentials. Development identifiers derive from the real worktree
 path; packaged builds retain the installed identity.
 

@@ -11,7 +11,7 @@ for (const scenario of ['success', 'denied', 'empty-token', 'shared-token', 'bui
     const dir = mkdtempSync(join(tmpdir(), 'grocery-build-auth-'));
     try {
       for (const name of ['scripts', 'deploy/bin', 'frontend', 'path', 'etc']) mkdirSync(join(dir, name), { recursive: true });
-      for (const name of ['build-frontend.mjs', 'environment.mjs', 'service-env.mjs', 'service-components.mjs', 'systemd-env.mjs', 'test-process.mjs']) {
+      for (const name of ['build-frontend.mjs', 'environment.mjs', 'service-env.mjs', 'service-components.mjs', 'systemd-env.mjs', 'test-process.mjs', 'toolchain-environment.mjs']) {
         copyFileSync(`scripts/${name}`, join(dir, 'scripts', name));
       }
       copyFileSync('deploy/bin/grocery-env', join(dir, 'deploy/bin/grocery-env'));
@@ -36,9 +36,9 @@ printf resolved-jwks
 [ "$CLERK_JWKS_URL" = resolved-jwks ] || exit 10
 [ "$VITE_API_BASE_URL" = http://localhost:8000 ] || exit 11
 [ "$GROCERY_ENV_FILE" = /dev/null ] || exit 12
-[ -z "$OP_SERVICE_ACCOUNT_TOKEN$OP_CONNECT_TOKEN$OP_SESSION_fixture$CLERK_SECRET_KEY$VITE_STALE$DATABASE_URL" ] || exit 13
+[ -z "$OP_SERVICE_ACCOUNT_TOKEN$OP_CONNECT_TOKEN$OP_SESSION_fixture$CLERK_SECRET_KEY$VITE_STALE$DATABASE_URL$STORE_TAB_SECRET" ] || exit 13
 printf build-started
-[ "$SCENARIO" != build-failure ]
+[ "${scenario}" != build-failure ]
 `, { mode: 0o700 });
       const result = spawnSync(process.execPath, [join(dir, 'scripts/build-frontend.mjs')], {
         encoding: 'utf8',
@@ -46,7 +46,7 @@ printf build-started
           GROCERY_OP_TOKENS: `${dir}/etc/app.token ${dir}/etc/shared.token`, GROCERY_ETC: `${dir}/etc`,
           GROCERY_PATH: `${dir}/path:/usr/bin:/bin`, SCENARIO: scenario,
           OP_SERVICE_ACCOUNT_TOKEN: 'stale-export', OP_CONNECT_TOKEN: 'stale', OP_SESSION_fixture: 'stale',
-          CLERK_SECRET_KEY: 'stale-secret', VITE_STALE: 'stale' },
+          CLERK_SECRET_KEY: 'stale-secret', VITE_STALE: 'stale', DATABASE_URL: 'stale-database', STORE_TAB_SECRET: 'stale-store' },
       });
       const builds = ['success', 'shared-token', 'build-failure'].includes(scenario);
       assert.equal(result.stdout, builds ? 'build-started' : '', result.stderr);

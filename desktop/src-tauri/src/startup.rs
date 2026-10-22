@@ -13,11 +13,11 @@ pub fn first_page<R: Runtime>(app: &AppHandle<R>) -> MainPage {
     let saved = app
         .path()
         .app_config_dir()
-        .map(|dir| settings::load(&dir))
-        .unwrap_or_default();
+        .ok()
+        .and_then(|dir| settings::load(&dir));
     let runtime = std::env::var("GROCERY_DESKTOP_SERVER_URL").ok();
     match settings::starting_url(
-        &saved,
+        saved,
         runtime.as_deref(),
         option_env!("GROCERY_DESKTOP_SERVER_URL"),
     ) {

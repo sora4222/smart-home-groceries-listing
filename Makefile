@@ -61,10 +61,10 @@ test-tooling:
 	@$(RUN) sh scripts/tooling-tests.sh
 
 test-frontend:
-	@node scripts/test-command.mjs $(HUMAN) vitest frontend pnpm test:run
+	@cd frontend && node ../scripts/command.mjs $(HUMAN) $@ -- pnpm test:run
 
 test-alexa:
-	@node scripts/test-command.mjs $(HUMAN) pytest sidecars/alexa-bridge uv run pytest -q --disable-warnings
+	@cd sidecars/alexa-bridge && node ../../scripts/command.mjs $(HUMAN) $@ -- uv run pytest -q --disable-warnings
 
 test-frontend-playwright:
 	@node scripts/e2e-tests.mjs $(HUMAN)

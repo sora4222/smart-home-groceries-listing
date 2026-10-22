@@ -22,7 +22,8 @@ import {
 	isHandoffFinished,
 	type StoreId,
 } from "#/lib/api";
-import { abilitiesAt } from "#/lib/desktop/commands";
+import { abilitiesAt, type StoreAbilities } from "#/lib/desktop/commands";
+import type { StoreTab } from "#/lib/store-tab/store-tab";
 import { STORE_TABS } from "#/lib/store-tab/store-tabs";
 
 /** Tomorrow (the store's next day), any time. */
@@ -101,12 +102,31 @@ function Trigger() {
 	);
 }
 
+/** One way to fill the trolley: its steps, and what they wait for. */
+interface FillMode {
+	steps: ReactNode;
+	waitingText: string;
+}
+
+/** The app's own store window where it can fill; otherwise the bookmark. */
+function fillMode(tab: StoreTab, abilities: StoreAbilities | null): FillMode {
+	if (abilities?.fill_trolley) {
+		return {
+			steps: <DesktopSteps abilities={abilities} />,
+			waitingText: `Waiting for the ${tab.storeName} window.`,
+		};
+	}
+	return {
+		steps: <BookmarkSteps />,
+		waitingText: `Waiting. On ${tab.storeName}, press the “${tab.bookmarkName}” bookmark.`,
+	};
+}
+
 /** The steps, and the result once the bookmark reports back. */
 function Content() {
 	const { tab, handoff, error } = useSend();
 	const name = tab.storeName;
-	const abilities = abilitiesAt(useDesktop(), tab.store);
-	const inApp = abilities?.fill_trolley === true;
+	const mode = fillMode(tab, abilitiesAt(useDesktop(), tab.store));
 
 	return (
 		<SheetContent className="flex flex-col gap-4 overflow-y-auto p-4">
@@ -117,18 +137,16 @@ function Content() {
 					{name}.
 				</SheetDescription>
 			</SheetHeader>
-			{inApp && abilities ? (
-				<DesktopSteps abilities={abilities} />
-			) : (
-				<BookmarkSteps />
-			)}
+			{mode.steps}
 
 			{error && (
 				<p role="alert" className="text-sm text-destructive">
 					{error}
 				</p>
 			)}
-			{handoff && <HandoffStatus handoff={handoff} inApp={inApp} />}
+			{handoff && (
+				<HandoffStatus handoff={handoff} waitingText={mode.waitingText} />
+			)}
 		</SheetContent>
 	);
 }

@@ -166,6 +166,16 @@ describe("fillWoolworthsTrolley", () => {
 		]);
 	});
 
+	it("offers checkout only when something was added", async () => {
+		fakeNetwork();
+		expect((await fill()).checkout).toEqual({
+			path: "/shop/checkout",
+			question: expect.stringContaining("pay on Woolworths"),
+		});
+		fakeNetwork({ claim: { status: 204 } });
+		expect((await fill()).checkout).toBeNull();
+	});
+
 	it("does nothing when no handoff is waiting", async () => {
 		const calls = fakeNetwork({ claim: { status: 204 } });
 
@@ -194,6 +204,20 @@ describe("fillWoolworthsTrolley", () => {
 });
 
 describe("the Woolworths bookmarklet", () => {
+	it("opens checkout when the person says OK", async () => {
+		const assign = vi.fn();
+		vi.stubGlobal("location", { hostname: "www.woolworths.com.au", assign });
+		fakeNetwork();
+		vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+
+		const href = WOOLWORTHS_TAB.buildBookmarklet(config);
+		new Function(decodeURIComponent(href.slice(11)))();
+
+		await vi.waitFor(() =>
+			expect(assign).toHaveBeenCalledWith("/shop/checkout"),
+		);
+	});
+
 	afterEach(() => {
 		vi.unstubAllGlobals();
 	});
@@ -201,8 +225,10 @@ describe("the Woolworths bookmarklet", () => {
 	it("is a javascript: link that runs on its own and shows the result", async () => {
 		vi.stubGlobal("location", { hostname: "www.woolworths.com.au" });
 		const calls = fakeNetwork();
-		const alert = vi.fn();
-		vi.stubGlobal("alert", alert);
+		// Something was added, so the result comes as the checkout question;
+		// "Cancel" stays on the trolley.
+		const confirm = vi.fn().mockReturnValue(false);
+		vi.stubGlobal("confirm", confirm);
 
 		const href = WOOLWORTHS_TAB.buildBookmarklet({
 			...config,
@@ -215,8 +241,11 @@ describe("the Woolworths bookmarklet", () => {
 		// Run the link's program exactly as a browser would: nothing from this
 		// module is in scope, so it proves the script is self-contained.
 		new Function(decodeURIComponent(program))();
-		await vi.waitFor(() => expect(alert).toHaveBeenCalled());
-		expect(alert.mock.calls[0][0]).toContain("Delivery: 2026-10-03, 4am - 7am");
+		await vi.waitFor(() => expect(confirm).toHaveBeenCalled());
+		expect(confirm.mock.calls[0][0]).toContain(
+			"Delivery: 2026-10-03, 4am - 7am",
+		);
+		expect(confirm.mock.calls[0][0]).toContain("Go to checkout now?");
 		expect(calls.some((c) => c.url === "/apis/ui/Fulfilment")).toBe(true);
 		expect(calls[0].url).toBe(
 			"https://grocery.test/api/store-tab/trolley-handoffs/claim",

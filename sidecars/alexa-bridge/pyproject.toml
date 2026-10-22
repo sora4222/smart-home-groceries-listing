@@ -5,6 +5,7 @@ description = "Verifies Alexa skill requests with Amazon's ask-sdk and forwards 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "python-dotenv>=1.2.1",
     # Amazon's official Alexa Skills Kit SDK. There is no maintained Rust
     # equivalent, which is the whole reason this sidecar exists.
     "ask-sdk-core>=1.19.0",

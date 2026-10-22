@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { productFixture } from "#/components/products/__tests__/fixtures";
@@ -79,5 +79,26 @@ describe("ProductRow", () => {
 		});
 		expect(link).toHaveAttribute("target", "_blank");
 		expect(link).toHaveAttribute("rel", "noreferrer noopener");
+	});
+
+	it("shows the product's picture", () => {
+		const row = renderRow(productFixture());
+
+		expect(
+			within(row).getByRole("img", { name: "Coles Full Cream Milk" }),
+		).toHaveAttribute(
+			"src",
+			"https://productimages.coles.com.au/productimages/8/8150288.jpg",
+		);
+	});
+
+	it("shows a placeholder for a product without a picture", () => {
+		const row = renderRow(productFixture({ image_url: null }));
+
+		expect(
+			within(row).getByRole("img", {
+				name: "No picture of Coles Full Cream Milk",
+			}),
+		).toBeInTheDocument();
 	});
 });

@@ -1,11 +1,12 @@
 import { PriceChangeBadge } from "#/components/order/price-change-badge";
+import { ProductImage } from "#/components/products/product-image";
 import { Badge } from "#/components/ui/badge";
 import type { OrderLine } from "#/lib/api";
 import { formatMoney } from "#/lib/money";
 
 /**
  * One item of the order: the list item and its quantity, the product chosen
- * for it (linked to the store's page), and what it costs today.
+ * for it (its picture, linked to the store's page), and what it costs today.
  *
  * A line that cannot be bought as it is shows "No price" and the reason, so
  * the household knows to choose again on the list.
@@ -20,22 +21,25 @@ export function OrderLineRow({ line }: { line: OrderLine }) {
 			className="flex flex-col gap-1 border-b border-border py-2 last:border-b-0"
 		>
 			<div className="flex items-start justify-between gap-3">
-				<div className="flex min-w-0 flex-col">
-					<span className="text-sm font-medium">
-						{line.item_name}{" "}
-						<span className="text-muted-foreground">× {line.quantity}</span>
-					</span>
-					<span className="text-xs text-muted-foreground">
-						<a
-							href={line.url}
-							target="_blank"
-							rel="noreferrer"
-							className="underline-offset-4 hover:underline"
-						>
-							{product}
-						</a>
-						{line.package_size && ` · ${line.package_size}`}
-					</span>
+				<div className="flex min-w-0 items-start gap-2">
+					<ProductImage src={line.image_url} name={product} size="sm" />
+					<div className="flex min-w-0 flex-col">
+						<span className="text-sm font-medium">
+							{line.item_name}{" "}
+							<span className="text-muted-foreground">× {line.quantity}</span>
+						</span>
+						<span className="text-xs text-muted-foreground">
+							<a
+								href={line.url}
+								target="_blank"
+								rel="noreferrer"
+								className="underline-offset-4 hover:underline"
+							>
+								{product}
+							</a>
+							{line.package_size && ` · ${line.package_size}`}
+						</span>
+					</div>
 				</div>
 				<div className="flex shrink-0 flex-col items-end">
 					<span className="text-sm font-medium">

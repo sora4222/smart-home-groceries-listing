@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { selectionFixture } from "#/components/selections/__tests__/fixtures";
@@ -42,12 +42,57 @@ describe("ChosenProduct", () => {
 			screen.getByRole("button", { name: "Clear the chosen product for milk" }),
 		);
 
-		expect(onClear).toHaveBeenCalledOnce();
+		expect(onClear).toHaveBeenCalledWith("coles");
+	});
+
+	it("shows the item's product at the other store beside the one to buy", async () => {
+		const onClear = vi.fn().mockResolvedValue(undefined);
+		const atWoolworths = selectionFixture({
+			store: "woolworths",
+			store_name: "Woolworths",
+			product_id: "w-milk-2l",
+			brand: "Woolworths",
+			package_size: "2L",
+			price: "3.10",
+		});
+		render(
+			<ChosenProduct
+				itemName="milk"
+				selection={selectionFixture({ also_chosen: [atWoolworths] })}
+				onClear={onClear}
+			/>,
+		);
+
+		const other = screen.getByLabelText("Also chosen at Woolworths for milk");
+		expect(other).toHaveTextContent("Also at Woolworths");
+		expect(other).toHaveTextContent("Woolworths Full Cream Milk");
+		expect(other).toHaveTextContent("$3.10 each");
+
+		await userEvent.click(
+			screen.getByRole("button", {
+				name: "Clear the Woolworths product for milk",
+			}),
+		);
+		expect(onClear).toHaveBeenCalledWith("woolworths");
 	});
 
 	it("offers no clear button when clearing is not allowed", () => {
 		render(<ChosenProduct itemName="milk" selection={selectionFixture()} />);
 
 		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+	});
+
+	it("shows the chosen product's picture", () => {
+		render(<ChosenProduct itemName="milk" selection={selectionFixture()} />);
+
+		expect(
+			within(screen.getByLabelText("Chosen product for milk")).getByRole(
+				"img",
+				{ name: "Coles Full Cream Milk" },
+			),
+		).toHaveAttribute(
+			"src",
+			"https://productimages.coles.com.au/productimages/8/8150288.jpg",
+		);
 	});
 });

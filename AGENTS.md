@@ -6,7 +6,8 @@ machine for concurrent multi-agent development.
 ## Purpose
 Self-hosted household grocery manager. Spoken item → web confirmation →
 Woolworths/Coles purchase at lowest total cost (items + delivery). Unix home
-server, Docker Compose, Cloudflare Tunnel.
+server: systemd services in production (`docs/production.md`), Docker Compose
+for development, Cloudflare Tunnel.
 
 Full feature specs: `docs/features/FEATURE_*.md` — short feature
 specifications that agents read and write to stop regression.
@@ -25,8 +26,7 @@ intent or scope is ambiguous. Do not assume on non-trivial changes.
 | Auth | Clerk → `backend/src/auth/mod.rs` (swap provider here only) |
 | Automation | `chromiumoxide` (CDP) · `wreq` (TLS fingerprint emulation) |
 | Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python in the repo |
-| Desktop | `desktop/` — Tauri 2 (Rust); loads the server's web app, owns the store windows |
-| Infra | Docker Compose · Cloudflare Tunnel |
+| Infra | Production: systemd units in `deploy/` (no Docker) · Dev: Docker Compose · Cloudflare Tunnel |
 
 **The backend is Rust. There is no Python in it.** The single Python process
 is the Alexa bridge sidecar, isolated in `sidecars/alexa-bridge`, which
@@ -50,10 +50,6 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   ├── migrations/          # sqlx migrations, embedded in the binary
 │   ├── tests/               # Integration tests over the real router
 │   └── AGENTS.md            # Backend-specific rules
-├── desktop/                 # Tauri 2 app for Mac/Windows — shows the server's
-│   │                        # web app, does the store steps (skills/desktop.md)
-│   ├── src-tauri/           # Rust: commands, store windows, tray, settings
-│   └── setup/               # First-run page (server address)
 ├── sidecars/
 │   └── alexa-bridge/        # Python ask-sdk bridge — AGENTS.md of its own
 ├── skills/                  # Agent reference files ← read before acting
@@ -61,6 +57,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   ├── features/            # FEATURE_*.md specs
 │   ├── human-setup.md       # One-time manual provisioning (developer audience)
 │   └── using-the-app.md     # Recurring manual workflows (developer audience)
+├── deploy/                # Production: build/install scripts, systemd units
 ├── Makefile
 ├── docker-compose.yml
 ├── .env.example
@@ -70,14 +67,18 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ## Make targets
 | Target | Action |
 |---|---|
-| `make up` | Start all services; adapt the port for multi-agent development |
-| `make down` | Stop all |
+| `make dev` | Start the complete watched stack with worktree-specific ports |
+| `make hm-dev-frontend` | Only the web app, against the backend at `VITE_API_BASE_URL` |
+| `make stop-all` | Remove this worktree's development containers; retain volumes |
 | `make test` | All tests (compact output) |
-| `make migrate` | Apply pending `sqlx` migrations |
+| `make update-db` | Apply pending `sqlx` migrations |
 | `make migration-new name="desc"` | Create a new migration file |
-| `make lint` | `cargo clippy` + `cargo fmt --check` + `ruff` + `biome` |
-| `make lint-fix` | Apply what can be fixed automatically |
-| `make hm-up` | Human-readable startup with logs |
+| `make check` | Formatting, lint, type checks and file-length gate |
+| `make hm-fix` | Apply what can be fixed automatically |
+| `make hm-dev` | Full-stack development with streamed logs |
+| `make build` | Production build into `build/production` (no Docker) |
+| `sudo make hm-install-server` | Install `build/production` as systemd services |
+| `make hm-update-server` | Pull the current branch, build, check migrations, back up the DB, install |
 | `make hm-test` | Human-readable test output |
 
 ## Rules (non-negotiable)
@@ -142,17 +143,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
   never retry a refused store request in a loop. `STORE_CLIENTS=fake` for
   development and tests.
 - **Checkout:** automated to the payment page only. Never stores or enters
-  card details. Planned (desktop app, `FEATURE_DESKTOP_APP.md` goal 8): place
-  the order with the card already saved on the store account, **only after
-  the person taps Place order** — never by itself.
-- **Desktop app:** `desktop/` runs on the household's Mac or Windows
-  computer and only talks to the server and the stores. It shows the
-  server's web app (no second copy of the screens); the web app shows desktop
-  steps when `lib/desktop/` finds the app. Voice intake and PostgreSQL stay
-  on the server. The server origin may call only the app's own commands
-  (`server_access.rs`); the fill program runs only on the store's own
-  trolley page. Store logins live in the webview's cookies — never read or
-  stored by the app.
+  card details.
 - **Credentials:** AES-256-GCM encrypted in PostgreSQL
   (`backend/src/services/encryption.rs`). Key in an env var. Never logged,
   never sent to the frontend.
@@ -178,3 +169,8 @@ credentials, and contain no rules about the grocery list.
 
 Google Tasks needs no sidecar — it is a plain OAuth REST API and belongs in
 Rust.
+
+## Code Review Rules
+
+Use the thermo-nuclear-code-review skill when performing a code review.
+Always give simple to understand language.

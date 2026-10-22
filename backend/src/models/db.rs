@@ -135,8 +135,9 @@ pub struct ItemRule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// The one product chosen for a list item, as the store described it when it
-/// was chosen. The order screen reads these to know what to buy.
+/// A product chosen for a list item at one store, as the store described it
+/// when it was chosen. An item keeps at most one choice per store; the one
+/// marked `for_order` is what the order buys.
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ItemSelection {
     pub id: Uuid,
@@ -157,9 +158,13 @@ pub struct ItemSelection {
     /// The item's quantity when the product was chosen.
     pub priced_quantity: i32,
     pub url: String,
+    /// The product's picture when it was chosen.
+    pub image_url: Option<String>,
     /// The household member who chose it.
     pub selected_by: String,
     pub selected_at: DateTime<Utc>,
+    /// This is the item's choice the order buys (one per item).
+    pub for_order: bool,
 }
 
 // Trolley handoff, dislike and Google Tasks rows live in their own files;

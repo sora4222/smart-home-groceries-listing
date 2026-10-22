@@ -163,9 +163,10 @@ The table is still called `voice_requests` to limit churn; the concept is an
   skipped (Clerk JWT). Held and rejected ones are on `/api/triage`.
 - `POST /api/voice-requests/{id}/accept` — body optionally overrides
   `{"name", "quantity"}` (the user corrected a misheard item); an absent or
-  empty body means "accept as heard". Query `?merge=true` folds the quantity
-  into an existing active item with the same normalised name instead of
-  creating a duplicate row. Accepting is allowed from `pending` **or
+  empty body means "accept as heard". Query `?on_duplicate=ask|merge|separate`
+  (default `ask`) decides what happens when an active item has the same
+  normalised name: `merge` folds the quantity into it, `separate` adds a second
+  row. `?merge=true` is the older spelling of `on_duplicate=merge`. Accepting is allowed from `pending` **or
   `rejected`** (the undo path below) but not from an already-`accepted`
   request (`409`). An unknown id is `404`.
 - `POST /api/voice-requests/{id}/reject` — marks rejected; only from
@@ -175,14 +176,21 @@ The table is still called `voice_requests` to limit churn; the concept is an
 `services::grocery::repository::lock_active_duplicate` compares normalised
 names (lowercased,
 whitespace-collapsed) against active `grocery_items`, using the expression
-index `ix_grocery_items_normalised_name`. If a match exists and the caller did
-not pass `merge=true`, accept returns `409` with a `DuplicateItemWarning` in
-the `detail` field so the frontend can ask "add another or update the existing
-quantity?" per the spec. The transaction is rolled back, so the request stays
-pending and the user still gets to choose.
+index `ix_grocery_items_normalised_name`. If a match exists and the caller
+asked (`on_duplicate=ask`, the default), accept returns `409` with a
+`DuplicateItemWarning` in the `detail` field so the frontend can ask "add
+another or update the existing quantity?" per the spec. The transaction is
+rolled back, so the request stays pending and the user still gets to choose.
 
-`merge=true` adds to the existing quantity, capped at 999 to stay inside the
-column's `CHECK` constraint.
+`merge` adds to the existing quantity, capped at 999 to stay inside the
+column's `CHECK` constraint. `separate` keeps both rows.
+
+The Pending Requests page (`frontend/src/routes/pending.tsx`) answers that 409
+with the same `DuplicatePrompt` the add form uses, shown under the card:
+"Update the quantity" retries with `merge`, "Add a separate entry" with
+`separate`, and Cancel leaves the request pending. Any other failed accept
+gets a toast from `lib/accept-failure.ts` that names the cause; a plain `409`
+(already accepted elsewhere) or `404` also drops the stale card.
 
 ### Item rules
 An accepted request that becomes a new list entry gets the chips of every item
@@ -232,15 +240,13 @@ appears in `GET /api/voice-requests` (it only returns `pending`).
 All routes except the two intake endpoints require a Clerk JWT, verified
 against Clerk's JWKS (`backend/src/auth/clerk.rs`). The signing algorithm is
 taken from the JWK, never from the token's own header, so a token claiming a
-different algorithm cannot be verified against the RSA public key. Clerk is
-not yet wired into the frontend — see `frontend/src/lib/auth.ts`'s TODO. For
-local development set `DEV_AUTH_BYPASS=true`; the backend logs a warning at
+different algorithm cannot be verified against the RSA public key. The web
+app signs people in with Clerk — see `FEATURE_AUTH.md`. For local development
+and the e2e tests set `DEV_AUTH_BYPASS=true`; the backend logs a warning at
 startup, and it must never be enabled on a deployment reachable through the
 Cloudflare Tunnel.
 
 ## Known gaps / next steps
-- Frontend Clerk provider + `getAuthToken()` wiring (auth section of the
-  spec, not part of this goal).
 - LLM triage is built — see `FEATURE_TRIAGE.md`.
 - **Google Tasks is built** — see `FEATURE_GOOGLE_TASKS.md`. **Google Keep is
   paused** (Jesse, 2026-10-02); it would need a Python sidecar (`gkeepapi` is

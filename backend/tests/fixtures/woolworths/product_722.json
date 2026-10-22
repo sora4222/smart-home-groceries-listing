@@ -1,0 +1,53 @@
+{
+  "Product": {
+    "Stockcode": 722,
+    "Barcode": "9361949000355",
+    "CupPrice": 0.28,
+    "CupMeasure": "100 sheets",
+    "CupString": "$0.28 / 100 sheets",
+    "HasCupPrice": true,
+    "Price": 12,
+    "Name": "Kleenex Complete Clean Double Length Toilet Paper",
+    "DisplayName": "Kleenex Complete Clean Double Length Toilet Paper 12 pack",
+    "UrlFriendlyName": "kleenex-complete-clean-double-length-toilet-paper",
+    "IsOnSpecial": true,
+    "IsHalfPrice": false,
+    "WasPrice": 13.5,
+    "SavingsAmount": 1.5,
+    "Unit": "Each",
+    "PackageSize": "12 pack",
+    "IsInStock": true,
+    "CentreTag": {
+      "TagContent": null,
+      "TagLink": null,
+      "FallbackText": null,
+      "TagType": "None",
+      "MultibuyData": null,
+      "MemberPriceData": null,
+      "FFPVMemberPriceData": null,
+      "TagContentText": null,
+      "DualImageTagContent": null,
+      "PromotionType": "NOT_SET",
+      "IsRegisteredRewardCardPromotion": false
+    },
+    "IsAvailable": true,
+    "IsPurchasable": true,
+    "Brand": "Kleenex",
+    "AdditionalAttributes": {
+      "sapdepartmentname": "GROCERIES",
+      "sapcategoryname": "PAPERGOODS",
+      "piescategorynamesjson": "[\"Shower, Bath & Body\",\"Toilet Paper, Tissues & Paper Towels\"]"
+    },
+    "IsSponsoredAd": false,
+    "AdID": null
+  },
+  "PrimaryCategory": {
+    "Department": "toiletries",
+    "Aisle": "toilet paper",
+    "VisualShoppingAisleId": 7,
+    "DisplayOrder": 0,
+    "OverrideName": null,
+    "Instance": "Alpha"
+  },
+  "IsTobacco": false
+}

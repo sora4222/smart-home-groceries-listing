@@ -11,6 +11,7 @@
 
 #![allow(dead_code)]
 
+pub mod clerk;
 pub mod google_tasks;
 pub mod purchases;
 pub mod settings;
@@ -47,21 +48,6 @@ pub struct TestApp {
 }
 
 impl TestApp {
-    /// Builds the real application with Clerk verification left switched on,
-    /// so a request with no credential is answered the way a browser without a
-    /// session would be.
-    pub fn with_auth(pool: PgPool) -> Self {
-        Self {
-            router: build_app(
-                pool,
-                Settings {
-                    dev_auth_bypass: false,
-                    ..test_settings()
-                },
-            ),
-        }
-    }
-
     /// Builds the real application with triage switched on, as `triage` says.
     pub fn with_triage(pool: PgPool, triage: TriageSettings) -> Self {
         Self {

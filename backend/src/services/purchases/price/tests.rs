@@ -48,8 +48,10 @@ fn choice(item: &GroceryItem, product_id: &str, total: Decimal, priced: i32) -> 
         total_price: Some(total),
         priced_quantity: priced,
         url: String::new(),
+        image_url: None,
         selected_by: "user".into(),
         selected_at: chrono::Utc::now(),
+        for_order: true,
     }
 }
 

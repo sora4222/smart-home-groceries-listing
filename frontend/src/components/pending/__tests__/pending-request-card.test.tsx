@@ -54,4 +54,24 @@ describe("PendingRequestCard", () => {
 		expect(screen.getByRole("button", { name: /accept/i })).toBeInTheDocument();
 		expect(screen.getByText("Rejected")).toBeInTheDocument();
 	});
+
+	it("reports an edit to the name or quantity", async () => {
+		const user = userEvent.setup();
+		const onEdit = vi.fn();
+		render(
+			<PendingRequestCard
+				request={request}
+				dulled={false}
+				onAccept={vi.fn()}
+				onReject={vi.fn()}
+				onEdit={onEdit}
+			/>,
+		);
+
+		await user.type(screen.getByLabelText("Item name"), "s");
+		await user.type(screen.getByLabelText("Qty"), "3");
+
+		expect(onEdit).toHaveBeenCalledTimes(2);
+		expect(onEdit).toHaveBeenCalledWith(request.id);
+	});
 });

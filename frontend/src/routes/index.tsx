@@ -52,7 +52,7 @@ interface HeldAddition {
 function GroceryListPage() {
 	const { items, selections } = Route.useLoaderData();
 	const router = useRouter();
-	const choices = useProductChoices();
+	const choices = useProductChoices(selections);
 	const [held, setHeld] = useState<HeldAddition | null>(null);
 
 	const underReview = items.filter((item) => item.status === "active");

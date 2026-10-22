@@ -1,6 +1,11 @@
 services:
+  # Development database. Startup enables `db` when DATABASE_URL names db.
+  # A server with its own PostgreSQL drops `db` from the
+  # profiles and points DATABASE_URL at host.docker.internal:5432 instead —
+  # docs/human-setup.md, "Optional: PostgreSQL installed on the server".
   db:
     image: postgres:16
+    profiles: ["db"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-grocery}
       POSTGRES_USER: ${POSTGRES_USER:-grocery}
@@ -19,10 +24,45 @@ services:
   backend:
     build: ./backend
     depends_on:
+      # Waits for the Docker database when the `db` profile runs it; without
+      # the profile there is nothing to wait for and the backend starts alone.
       db:
         condition: service_healthy
-    env_file: .env
+        required: false
+    # The startup loader resolves references before Compose interpolates these.
+    # Never pass a raw .env or 1Password authentication token into a container.
     environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL:-}
+      VOICE_WEBHOOK_SECRET: ${VOICE_WEBHOOK_SECRET:-}
+      ALEXA_BRIDGE_SECRET: ${ALEXA_BRIDGE_SECRET:-}
+      STORE_TAB_SECRET: ${STORE_TAB_SECRET:-}
+      CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      DEV_AUTH_BYPASS: ${DEV_AUTH_BYPASS:-false}
+      STORE_CLIENTS: ${STORE_CLIENTS:-live}
+      WOOLWORTHS_BASE_URL: ${WOOLWORTHS_BASE_URL:-}
+      COLES_BASE_URL: ${COLES_BASE_URL:-}
+      STORE_TIMEOUT_SECONDS: ${STORE_TIMEOUT_SECONDS:-12}
+      STORE_SEARCH_CACHE_SECONDS: ${STORE_SEARCH_CACHE_SECONDS:-600}
+      INTAKE_LLM_PROVIDER: ${INTAKE_LLM_PROVIDER:-ollama}
+      INTAKE_LLM_BASE_URL: ${INTAKE_LLM_BASE_URL:-}
+      INTAKE_LLM_MODEL: ${INTAKE_LLM_MODEL:-}
+      INTAKE_LLM_API_KEY: ${INTAKE_LLM_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      INTAKE_LLM_MIN_CONFIDENCE: ${INTAKE_LLM_MIN_CONFIDENCE:-0.7}
+      INTAKE_LLM_TIMEOUT_SECONDS: ${INTAKE_LLM_TIMEOUT_SECONDS:-60}
+      GOOGLE_TASKS_CLIENT: ${GOOGLE_TASKS_CLIENT:-live}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/settings/intake}
+      GOOGLE_OAUTH_AUTH_URL: ${GOOGLE_OAUTH_AUTH_URL:-}
+      GOOGLE_OAUTH_TOKEN_URL: ${GOOGLE_OAUTH_TOKEN_URL:-}
+      GOOGLE_TASKS_API_BASE: ${GOOGLE_TASKS_API_BASE:-}
+      GOOGLE_TIMEOUT_SECONDS: ${GOOGLE_TIMEOUT_SECONDS:-15}
+      GOOGLE_TASKS_NO_BACKGROUND_POLL: ${GOOGLE_TASKS_NO_BACKGROUND_POLL:-false}
+      RUST_LOG: ${RUST_LOG:-grocery_backend=info,tower_http=info,warn}
       BIND_ADDRESS: 0.0.0.0:8000
       # Daily access-log files (docs/features/FEATURE_ACCESS_LOGS.md), kept
       # in the access_logs volume so they survive a rebuild.
@@ -34,8 +74,9 @@ services:
     # the generic webhook path, never the whole API.
     expose:
       - "8000"
-    # Lets INTAKE_LLM_BASE_URL reach an Ollama running on the home server
-    # itself (http://host.docker.internal:11434/v1).
+    # Lets the backend reach services running on the home server itself:
+    # PostgreSQL (DATABASE_URL=…@host.docker.internal:5432/grocery) and an
+    # Ollama outside Docker (http://host.docker.internal:11434/v1).
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

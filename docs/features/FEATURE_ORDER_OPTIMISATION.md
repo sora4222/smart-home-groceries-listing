@@ -1,8 +1,69 @@
 # Feature: Order Optimisation
 
-Status: **first part built — the order review (`/order`).** It shows what the
-committed list costs today, store by store. Optimisation modes, split-store
-suggestions, delivery fees and delivery constraints are **not built**.
+Status: **built — the order review, delivery fees, the modes and the
+split-store planner (`/order`, `/settings/delivery`).** Live delivery windows,
+need-by dates, allowed days and perishable timing are **not built** (see
+"Not built").
+
+## Ways to buy (the planner)
+An item may have a chosen product at **each** store
+(`FEATURE_PRODUCT_CHOICE.md`); one of them is the one the order buys. The
+planner never picks a product — it only moves an item between products the
+household chose.
+
+1. `/order` shows **Ways to buy** above the review. Up to four options, best
+   first: **All at Woolworths**, **All at Coles**, **Split between stores**
+   (the best mix found) and **Your current stores**. Two that buy the same
+   items at the same stores are shown once; the one the order buys now is
+   badged **Current**.
+2. Each option: total with delivery, each store's items subtotal + delivery
+   ("free delivery", "delivery fee not set"), the items it leaves out and
+   why, and notes (under a store's minimum, over the delivery cap, fees not
+   set).
+3. **Recommended** marks the first option only when it buys every item,
+   meets every store's minimum and is within the cap.
+4. **Use this** sends the option's `picks` to `PUT /api/order-stores`; the
+   toast's **Undo** puts every moved item back. Send to Woolworths/Coles then
+   sends only items bought at that store.
+5. **Rank by** (`?mode=`) tries another mode for this visit; the saved
+   default is on Settings › Delivery.
+
+### Modes
+| Mode | Order |
+|---|---|
+| `minimise_total` (default) | buys every item › store takes it and within cap › total › delivery › fewer stores |
+| `minimise_delivery` | … › delivery › total › fewer stores |
+| `woolworths_only` / `coles_only` | that store's option first, the rest by total |
+| `manual` | the current stores first, the rest by total |
+
+### The best mix
+Delivery depends on each store's subtotal (free from an amount, a minimum
+order, a cap on all fees), so the cheapest store per item is not always the
+cheapest order. With **16 or fewer** items that have a choice of store,
+every combination is tried (`exact: true`). Above that, a local search from
+three starts (cheapest per item, Woolworths where possible, Coles where
+possible) moves one item at a time while it helps (`exact: false`; the page
+says so). Code: `services/order_plan/search.rs`.
+
+### Delivery fees (Settings › Delivery)
+The app cannot read the stores' fees without the household's login
+(`docs/FEAT_WOOLWORTHS_ACCESS.md`), so each store's **delivery fee**, **free
+delivery from** and **minimum order** are typed once, with the default mode
+and **most to spend on delivery** (per order, all stores). Empty = not set.
+An unset fee counts as $0 and every option using it says so. Saving shows
+**Undo**. Amounts are $0–$1000 in whole cents.
+
+| Method | Path | Auth | Answer |
+|---|---|---|---|
+| `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend}` |
+| `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode. Stores left out keep their rules |
+| `GET` | `/api/order-options[?mode=]` | Clerk | 200 `{mode, options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode |
+| `PUT` | `/api/order-stores` `{picks}` | Clerk | 204; 422 nothing changed when an item has no choice at its store |
+
+Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`
+(one row per store) and `order_preferences` (one row, `id = 1`).
+Log: `order options planned` (mode, each option's total, recommended, exact),
+`delivery settings saved`, `order stores set for items`.
 
 ## What the order review does
 1. On the grocery list, **Ready to order** commits the list.
@@ -76,6 +137,14 @@ Money is a decimal string.
   (`lib/chosen-at-store.ts`, shared with the list page).
 
 ## Code
+- Planner: `routes/order_options.rs`, `routes/delivery_settings.rs`;
+  `services/order_plan/` (`mod.rs` service, `option.rs`, `fees.rs`,
+  `search.rs`, `rank.rs`, `build.rs`, `log.rs`); `services/delivery_settings/`;
+  `models/delivery_rows.rs`; web `components/order-options/`,
+  `components/delivery/`, `routes/settings/delivery.tsx`,
+  `lib/api/order-options.ts`, `lib/api/delivery-settings.ts`,
+  `lib/order-modes.ts`, `lib/option-notes.ts`, `lib/delivery-form.ts`,
+  `hooks/useOrderStores.ts`.
 - Backend: `routes/order_review.rs`; `services/order_review/` — `mod.rs`
   (service), `line/` (pure re-pricing of one choice; `tests.rs`,
   `fixtures.rs`), `summary.rs` (pure grouping and totals), `log.rs`;
@@ -92,13 +161,13 @@ review; `order line needs attention` (warn) for a line with a problem;
 `chosen product's price changed` when a shelf price moved.
 
 ## Not built (spec "Order Optimisation")
-- Optimisation modes (minimise total, minimise delivery, single store, manual)
-  and the saved default.
-- Split-store comparison and ranked options.
-- Delivery windows and fees in the app, and the 15-minute hold. The app cannot
-  see them without the household's store login (`FEAT_WOOLWORTHS_ACCESS.md`).
-- Delivery constraints from Settings › Delivery (need-by, max delivery spend,
-  allowed days, perishable timing).
+- Live delivery windows and per-window fees, and the 15-minute hold. The app
+  cannot see them without the household's store login
+  (`FEAT_WOOLWORTHS_ACCESS.md`); the Woolworths bookmark picks the cheapest
+  window on the day when it fills the trolley.
+- Delivery constraints that need windows: need-by date/time, allowed days,
+  perishable timing.
+- "Prefer specials" mode.
 - Skipping disliked products, and the warning before confirming. The rule
   is ready to call: `services/dislikes/skip.rs` (`FEATURE_DISLIKES.md`).
 
@@ -111,3 +180,10 @@ review; `order line needs attention` (warn) for a line with a problem;
 - `frontend/src/components/order/__tests__/`, `lib/__tests__/price-change.test.ts`,
   `lib/__tests__/chosen-at-store.test.ts`.
 - `frontend/e2e/order-review.spec.ts` — desktop and phone.
+- Planner: `services/order_plan/fees.rs`, `rank.rs`, `tests.rs`,
+  `tests_modes.rs` (free delivery reached by moving an item, minimums, the
+  cap, every mode, 20 items by local search); `backend/tests/order_options.rs`,
+  `delivery_settings.rs`, `item_selections_per_store.rs`.
+- Web: `components/order-options/__tests__`, `components/delivery/__tests__`,
+  `lib/__tests__/delivery-form.test.ts`, `option-notes.test.ts`,
+  `choice-undo.test.ts`; `frontend/e2e/order-options.spec.ts`.

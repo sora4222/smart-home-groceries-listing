@@ -7,6 +7,7 @@
 pub mod access_logs;
 pub mod alexa;
 pub mod alexa_list_changes;
+pub mod delivery_settings;
 pub mod dislikes;
 pub mod extract;
 pub mod google_tasks;
@@ -14,11 +15,13 @@ pub mod grocery;
 pub mod health;
 pub mod intake_settings;
 pub mod item_rules;
+pub mod order_options;
 pub mod order_review;
 pub mod products;
 pub mod purchases;
 pub mod selections;
 pub mod spending;
+pub mod store_products;
 pub mod store_tab;
 pub mod triage;
 pub mod trolley_handoffs;
@@ -36,15 +39,18 @@ use crate::state::AppState;
 pub fn api_router(state: &AppState) -> Router<AppState> {
     Router::new()
         .merge(health::router())
+        .merge(store_products::router())
         .merge(access_logs::router())
         .merge(voice::router())
         .merge(alexa::router())
         .merge(google_tasks::router())
         .merge(intake_settings::router())
         .merge(alexa_list_changes::router())
+        .merge(delivery_settings::router())
         .merge(dislikes::router())
         .merge(grocery::router())
         .merge(item_rules::router())
+        .merge(order_options::router())
         .merge(order_review::router())
         .merge(products::router())
         .merge(purchases::router())

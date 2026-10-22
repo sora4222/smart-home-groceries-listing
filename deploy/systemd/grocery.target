@@ -1,0 +1,8 @@
+# Every grocery-list service. `systemctl restart grocery.target` restarts
+# them all; each service is enabled into this target by `make hm-install-server`.
+[Unit]
+Description=Grocery list application
+Documentation=https://github.com/sora4222/smart-home-groceries-listing/blob/main/docs/production.md
+
+[Install]
+WantedBy=multi-user.target

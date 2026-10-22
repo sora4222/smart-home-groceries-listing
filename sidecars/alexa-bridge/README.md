@@ -42,7 +42,7 @@ perfectly.
 timed out and reuses that id, so the backend recognises the retry and does not
 raise a second confirmation card.
 
-## Configuration
+## Environment variables required
 
 | Variable | Required | Meaning |
 |---|---|---|
@@ -59,18 +59,23 @@ running with an effectively unauthenticated endpoint.
 ## Running it
 
 ```bash
-make alexa-up          # from the repository root, via Docker Compose
+make dev               # complete stack, from the repository root
+make test-alexa        # bridge tests only
 ```
 
-Locally, without Docker:
+The full-stack development command rebuilds the bridge when its files change.
+`make stop-all` removes the development containers and retains their volumes.
+The root `.env`, exported overrides, and an explicit `GROCERY_ENV_FILE` are
+supported during direct startup too, including `op://` references. See
+[configuration sources](../../docs/features/FEATURE_CONFIGURATION.md).
+
+Locally, without Docker, configure the required values in the selected file
+and point `BACKEND_BASE_URL` at the reachable backend:
 
 ```bash
 cd sidecars/alexa-bridge
-uv sync                                    # or: python -m venv .venv && pip install -e '.[dev]'
-ALEXA_SKILL_ID=amzn1.ask.skill.xxx \
-ALEXA_BRIDGE_SECRET=... \
-BACKEND_BASE_URL=http://127.0.0.1:8000 \
-  uv run python -m alexa_bridge.app
+uv sync --frozen
+uv run python -m alexa_bridge.app
 ```
 
 ## Tests
@@ -110,6 +115,6 @@ Four custom intents, all with `item → AMAZON.Food` and
 | `ReduceItemIntent` | "reduce {item} by {quantity}" | `POST /api/intake/alexa/remove` (quantity defaults to 1) |
 | `UndoIntent` | "undo", "put it back" | `POST /api/intake/alexa/undo` |
 
-The full JSON to paste into the Alexa console is in `docs/human-setup.md`
+The full JSON to paste into the Alexa console is in [human setup](../../docs/human-setup.md)
 §4. Removes apply immediately and are undoable; the rules are in
 `docs/features/FEATURE_VOICE.md`.

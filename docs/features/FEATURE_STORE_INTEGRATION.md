@@ -13,8 +13,8 @@ it, cheapest per unit first, so the household can see what the item really
 costs before anything is ordered.
 
 Nothing is recommended or promoted. Adverts and sponsored placements from
-the stores are dropped, products are shown without images or marketing copy,
-and the order is price only (reducing marketing-driven buying is a project
+the stores are dropped, products are shown with the store's picture but
+without marketing copy, and the order is price only (reducing marketing-driven buying is a project
 goal).
 
 ## Endpoint
@@ -22,6 +22,12 @@ goal).
 | Method | Path | Auth | Answer |
 |---|---|---|---|
 | `GET` | `/api/grocery-items/{id}/products` | Clerk session | 200 with every store's results, 404 unknown item |
+| `GET` | `/api/stores/{store}/products/{product_id}` | Clerk session | 200 one product (priced for 1), 404 not sold there, 503 store could not answer, 400 unknown store |
+
+`{store}` is `woolworths` or `coles`; `{product_id}` is the store's own id
+(Woolworths stockcode, Coles product id — digits only; anything else is
+404 without asking the store). The body is one `ProductResponse`, the same
+shape as an entry in `products` below.
 
 The answer is **200 even when a store fails**: that store's entry carries
 `status` and a `message`, and the other store's products still show.
@@ -40,6 +46,7 @@ The answer is **200 even when a store fails**: that store's entry carries
         "unit_price_note": "unit price calculated from 100 sheets",
         "deals": [], "total_price": "24", "deal_applied": false,
         "category": "Toilet Paper", "url": "https://www.woolworths.com.au/shop/productdetails/722/…",
+        "image_url": "https://cdn0.woolworths.media/content/wowproductimages/small/000722.jpg",
         "available": true
       }]
     },
@@ -76,11 +83,21 @@ website). Money is always a decimal **string**.
 | Store | Call | Notes |
 |---|---|---|
 | Woolworths | `POST /apis/ui/Search/products` (the website's own call) | Visits the home page once for bot-protection cookies; a refusal makes the *next* search visit again |
-| Coles | `GET /_next/data/<buildId>/en/search/products.json?q=` | `buildId` read from the home page; a 404 means Coles redeployed — re-read once |
+| Coles | `GET /_next/data/<buildId>/en/search/products.json?q=` | `buildId` read from the home page; a 404 with body `{}` means Coles redeployed — re-read once |
+
+Looking up one product by id (`StoreClient::product`):
+
+| Store | Call | Notes |
+|---|---|---|
+| Woolworths | `GET /apis/ui/product/detail/{stockcode}?isMobile=false` | `Product` has the search result's shape; 404 = not sold |
+| Coles | `GET /_next/data/<buildId>/en/product/x-{id}.json` | Answers `pageProps.__N_REDIRECT` to the real slug (`/product/coles-full-cream-milk-3l-8150288`), followed once; 404 `{"notFound":true}` = not sold |
+
+Lookups are cached like searches (same `STORE_SEARCH_CACHE_SECONDS`).
 
 Both are reached through `wreq` emulating Chrome 137 (TLS + HTTP/2
 fingerprint); plain `reqwest` is refused by the stores. No search retries in
-a loop. Response shapes are from real responses captured 2026-10-01 —
+a loop. Response shapes are from real responses captured 2026-10-01 (search)
+and 2026-10-06 (lookup) —
 `backend/tests/fixtures/` holds trimmed copies.
 
 ### Mapping notes
@@ -93,6 +110,13 @@ a loop. Response shapes are from real responses captured 2026-10-01 —
   beside a per-kilogram price. `multiBuyPromotion.reward` is already a
   per-unit price. Entries with an `adId` or `featured: true` are dropped.
 - `was` / `WasPrice` only count when higher than the current price.
+- Pictures (`image_url`): Woolworths `SmallImageFile`; Coles `imageUris`
+  (the `type: default` entry, else the first) joined to
+  `https://productimages.coles.com.au/productimages`. Only `https://` links
+  are kept (`services/stores/image.rs`); otherwise `image_url` is `null` and
+  the web app shows a placeholder. The Coles image host was not checked live
+  from this project. Every fake product uses `/fake-product.svg`, a file in
+  `frontend/public/`.
 
 ## Configuration
 | Variable | Default | Meaning |
@@ -107,18 +131,20 @@ The fake catalogue covers milk, toilet paper and bananas. A query containing
 
 ## Web app
 `components/products/`: `PriceComparison` (compound: `.Trigger`,
-`.Content`, a Shadcn `Sheet`), `StoreResults`, `ProductRow`, `ProductPrice`,
+`.Content`, a Shadcn `Sheet`), `StoreResults`, `ProductRow`, `ProductImage`
+(the picture, or a placeholder when there is none or it fails to load; also
+used by the chosen product and the order review), `ProductPrice`,
 `UnitPriceLine`, `SpecialsOnlySwitch`. `hooks/useItemProducts.ts` searches
 only while the sheet is open, and again when the item's name, quantity or
 chips change. "Specials only" is a display filter (special or multibuy) — it
 never reorders.
 
 ## Not built yet
-- **Live check against the real stores from the home server.** The code
-  follows the stores' own calls as captured in a real browser, but the build
-  sandbox cannot reach either site, so the first real search happens on the
-  home server. If a store answers `blocked` there, the next step is the
+- **Live check against the real stores from the home server.** The calls
+  were checked in a real browser (search 2026-10-01, lookup 2026-10-06),
+  but not yet from the server's `wreq` client. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
+- A web app screen for the lookup route (backend only so far).
 - Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
   "Pick any N" multibuys across different products (treated per product).
 - Storing products and categories for Spending Analysis.
@@ -129,5 +155,9 @@ never reorders.
 - `tests/woolworths_client.rs`, `tests/coles_client.rs`: the real clients
   against `wiremock` — cookies carried, refusals reported not retried, the
   Coles redeploy path, challenge pages.
-- `tests/item_products.rs`: the route over the fake stores.
+- `tests/woolworths_product_lookup.rs`, `tests/coles_product_lookup.rs`:
+  lookup against `wiremock` — redirect followed, not-found vs. redeploy,
+  ids that are not digits never sent.
+- `tests/item_products.rs`, `tests/store_products.rs`: the routes over the
+  fake stores.
 - `frontend/e2e/price-comparison.spec.ts`: desktop and phone.

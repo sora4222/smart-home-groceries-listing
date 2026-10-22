@@ -49,6 +49,14 @@ test.describe("price comparison", () => {
 		await expect(cheapest).toContainText("$3.10");
 		await expect(cheapest).toContainText("$0.155 / 100mL");
 		await expect(cheapest).toContainText("unit price calculated from 1L");
+		const picture = cheapest.getByRole("img", {
+			name: "Woolworths Full Cream Milk",
+		});
+		await expect(picture).toBeVisible();
+		// Loaded, not broken: a broken image has no natural width.
+		expect(
+			await picture.evaluate((img: HTMLImageElement) => img.naturalWidth),
+		).toBeGreaterThan(0);
 		await expect(sheet.getByRole("region", { name: "Coles" })).toBeVisible();
 	});
 

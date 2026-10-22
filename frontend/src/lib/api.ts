@@ -8,10 +8,12 @@
  * `#/lib/api` without caring which file a type lives in.
  */
 import { accessLogsApi } from "#/lib/api/access-logs";
+import { deliverySettingsApi } from "#/lib/api/delivery-settings";
 import { dislikesApi } from "#/lib/api/dislikes";
 import { groceryApi } from "#/lib/api/grocery";
 import { intakeApi } from "#/lib/api/intake";
 import { itemRulesApi } from "#/lib/api/item-rules";
+import { orderOptionsApi } from "#/lib/api/order-options";
 import { orderReviewApi } from "#/lib/api/order-review";
 import { productsApi } from "#/lib/api/products";
 import { purchasesApi } from "#/lib/api/purchases";
@@ -23,10 +25,12 @@ import { voiceApi } from "#/lib/api/voice";
 
 export * from "#/lib/api/access-logs";
 export { ApiError } from "#/lib/api/client";
+export * from "#/lib/api/delivery-settings";
 export * from "#/lib/api/dislikes";
 export * from "#/lib/api/grocery";
 export * from "#/lib/api/intake";
 export * from "#/lib/api/item-rules";
+export * from "#/lib/api/order-options";
 export * from "#/lib/api/order-review";
 export * from "#/lib/api/products";
 export * from "#/lib/api/purchases";
@@ -46,8 +50,10 @@ export const api = {
 	selections: selectionsApi,
 	trolleyHandoffs: trolleyHandoffsApi,
 	orderReview: orderReviewApi,
+	orderOptions: orderOptionsApi,
 	dislikes: dislikesApi,
 	purchases: purchasesApi,
 	spending: spendingApi,
 	accessLogs: accessLogsApi,
+	deliverySettings: deliverySettingsApi,
 };

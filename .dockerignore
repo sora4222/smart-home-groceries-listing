@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/target
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.output
+**/test-results
+**/playwright-report
+**/.env
+**/.env.*
+.env
+.env.*
+build

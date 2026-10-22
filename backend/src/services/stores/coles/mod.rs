@@ -1,100 +1,83 @@
-//! Coles product search through the website's Next.js data route.
+//! Coles product search and lookup through the website's Next.js data
+//! routes ([`data_route`]).
 //!
-//! The search page at `/search/products?q=` is rendered from
-//! `/_next/data/<buildId>/en/search/products.json?q=`, which this client
-//! reads directly. The build id comes from the home page and is remembered;
-//! when Coles deploys, the old id answers 404, so the id is looked up again
-//! once and the search repeated once. That is the only repeat — a refusal by
-//! bot protection is reported, never retried.
+//! - Search: `search/products?q=` — the search page's data.
+//! - Lookup: `product/<slug>-<id>` — a product page's data. Coles answers
+//!   any slug ending in the id with a redirect to the real slug
+//!   (`__N_REDIRECT`), so the lookup asks for `product/x-<id>` and follows
+//!   that redirect once. Captured live on 2026-10-06.
 
 mod build_id;
+mod data_route;
 mod mapping;
 mod wire;
 
-use tokio::sync::Mutex;
-
 use super::client::{BoxFuture, StoreClient};
 use super::error::StoreError;
-use super::http::{read_json, read_text, transport_error};
 use super::product::Product;
+use super::product_id;
 use super::store::Store;
-use wire::SearchPage;
+use data_route::{DataPage, DataRoute};
+use wire::{ProductPage, SearchPage};
 
 /// Talks to Coles.
 pub struct ColesClient {
-    http: wreq::Client,
-    base_url: String,
-    /// The website build id from the last home page visit.
-    build_id: Mutex<Option<String>>,
+    route: DataRoute,
 }
 
 impl ColesClient {
     /// A client for `base_url` (the real site, or a mock server in tests).
     pub fn new(http: wreq::Client, base_url: &str) -> Self {
         Self {
-            http,
-            base_url: base_url.trim_end_matches('/').to_string(),
-            build_id: Mutex::new(None),
+            route: DataRoute::new(http, base_url),
         }
     }
 
-    /// The remembered build id, fetching it from the home page if needed.
-    async fn build_id(&self) -> Result<String, StoreError> {
-        let mut cached = self.build_id.lock().await;
-        if let Some(id) = cached.as_ref() {
-            return Ok(id.clone());
-        }
-        tracing::debug!(store = "coles", "reading the website build id");
-        let response = self
-            .http
-            .get(format!("{}/", self.base_url))
-            .send()
-            .await
-            .map_err(transport_error)?;
-        let html = read_text(response).await?;
-        // A page with no build id is a challenge page, not the website.
-        let id = build_id::extract(&html).ok_or(StoreError::Blocked { status: 200 })?;
-        *cached = Some(id.clone());
-        Ok(id)
-    }
-
-    /// One attempt at the data route with the current build id. `Ok(None)`
-    /// means the id is stale: Coles answered 404 because it has redeployed.
-    async fn fetch(&self, query: &str) -> Result<Option<Vec<Product>>, StoreError> {
-        let id = self.build_id().await?;
-        let response = self
-            .http
-            .get(format!(
-                "{}/_next/data/{id}/en/search/products.json",
-                self.base_url
-            ))
-            .query(&[("q", query)])
-            .header("accept", "*/*")
-            .header("x-nextjs-data", "1")
-            .send()
-            .await
-            .map_err(transport_error)?;
-        if response.status().as_u16() == 404 {
-            return Ok(None);
-        }
-        let page: SearchPage = read_json(response).await?;
-        Ok(Some(mapping::products(page, &self.base_url)))
-    }
-
-    /// Searches, refreshing the build id once if Coles has redeployed.
+    /// The search page's products for `query`.
     async fn search_products(&self, query: &str) -> Result<Vec<Product>, StoreError> {
-        if let Some(products) = self.fetch(query).await? {
-            return Ok(products);
-        }
-        tracing::info!(
-            store = "coles",
-            "website redeployed; reading the new build id"
-        );
-        *self.build_id.lock().await = None;
-        self.fetch(query)
-            .await?
-            .ok_or_else(|| StoreError::UnexpectedResponse("search route not found".into()))
+        let page: DataPage<SearchPage> = self.route.get("search/products", &[("q", query)]).await?;
+        Ok(match page {
+            DataPage::Found(page) => mapping::products(page, self.route.base_url()),
+            DataPage::NotFound => Vec::new(),
+        })
     }
+
+    /// One product page, following Coles' redirect to the real slug once.
+    async fn product_page(&self, id: &str) -> Result<Option<Product>, StoreError> {
+        let mut page_path = format!("product/x-{id}");
+        for _ in 0..2 {
+            let page: DataPage<ProductPage> = self.route.get(&page_path, &[]).await?;
+            let DataPage::Found(page) = page else {
+                return Ok(None);
+            };
+            if let Some(product) = page.page_props.product {
+                return Ok(Some(mapping::product(product, self.route.base_url())));
+            }
+            let target = page
+                .page_props
+                .redirect
+                .as_deref()
+                .and_then(|to| redirect_path(to, id));
+            match target {
+                Some(next) => page_path = next,
+                None => break,
+            }
+        }
+        Err(StoreError::UnexpectedResponse(
+            "product page had neither a product nor a usable redirect".into(),
+        ))
+    }
+}
+
+/// The data route path for a redirect to `/product/<slug>-<id>`, or `None`
+/// if the redirect goes anywhere else. The slug is checked because it is
+/// put into a URL path.
+fn redirect_path(to: &str, id: &str) -> Option<String> {
+    let slug = to.strip_prefix("/product/")?.trim_end_matches('/');
+    let safe = !slug.is_empty()
+        && slug.len() <= 200
+        && slug.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+    (safe && slug.ends_with(&format!("-{id}"))).then(|| format!("product/{slug}"))
 }
 
 impl StoreClient for ColesClient {
@@ -104,5 +87,37 @@ impl StoreClient for ColesClient {
 
     fn search<'a>(&'a self, query: &'a str) -> BoxFuture<'a, Result<Vec<Product>, StoreError>> {
         Box::pin(self.search_products(query))
+    }
+
+    fn product<'a>(
+        &'a self,
+        product_id: &'a str,
+    ) -> BoxFuture<'a, Result<Option<Product>, StoreError>> {
+        Box::pin(async move {
+            if !product_id::is_valid(product_id) {
+                return Ok(None);
+            }
+            self.product_page(product_id).await
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::redirect_path;
+
+    #[test]
+    fn follows_a_redirect_to_the_same_product() {
+        assert_eq!(
+            redirect_path("/product/coles-full-cream-milk-3l-8150288", "8150288").as_deref(),
+            Some("product/coles-full-cream-milk-3l-8150288")
+        );
+    }
+
+    #[test]
+    fn refuses_a_redirect_anywhere_else() {
+        assert_eq!(redirect_path("/product/other-thing-123", "8150288"), None);
+        assert_eq!(redirect_path("/browse/dairy-8150288", "8150288"), None);
+        assert_eq!(redirect_path("/product/../../x-8150288", "8150288"), None);
     }
 }

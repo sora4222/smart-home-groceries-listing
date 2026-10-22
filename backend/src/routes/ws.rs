@@ -1,5 +1,9 @@
 //! WebSocket endpoint pushing real-time events to open browser sessions.
 //!
+//! Needs a session like every household route; the token comes as
+//! `?token=` because browsers cannot set headers on a WebSocket (see
+//! `auth/socket.rs`).
+//!
 //! Currently only `voice_request_added` is emitted (see
 //! `services/ws_hub.rs`). The web app uses it to update the Pending Requests
 //! badge and raise a toast without polling.
@@ -11,6 +15,7 @@ use axum::routing::any;
 use axum::Router;
 use tokio::sync::broadcast::error::RecvError;
 
+use crate::auth::socket::SocketUser;
 use crate::services::ws_hub::ServerEvent;
 use crate::state::AppState;
 
@@ -19,8 +24,13 @@ pub fn router() -> Router<AppState> {
     Router::new().route("/ws", any(upgrade))
 }
 
-/// Accepts the upgrade and hands the socket to [`run_socket`].
-async fn upgrade(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+/// Accepts the upgrade from a signed-in household member (401 otherwise) and
+/// hands the socket to [`run_socket`].
+async fn upgrade(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    _user: SocketUser,
+) -> Response {
     ws.on_upgrade(move |socket| run_socket(socket, state))
 }
 

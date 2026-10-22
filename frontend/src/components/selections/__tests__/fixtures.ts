@@ -17,6 +17,7 @@ export function selectionFixture(
 		total_price: "9.9",
 		priced_quantity: 2,
 		url: "https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288",
+		image_url: "https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		selected_by: "user_dev",
 		selected_at: new Date("2026-10-01T00:00:00Z").toISOString(),
 		...overrides,

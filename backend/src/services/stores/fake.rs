@@ -9,6 +9,8 @@
 //! 3 ply" returns every toilet paper; filter chips narrow it afterwards).
 //! A query containing [`OUTAGE_KEYWORD`] makes the fake Coles fail as
 //! unreachable, so the "one store is down" path can be exercised end to end.
+//! A product is looked up by its catalogue id (`c-milk-3l`); the fake ids
+//! are not digits, so they can never be mistaken for a real store's.
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -23,6 +25,9 @@ use super::unit_price::normalise;
 
 /// Searching for anything containing this makes the fake Coles unreachable.
 pub const OUTAGE_KEYWORD: &str = "outage";
+
+/// Every fake product's picture: a file in the web app's `public/` folder.
+pub const FAKE_IMAGE: &str = "/fake-product.svg";
 
 /// One catalogue row: the keyword that finds it, then the product's details.
 struct Row {
@@ -214,6 +219,8 @@ fn product(row: &Row) -> Product {
             .collect(),
         category: Some(row.category.to_string()),
         url: format!("https://example.test/{}/{}", row.store, row.id),
+        // Served by the web app, so development needs no network for it.
+        image_url: Some(FAKE_IMAGE.to_string()),
         available: true,
     }
 }
@@ -225,6 +232,18 @@ impl StoreClient for FakeStore {
 
     fn search<'a>(&'a self, query: &'a str) -> BoxFuture<'a, Result<Vec<Product>, StoreError>> {
         Box::pin(async move { self.matching(query) })
+    }
+
+    fn product<'a>(
+        &'a self,
+        product_id: &'a str,
+    ) -> BoxFuture<'a, Result<Option<Product>, StoreError>> {
+        Box::pin(async move {
+            Ok(CATALOGUE
+                .iter()
+                .find(|row| row.store == self.store && row.id == product_id)
+                .map(product))
+        })
     }
 }
 
@@ -252,5 +271,20 @@ mod tests {
             .search("milk outage")
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn looks_up_its_own_products_by_id() {
+        let coles = FakeStore::new(Store::Coles);
+        let id = coles.search("milk").await.unwrap()[0].product_id.clone();
+        let found = coles.product(&id).await.unwrap().unwrap();
+        assert_eq!(found.product_id, id);
+        assert_eq!(
+            FakeStore::new(Store::Woolworths)
+                .product(&id)
+                .await
+                .unwrap(),
+            None
+        );
     }
 }

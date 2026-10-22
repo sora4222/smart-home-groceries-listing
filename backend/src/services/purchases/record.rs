@@ -61,7 +61,7 @@ async fn price_all(
     handoff: &TrolleyHandoff,
     added: &[TrolleyHandoffLine],
 ) -> Result<Vec<BoughtLine>, ApiError> {
-    let mut choices: HashMap<Uuid, _> = selections::list_all(pool)
+    let mut choices: HashMap<Uuid, _> = selections::list_for_order(pool)
         .await?
         .into_iter()
         .map(|choice| (choice.grocery_item_id, choice))

@@ -14,8 +14,9 @@ use crate::services::stores::Store;
 /// `(grocery_item_id, product_id, product_name, quantity)`.
 pub type ChosenLine = (Uuid, String, String, i32);
 
-/// Every list item still to be bought (active or committed) whose chosen
-/// product is at `store`, oldest item first. Quantities are the items' current
+/// Every list item still to be bought (active or committed) whose order buys
+/// its chosen product at `store`, oldest item first. An item's choice at
+/// another store, not the one to buy, is never sent. Quantities are the items' current
 /// quantities, not the quantity the product was priced at.
 pub async fn chosen_lines_for_store<'e, E>(
     executor: E,
@@ -28,7 +29,7 @@ where
         "SELECT i.id, s.product_id, s.product_name, i.quantity
          FROM grocery_items i
          JOIN item_selections s ON s.grocery_item_id = i.id
-         WHERE s.store = $1 AND i.status IN ('active', 'committed')
+         WHERE s.store = $1 AND s.for_order AND i.status IN ('active', 'committed')
          ORDER BY i.created_at, i.id",
     )
     .bind(store)

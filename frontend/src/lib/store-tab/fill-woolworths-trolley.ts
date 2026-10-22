@@ -21,6 +21,8 @@
  *    Woolworths says is unavailable at the household's store is put back to
  *    its old quantity and reported as not added.
  * 5. Report every product's outcome to our backend, and tell the person.
+ * 6. When anything was added, offer the checkout page (`/shop/checkout`).
+ *    The person reviews the order and pays there; this never pays.
  *
  * `fillWoolworthsTrolley` must stay **self-contained** — no imports, no
  * outside variables — because the bookmarklet carries its source text
@@ -69,6 +71,7 @@ export async function fillWoolworthsTrolley(
 		failed: [],
 		delivery: null,
 		message,
+		checkout: null,
 	});
 	const sendToBackend = (path: string, body: unknown) =>
 		fetch(`${config.apiBaseUrl}${path}`, {
@@ -216,5 +219,13 @@ export async function fillWoolworthsTrolley(
 		failed,
 		delivery,
 		message: `${products}\n${when}`,
+		checkout:
+			added.length > 0
+				? {
+						path: "/shop/checkout",
+						question:
+							"Go to checkout now? You check the order and pay on Woolworths. Nothing is bought until you do.",
+					}
+				: null,
 	};
 }

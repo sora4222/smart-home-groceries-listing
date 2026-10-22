@@ -3,17 +3,29 @@ import {
 	createRootRoute,
 	HeadContent,
 	Outlet,
+	redirect,
 	Scripts,
+	useLocation,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
+import { AuthProvider } from "#/components/auth/auth-provider";
+import { SignInOffNotice } from "#/components/auth/sign-in-off-notice";
 import { Nav } from "#/components/nav";
 import { useDesktopNotifications } from "#/hooks/useDesktopNotifications";
 import { useHydrated } from "#/hooks/useHydrated";
 import { useTriageToasts } from "#/hooks/useTriageToasts";
 import { useVoiceRequestToasts } from "#/hooks/useVoiceRequestToasts";
+import { AUTH_MODE } from "#/lib/auth-mode";
+import { fetchSignedIn } from "#/lib/auth-state";
+import {
+	guardDecision,
+	isAuthPath,
+	needsSessionCheck,
+	SIGN_IN_PATH,
+} from "#/lib/sign-in-guard";
 
 import appCss from "#/styles.css?url";
 
@@ -31,13 +43,29 @@ export const Route = createRootRoute({
 			{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
 		],
 	}),
+	beforeLoad: requireSignIn,
 	component: RootComponent,
 });
 
+/**
+ * Sends a signed-out visitor to `/sign-in` before any page loader runs, so
+ * no page asks the backend for data it would refuse. Does nothing with
+ * sign-in off.
+ */
+async function requireSignIn({ location }: { location: { pathname: string } }) {
+	if (!needsSessionCheck(AUTH_MODE, location.pathname)) return;
+	const signedIn = await fetchSignedIn();
+	if (guardDecision(AUTH_MODE, location.pathname, signedIn) === "sign-in") {
+		throw redirect({ href: SIGN_IN_PATH });
+	}
+}
+
 function RootComponent() {
+	const { pathname } = useLocation();
 	return (
 		<RootDocument>
-			<Nav />
+			<SignInOffNotice />
+			{!isAuthPath(pathname) && <Nav />}
 			<main className="mx-auto max-w-3xl p-4">
 				<Outlet />
 			</main>
@@ -58,9 +86,11 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 				<HeadContent />
 			</head>
 			<body>
-				<div id="app" data-hydrated={hydrated}>
-					{children}
-				</div>
+				<AuthProvider>
+					<div id="app" data-hydrated={hydrated}>
+						{children}
+					</div>
+				</AuthProvider>
 				<TanStackDevtools
 					config={{ position: "bottom-right" }}
 					plugins={[

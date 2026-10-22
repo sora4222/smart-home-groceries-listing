@@ -20,10 +20,15 @@ dependency, so the stack is started once, at the end. Every value written to
 
 Day-to-day operation: [`using-the-app.md`](using-the-app.md).
 
+**Production server without Docker:** do sections 1–5 and 7–9 here, but
+start the app with [`production.md`](production.md) instead of section 6.
+In that setup the tunnel routes use `localhost` (`http://localhost:8081`),
+not the Compose hostnames below.
+
 ## Prerequisites
 
 - Shell access to the home server, in a checkout of this repository, with
-  Docker (Compose v2), `make`, `openssl`, Node 22 and `pnpm`.
+  Docker (Compose v2.20 or later, for optional `depends_on`), `make`, `openssl`, Node 22 and `pnpm`.
 - A domain whose DNS is managed by Cloudflare (Cloudflare Registrar works).
 - The Amazon account the target Echo device is registered to.
 - Woolworths credentials (passkey or password manager).
@@ -42,8 +47,63 @@ Copies `.env.example` to `.env` and fills every generated secret
 `CREDENTIAL_ENCRYPTION_KEY`, the Postgres password). Idempotent: existing
 values are never overwritten. Keep `.env` open; sections 2–5 write to it.
 
+The default `.env` runs PostgreSQL in Docker (`db` in `COMPOSE_PROFILES`).
+On a server with PostgreSQL already installed, do
+[Optional: PostgreSQL installed on the server](#optional-postgresql-installed-on-the-server)
+before section 6.
+
 **Verify:** the script exits printing `Done.`
 **Troubleshooting:** `openssl: not found` → install OpenSSL and re-run.
+
+### 1Password
+
+Plain `.env` values work without 1Password CLI. Any value can instead be a
+complete reference, such as
+`CLERK_SECRET_KEY='op://Development/grocery-clerk/secret key'`.
+Single-quote values containing spaces, `$`, or `#`. When moving database
+credentials, retain their existing values. `DATABASE_URL` may reference an
+entire connection URL; supplied `POSTGRES_*` settings can each reference
+their own fields. Loading them does not rotate database credentials.
+
+**Desktop application, on the development computer:**
+
+1. Install [1Password CLI](https://www.1password.dev/cli/get-started).
+2. Unlock 1Password and enable **Settings → Developer → Integrate with
+   1Password CLI**.
+3. Store project secrets in **Development**. Copy each field's secret reference
+   from its menu into the matching `.env` assignment. Set both publishable-key
+   variables to the same Clerk key.
+4. Start the app and approve the CLI request in 1Password. With multiple
+   accounts, export `OP_ACCOUNT` to select the account for this shell.
+
+**Service account, on a headless server (optional):**
+
+1. Create a [service account](https://www.1password.dev/service-accounts/)
+   with read access only to the project vault. Desktop development needs none.
+2. Supply its token as `OP_SERVICE_ACCOUNT_TOKEN` in the server's protected
+   process environment before startup. Keep it out of committed files,
+   command arguments, and containers. The shared loader removes `OP_*`
+   variables before starting its child.
+3. Use the same references and startup commands. The loader first tries the
+   exported service-account token. If that read fails or returns no resolved
+   value, it retries once using desktop app integration. Without a token it
+   goes straight to the desktop app. A headless server needs a working token;
+   when both methods fail, startup stops.
+
+The shared startup loader, direct Rust backend, and direct Alexa bridge use this
+order. Each CLI subprocess gets only the selected authentication method:
+Connect and manual-session variables are removed, and the desktop attempt
+also removes the service token and enables app integration. The parent shell
+is unchanged. Desktop access may prompt for approval; an already authorized
+session may succeed without another prompt. Service-account access does not
+require a desktop prompt. See [CLI authentication variables](https://www.1password.dev/cli/environment-variables)
+and [desktop integration](https://www.1password.dev/cli/app-integration).
+
+1Password Developer Environments may also mount `.env` with literal values.
+Manage those mounts through the 1Password Environments MCP server.
+
+**Verify:** startup succeeds without printing values. If a reference fails,
+correct the named variable's item, vault access, or desktop authorization.
 
 ---
 
@@ -54,16 +114,44 @@ auth provider; the backend verifies its JWTs against the JWKS endpoint
 (`backend/src/auth/clerk.rs`).
 
 1. Create an application (free tier). Enable the **Google** and **Email**
-   (password) sign-in strategies.
+   sign-in strategies, with **Password** on (under **User &
+   authentication**; may be labelled **Email, phone, username**).
 2. Open **API Keys** and copy:
 
 | Clerk value | `.env` key |
 |---|---|
-| Publishable key | `CLERK_PUBLISHABLE_KEY` |
-| Secret key | `CLERK_SECRET_KEY` |
+| Publishable key (`pk_…`) | `CLERK_PUBLISHABLE_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` |
+| Secret key (`sk_…`) | `CLERK_SECRET_KEY` |
 | JWKS URL (ends `/.well-known/jwks.json`; may be under **Advanced**) | `CLERK_JWKS_URL` |
 
-**Verify:** all three keys are non-empty.
+The publishable key is `VITE_`-prefixed because the web app reads it in the
+browser; setting it turns sign-in on (`FEATURE_AUTH.md`).
+
+**Alternative: Clerk CLI** (on a machine with a browser; the login is an
+OAuth redirect to `127.0.0.1`, so it cannot run on a headless host). The
+household's application is `app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl`. From the repo
+root:
+
+```bash
+npm install -g clerk          # or: clerk update --yes
+clerk auth login
+clerk link --app app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl
+clerk env pull --app app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl --file .env.clerk
+```
+
+Copy the two keys from `.env.clerk` into `.env` under the names in the
+table above, then delete `.env.clerk`. The JWKS URL still comes from the
+dashboard. Do not run `clerk init`: the SDK, middleware and sign-in pages
+are already in `frontend/` and init would scaffold them again.
+`cd frontend && clerk doctor` checks the login, the link and the keys.
+
+3. Restrict sign-up to the household. Every signed-in user shares the list,
+   so an open sign-up would expose it. Open **Allowlist** (under **Protect**
+   or **Restrictions**), toggle **Enable allowlist**, add each household
+   email address, and **Save**.
+
+**Verify:** all three keys are non-empty and the allowlist lists the
+household addresses.
 
 ---
 
@@ -93,9 +181,10 @@ runs the connector, so do not install it on the host.
 The resulting skill endpoint is `https://grocery.<your-domain>/alexa`; section
 4 needs it.
 
-**Security:** expose only the sidecar. Never route to `backend:8000`; that
-would publish the whole API, which trusts the sidecar's shared secret and,
-with `DEV_AUTH_BYPASS=true`, nothing else.
+**Security:** expose only the sidecar here. Route to `backend:8000` only
+for [the web app on your own computer](#optional-web-app-on-your-own-computer),
+and only with `DEV_AUTH_BYPASS=false`: the route publishes the whole API,
+which with the bypass on trusts nothing.
 
 **Verify:** the tunnel is listed. Status is **Down**/**Inactive** until
 section 6 starts the connector.
@@ -218,52 +307,61 @@ providers run as Compose profiles, so item names never leave the server.
 
 | Provider | Use when | `.env` |
 |---|---|---|
-| **Ollama** (default) | Any host | `INTAKE_LLM_PROVIDER=ollama`<br>`COMPOSE_PROFILES=ollama`<br>`INTAKE_LLM_BASE_URL=http://ollama:11434/v1` |
-| **llama.cpp** | Low-spec host | `INTAKE_LLM_PROVIDER=llamacpp`<br>`COMPOSE_PROFILES=llamacpp`<br>`INTAKE_LLM_BASE_URL=http://llamacpp:8080/v1` |
-| **vLLM** | NVIDIA GPU host (needs the driver and NVIDIA Container Toolkit) | `INTAKE_LLM_PROVIDER=vllm`<br>`COMPOSE_PROFILES=vllm`<br>`INTAKE_LLM_BASE_URL=http://vllm:8000/v1` |
+| **Ollama** (default) | Any host | `INTAKE_LLM_PROVIDER=ollama`<br>`COMPOSE_PROFILES=ollama,db`<br>`INTAKE_LLM_BASE_URL=http://ollama:11434/v1` |
+| **llama.cpp** | Low-spec host | `INTAKE_LLM_PROVIDER=llamacpp`<br>`COMPOSE_PROFILES=llamacpp,db`<br>`INTAKE_LLM_BASE_URL=http://llamacpp:8080/v1` |
+| **vLLM** | NVIDIA GPU host (needs the driver and NVIDIA Container Toolkit) | `INTAKE_LLM_PROVIDER=vllm`<br>`COMPOSE_PROFILES=vllm,db`<br>`INTAKE_LLM_BASE_URL=http://vllm:8000/v1` |
 | **Off** | No triage; everything goes straight to Pending Requests | `INTAKE_LLM_PROVIDER=off` |
 
-- **OpenAI** (hosted, paid): `INTAKE_LLM_PROVIDER=openai`, empty
-  `COMPOSE_PROFILES` and `INTAKE_LLM_BASE_URL`, and an API key from
+`db` starts the Docker PostgreSQL; drop it when PostgreSQL is installed on
+the server ([see below](#optional-postgresql-installed-on-the-server)).
+
+- **OpenAI** (hosted, paid): `INTAKE_LLM_PROVIDER=openai`, no model server
+  in `COMPOSE_PROFILES` (only `db`, if used), empty `INTAKE_LLM_BASE_URL`,
+  and an API key from
   [platform.openai.com/api-keys](https://platform.openai.com/api-keys) in
   `OPENAI_API_KEY`.
-- **A model server already running on the host:** leave `COMPOSE_PROFILES`
-  empty and set `INTAKE_LLM_BASE_URL=http://host.docker.internal:<port>/v1`
+- **A model server already running on the host:** leave the model server
+  out of `COMPOSE_PROFILES` and set `INTAKE_LLM_BASE_URL=http://host.docker.internal:<port>/v1`
   (Ollama's default port is `11434`).
 
 ---
 
 ## 6. Start the stack
 
-**Auth caveat:** the web app does not integrate Clerk sign-in yet, so it
-currently requires `DEV_AUTH_BYPASS=true`, which disables auth on every
-route. That is only acceptable while the tunnel's sole route is the Alexa
-one from section 3.
+Keep `DEV_AUTH_BYPASS=false`. The web app signs people in with Clerk
+(section 2); the bypass is for local development and e2e only.
 
 ```bash
-make up
+make dev
 ```
 
 With the Ollama profile, pull the model once (~2 GB). llama.cpp and vLLM
 download theirs on first start.
 
 ```bash
-docker compose exec ollama ollama pull llama3.2
+make hm-compose args='exec ollama ollama pull llama3.2'
 ```
 
-Start the frontend dev server (foreground):
+The frontend is included in `dev`. Keep it attached to its terminal and use a
+second terminal for service commands. Open the web URL printed after readiness.
+Set `WEB_PORT=3000` and `BACKEND_PORT=8000` in the selected configuration to keep
+fixed URLs, or use the worktree defaults. Any Google OAuth redirect must match
+the selected web port.
 
-```bash
-cd frontend && pnpm install && pnpm dev
-```
-
-**Verify:** the tunnel reports **Healthy** in Cloudflare, and
-[localhost:3000](http://localhost:3000) serves the Grocery List.
+**Verify:** the tunnel reports **Healthy** in Cloudflare, and the printed web
+address redirects to `/sign-in`. The first
+time, use **Sign up** (`/sign-up`) with an allowlisted address; after that,
+sign in with **Continue with Google** or email and password. The Grocery
+List loads with your avatar top right.
 
 **Troubleshooting:**
 - Tunnel not Healthy → check `CLOUDFLARE_TUNNEL_TOKEN` for stray whitespace,
-  then `make down && make up`.
-- Anything else → `docker compose logs <service>`.
+  then `make stop-all && make dev`.
+- No sign-in page, and a **Sign-in is off** banner → `VITE_CLERK_PUBLISHABLE_KEY`
+  is empty; set it and restart `make dev`.
+- "Not allowed to sign up" → add the address to the Clerk allowlist
+  (section 2, step 3).
+- Anything else → `make hm-compose args='logs <service>'`.
 
 ---
 
@@ -288,7 +386,7 @@ Pending Requests. The rationale is in
   (section 4, step 7).
 - Remove/undo intents are not recognised → the interaction model was not
   rebuilt after adding them (section 4, steps 3–4).
-- Nothing arrives at all → `docker compose logs alexa-bridge`; a `403`
+- Nothing arrives at all → `make hm-compose args='logs alexa-bridge'`; a `403`
   means `ALEXA_SKILL_ID` does not match the skill.
 
 ---
@@ -337,6 +435,156 @@ delivery address.
 
 ---
 
+## Optional: PostgreSQL installed on the server
+
+Run the app against a PostgreSQL installed on the home server (bare metal)
+instead of the `db` container. Do this before the first `make dev`
+(section 6). Developer machines keep the default: `db` in
+`COMPOSE_PROFILES` starts PostgreSQL in Docker.
+
+The backend reaches the host through `host.docker.internal`, which
+`docker-compose.yml` maps to the host gateway (`extra_hosts`). Container
+traffic arrives from a Docker bridge network (inside `172.16.0.0/12`), not
+from `localhost`. Migrations run when the backend starts, so the database
+only needs to exist. Use PostgreSQL 16 or later, the version the `db`
+container runs.
+
+1. **Home server shell:** create the role and database. Put its password in
+   the application's `DATABASE_URL`, percent-encoded as required for a URL.
+
+   ```bash
+   sudo -u postgres createuser --pwprompt grocery
+   sudo -u postgres createdb --owner grocery grocery
+   ```
+
+   The application role needs no `CREATEDB` privilege. Tests use a separate
+   disposable Docker server and never connect to this application database.
+
+2. **`postgresql.conf`** (`sudo -u postgres psql -c 'SHOW config_file'`):
+   listen on the Docker bridge as well as loopback. `172.17.0.1` is the
+   `docker0` address that `host-gateway` resolves to; check it with
+   `ip -4 addr show docker0`.
+
+   ```
+   listen_addresses = 'localhost,172.17.0.1'
+   ```
+
+3. **`pg_hba.conf`** (`SHOW hba_file`): allow password logins from Docker
+   networks only.
+
+   ```
+   host  grocery  grocery  172.16.0.0/12  scram-sha-256
+   ```
+
+   Host-side tools (`pg_restore` below) connect over
+   `localhost`, which the stock `host all all 127.0.0.1/32 scram-sha-256`
+   line already allows.
+
+4. **Home server shell:** `sudo systemctl restart postgresql`. With a host
+   firewall (ufw, firewalld), allow `5432/tcp` from `172.16.0.0/12`.
+
+5. **`.env`:** point the backend at the host. Startup removes `db` from the
+   active profiles for external PostgreSQL, even in an older configuration.
+   Percent-encode any `@ : / # ?` in the password.
+
+| `.env` key | Value |
+|---|---|
+| `COMPOSE_PROFILES` | Without `db`, e.g. `ollama` |
+| `DATABASE_URL` | `postgres://grocery:<POSTGRES_PASSWORD>@host.docker.internal:5432/grocery` |
+
+**Verify:** `make dev` starts no `db` container (`make hm-compose args='ps'`), and
+`make hm-compose args='logs backend'` shows the migrations applied with no
+connection errors.
+
+**Moving data from the `db` container:** before step 5, with the old stack
+still up:
+
+```bash
+make hm-compose args='exec -T db pg_dump -U grocery -Fc grocery' > grocery.dump
+pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
+```
+
+| Symptom | Fix |
+|---|---|
+| Backend logs `connection refused` | `listen_addresses` misses `172.17.0.1`, or the firewall blocks 5432 from Docker. |
+| Backend logs `no pg_hba.conf entry` | Add the step 3 line, then restart PostgreSQL. |
+| Backend logs `password authentication failed` | The password in `DATABASE_URL` differs from the role's, or has an unencoded special character. |
+| `make dev` stops with "COMPOSE_PROFILES does not include db" | `DATABASE_URL` still names `db`; finish step 5. On a developer machine, add `db` instead (a `.env` made before the `db` profile existed lacks it). |
+| A `db` container still starts | `db` is still in `COMPOSE_PROFILES`, in `.env` or exported in the shell (the shell wins). |
+
+---
+
+## Optional: web app on your own computer
+
+Run the web app on your own computer while the backend and PostgreSQL stay
+on the home server. The browser calls the backend at `VITE_API_BASE_URL`,
+so the backend gets its own public hostname on the existing tunnel. Spec:
+[`features/FEATURE_REMOTE_BACKEND.md`](features/FEATURE_REMOTE_BACKEND.md).
+
+**Security:** this publishes the whole API. It is safe only with sign-in on:
+on the server, `DEV_AUTH_BYPASS=false` and `CLERK_JWKS_URL` set (section 2).
+With the bypass on, anyone who finds the hostname can read and change the
+list.
+
+### Cloudflare dashboard (dash.cloudflare.com)
+
+In **Networking → Tunnels → grocery-list → Routes → Add route → Published
+application**, add a second hostname. Leave **Path** empty so `/api/*` and
+the `/ws` WebSocket both reach the backend:
+
+| Field | Value |
+|---|---|
+| Subdomain | `grocery-api` |
+| Domain | your domain |
+| Path | *(empty)* |
+| Service URL | `http://localhost:8000` (systemd, [`production.md`](production.md)) or `http://backend:8000` (Compose) |
+
+Cloudflare passes WebSockets through without extra settings.
+
+### Home server `.env`
+
+| Key | Value |
+|---|---|
+| `DEV_AUTH_BYPASS` | `false` |
+| `CORS_ORIGINS` | must include the web app's origin, `http://localhost:3000` by default. Comma-separate more than one. |
+
+Restart the backend (`sudo systemctl restart grocery-backend`, or
+`make stop-all && make dev` under Compose).
+
+### Your computer
+
+Needs Node 22+, `pnpm` and a checkout of this repository. No Docker and no
+database. Create `.env` in the checkout root with only the web app's keys:
+
+| Key | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://grocery-api.<your-domain>` |
+| `VITE_WS_URL` | empty (follows `VITE_API_BASE_URL` as `wss://…/ws`) |
+| `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` | the publishable key (section 2) |
+| `CLERK_SECRET_KEY` | the secret key; the web app's own server reads the sign-in cookie with it |
+
+Clerk development keys (`pk_test_…`) work on `localhost`. Production keys
+(`pk_live_…`) work only on the domain set in Clerk, so use the development
+instance's keys here.
+
+Then run `make hm-dev-frontend` and open [localhost:3000](http://localhost:3000).
+`WEB_PORT=3001 make hm-dev-frontend` picks another port; add that origin to
+`CORS_ORIGINS` on the server.
+
+**Verify:** `curl https://grocery-api.<your-domain>/api/health` answers, and
+after signing in the Pending Requests page loads without errors in the
+browser console.
+
+| Symptom | Fix |
+|---|---|
+| Console: `blocked by CORS policy` | The origin in the address bar is missing from the server's `CORS_ORIGINS`, or the backend was not restarted. |
+| Every request is `401` | The server's `CLERK_JWKS_URL` is from a different Clerk instance than the keys on your computer. |
+| Clerk error about the domain or key | A `pk_live_…` key on `localhost`; use the development instance's keys. |
+| Console: `VITE_API_BASE_URL must start with http:// or https://` | Add the scheme to the value, then restart `make hm-dev-frontend`. |
+| Requests still go to `localhost:8000` | `VITE_*` values are read at start: restart `make hm-dev-frontend`. |
+
+---
+
 ## Optional: Google Tasks
 
 Typed items in a Google Tasks list become intake requests: the backend polls
@@ -369,7 +617,7 @@ the list, records each open task, then deletes it. Spec:
 | Client ID (`….apps.googleusercontent.com`) | `GOOGLE_CLIENT_ID` |
 | Client secret (`GOCSPX-…`) | `GOOGLE_CLIENT_SECRET` |
 
-4. **Home server shell:** `make up` to restart with the new values.
+4. **Home server shell:** `make dev` to restart with the new values.
 5. **Web app on the home server** ([localhost:3000](http://localhost:3000)):
    **Intake → Connect Google Tasks**, pick the account, accept the
    unverified-app warning (**Advanced → Go to Grocery list**) and allow Tasks
@@ -381,7 +629,7 @@ the list, records each open task, then deletes it. Spec:
 
 | Symptom | Fix |
 |---|---|
-| Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make up`. |
+| Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make dev`. |
 | Google says `redirect_uri_mismatch` | The client's redirect URI must be exactly `http://localhost:3000/settings/intake`. |
 | Card says "connect Google Tasks again" | **Disconnect**, then repeat step 5. |
 

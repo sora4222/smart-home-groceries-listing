@@ -1,0 +1,82 @@
+#!/bin/sh
+# Resolve one grocery component's configuration, as root, outside the service.
+#
+#   grocery-env write COMPONENT   systemd ExecStartPre: writes
+#                                 /run/grocery-secrets/COMPONENT.env (root, 0600)
+#   grocery-env json COMPONENT    make hm-install-server: prints the values as JSON
+#
+# 1Password access, first match wins:
+#   1. /etc/1password/grocery.token   per-app service-account token
+#   2. /etc/1password/token           shared service-account token
+#   3. /etc/grocery/op-desktop-user   run as that login user, through the
+#                                     1Password desktop app (needs a person)
+# Without any of them, only literal values in the configuration work.
+#
+# The token file is read by the resolver itself. It is never placed in an
+# environment, a command line or a file the application can read; systemd
+# reads the resolved file as root and the unit deletes it once started.
+set -eu
+
+die() { echo "grocery-env: $*" >&2; exit 1; }
+
+mode=${1:-}
+name=${2:-}
+case $mode in
+  write) format=systemd ;;
+  json) format=json ;;
+  *) die "usage: grocery-env write|json COMPONENT" ;;
+esac
+[ -n "$name" ] || die "usage: grocery-env write|json COMPONENT"
+
+here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+node=${GROCERY_NODE:-$here/../bin/node}
+resolver=$here/../lib/service-env.mjs
+config=${GROCERY_CONFIG:-/etc/grocery/grocery.env}
+etc_dir=${GROCERY_ETC:-/etc/grocery}
+tokens=${GROCERY_OP_TOKENS:-/etc/1password/grocery.token /etc/1password/token}
+secrets=${GROCERY_SECRETS_DIR:-/run/grocery-secrets}
+safe_path=${GROCERY_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}
+
+[ -r "$config" ] || die "cannot read $config; run 'sudo make hm-install-server' from the repository"
+
+token=
+for candidate in $tokens; do
+  if [ -r "$candidate" ]; then token=$candidate; break; fi
+done
+desktop_user=
+if [ -z "$token" ] && [ -r "$etc_dir/op-desktop-user" ]; then
+  desktop_user=$(head -n 1 "$etc_dir/op-desktop-user")
+fi
+
+# Every branch starts node with an empty environment, so nothing inherited
+# (including a stale resolved file) can override the configuration.
+resolve() {
+  if [ -n "$token" ]; then
+    env -i PATH="$safe_path" HOME="${HOME:-/root}" \
+      "$node" "$resolver" --format "$format" --token-file "$token" "$name" < "$config"
+  elif [ -n "$desktop_user" ]; then
+    uid=$(id -u "$desktop_user") || die "desktop user $desktop_user does not exist"
+    home=$(getent passwd "$desktop_user" | cut -d: -f6)
+    runuser -u "$desktop_user" -- env -i PATH="$safe_path" HOME="$home" \
+      XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+      "$node" "$resolver" --format "$format" "$name" < "$config"
+  else
+    env -i PATH="$safe_path" HOME="${HOME:-/root}" \
+      "$node" "$resolver" --format "$format" "$name" < "$config"
+  fi
+}
+
+if [ "$format" = json ]; then
+  resolve
+  exit 0
+fi
+
+umask 077
+mkdir -p "$secrets"
+chmod 700 "$secrets"
+tmp=$(mktemp "$secrets/.$name.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+resolve > "$tmp" || die "could not resolve the $name configuration (see the message above)"
+mv -f "$tmp" "$secrets/$name.env"
+trap - EXIT
+echo "grocery-env: resolved the $name configuration"

@@ -10,6 +10,7 @@ and API details are in [`features/`](features/).
 | [Voice intake: remove, reduce, undo](#voice-intake-remove-reduce-undo) | Echo |
 | [Google Tasks intake](#google-tasks-intake) | Google Tasks, then the web app |
 | [Triage review](#triage-review) | Web app `/triage` |
+| [Delivery fees and store choice](#delivery-fees-and-store-choice) | Web app `/settings/delivery`, `/order` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
 | [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
@@ -17,8 +18,34 @@ and API details are in [`features/`](features/).
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
 | [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
 | [Access log review](#access-log-review) | Web app `/logs` |
+| [Add a household member](#add-a-household-member) | Clerk dashboard |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
+
+---
+
+## Configuration and 1Password
+
+`make dev` and `make hm-dev` resolve references before
+starting Compose. Backend, frontend, and bridge processes also load their own
+settings when started directly. Exported variables override `.env`.
+Restart the affected process after changing a value.
+
+For an arbitrary local command:
+
+```bash
+make hm-compose args='up -d backend'
+```
+
+Existing `cd frontend && pnpm dev` and `pnpm start` commands load Clerk
+settings before startup. `cargo run` from `backend/` and the bridge's
+`create_app()` load their own settings. Start containers through the shared
+loader so the images receive resolved values.
+
+Concurrent worktrees need separate `.env` files, `COMPOSE_PROJECT_NAME`,
+`POSTGRES_PORT`, and frontend ports. `GROCERY_ENV_FILE` selects another file.
+Desktop approvals and optional service-account provisioning are in
+[setup](human-setup.md#1password).
 
 ---
 
@@ -90,6 +117,30 @@ items (`FEATURE_TRIAGE.md`). The **Triage** nav badge counts held items.
 
 ---
 
+## Delivery fees and store choice
+
+The app can't read the stores' delivery fees, so enter them once; re-enter
+when a store changes its fees.
+
+**Web app**
+1. **Delivery** (`/settings/delivery`): per store, **Delivery fee**, **Free
+   delivery from** and **Minimum order** (empty = not set). Pick **How to
+   pick stores** and optionally **Most to spend on delivery**, then **Save**
+   (toast has **Undo**).
+2. To let the app compare stores for an item, **Compare prices → Choose** a
+   product at **each** store. The newest choice is the one bought; the other
+   shows as **Also at …** on the item card.
+3. On **Order**, **Ways to buy** ranks the options with delivery included.
+   **Rank by** tries another mode for this visit. **Use this** moves items
+   to that option's stores (toast has **Undo**).
+
+**Verify:** each option shows `items + delivery` per store, and the
+recommended one is badged **Recommended**.
+
+Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION.md).
+
+---
+
 ## Woolworths shop
 
 Use Chrome for both the web app and the store tab.
@@ -107,9 +158,12 @@ Use Chrome for both the web app and the store tab.
 **Store tab**
 4. Sign in if prompted, then run the **Fill Woolworths trolley**
    bookmarklet. First run: allow Chrome's local-network access prompt.
-5. The bookmarklet reports products added and the reserved delivery window.
-6. Review the trolley and pay on woolworths.com.au. The app never handles
-   payment.
+5. The bookmarklet reports products added and the reserved delivery window,
+   and asks **Go to checkout now?** **OK** opens the checkout page;
+   **Cancel** stays on the trolley.
+6. Review the order and pay on woolworths.com.au. The app stops at the
+   checkout page and never handles payment
+   ([`FEATURE_CHECKOUT.md`](features/FEATURE_CHECKOUT.md)).
 
 **Verify:** the **Send to Woolworths** panel lists each line as **Added**
 with a **Delivery:** line, then shows **Saved as bought**.
@@ -145,15 +199,16 @@ Same as the Woolworths shop, with these differences:
 2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
    signed in and a store is selected **before** claiming the handoff, so a
    refusal leaves the handoff waiting; fix it and run it again.
-3. Reload the page and open the trolley to review it.
+3. On **Go to checkout now?**, **OK** opens Coles checkout (`/checkout`).
+   **Cancel**: reload the page and open the trolley.
 4. Pick a delivery window on coles.com.au, then pay there.
 
 **Verify:** the **Send to Coles** panel lists each line as **Added**, then
 **Saved as bought**.
 
-The Coles trolley calls were not verified live before release
-(`FEATURE_TROLLEY_HANDOFF.md`, "Coles"). If the first run fails, report the
-exact message.
+The Coles trolley calls were checked live on 2026-10-06
+(`FEATURE_TROLLEY_HANDOFF.md`, "Coles"), but not yet a full run from the
+grocery app. If the first run fails, report the exact message.
 
 ---
 
@@ -220,14 +275,24 @@ volume (`/var/log/grocery`), kept 30 days.
 
 ---
 
+## Add a household member
+
+In [dashboard.clerk.com](https://dashboard.clerk.com), open the application's
+**Allowlist**, add their email address and **Save**. They then use **Sign
+up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
+
+---
+
 ## After an update
 
 | Change | Action |
 |---|---|
+| Checkout step added to the bookmarklets (2026-10-03) | Re-drag both bookmarklets, as below. |
 | Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
 | `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
+| Clerk sign-in arrived (stack ran with `DEV_AUTH_BYPASS=true`) | Rename `CLERK_PUBLISHABLE_KEY` to `VITE_CLERK_PUBLISHABLE_KEY` in `.env`, set `DEV_AUTH_BYPASS=false`, enable the Clerk allowlist ([`human-setup.md` §2](human-setup.md#2-clerk)), then `make stop-all && make dev` for the full stack. |
 | New migration | None; migrations run on backend start. |
-| New `.env` key | `make setup-env`, fill any non-generated value, then `make down && make up`. |
+| New `.env` key | `make setup-env`, fill any non-generated value, then `make stop-all && make dev`. |
 | Alexa interaction model changed | Update the JSON in the Alexa console and rebuild ([`human-setup.md` §4](human-setup.md#4-alexa-skill)). |
 
 ---
@@ -246,7 +311,7 @@ volume (`/var/log/grocery`), kept 30 days.
 | "Coles is still loading" | Coles page config not ready; reload and re-run. |
 | **Saved as bought** never appears | Backend unreachable when the report was posted; items stay on the list. |
 | A line shows **Not added** | Not deliverable from your store right now; choose another product. |
-| Triage says "The checker could not be reached" | Model server down: `make up` (Ollama: also `docker compose exec ollama ollama pull llama3.2`), then **Accept** in Triage. |
+| Triage says "The checker could not be reached" | Model server down: `make dev` (Ollama: also `make hm-compose args='exec ollama ollama pull llama3.2'`), then **Accept** in Triage. |
 | Alexa: "I couldn't find … on the list" | No `active` item matched; check the exact name on **Grocery List**. |
 | Alexa: "The list is locked for purchase" | The list is committed; release it in the web app first. |
 | Google Tasks card: "connect Google Tasks again" | Access was revoked or expired: **Intake → Disconnect**, then connect again. |

@@ -53,7 +53,9 @@ test.describe("choosing a product", () => {
 		await expect(chosenOn(page, "milk")).toContainText("3L · Coles · $4.95 each");
 	});
 
-	test("choosing another product replaces the first", async ({ page }) => {
+	test("choosing at the other store keeps both, and the newest is bought", async ({
+		page,
+	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
 		const sheet = await openComparison(page, "milk");
@@ -70,12 +72,14 @@ test.describe("choosing a product", () => {
 			})
 			.click();
 
-		await expect(
-			sheet.getByRole("button", { name: /is chosen$/ }),
-		).toHaveAccessibleName("Woolworths Full Cream Milk at Woolworths is chosen");
+		// One product per store: both stay chosen.
+		await expect(sheet.getByRole("button", { name: /is chosen$/ })).toHaveCount(2);
 		await page.keyboard.press("Escape");
 		await expect(chosenOn(page, "milk")).toContainText("Woolworths");
 		await expect(chosenOn(page, "milk")).toContainText("$3.10 each");
+		await expect(
+			page.getByRole("region", { name: "Also chosen at Coles for milk" }),
+		).toContainText("$4.95 each");
 	});
 
 	test("the choice survives a reload and can be cleared", async ({ page }) => {

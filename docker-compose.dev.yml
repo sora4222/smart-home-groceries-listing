@@ -1,0 +1,54 @@
+# Local development only. The regular Compose file retains its tunnel boundary.
+services:
+  db:
+    ports: !reset []
+  backend:
+    ports:
+      - "127.0.0.1:${BACKEND_PORT}:8000"
+    environment:
+      CORS_ORIGINS: http://localhost:${WEB_PORT}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend
+          ignore: [target/]
+  alexa-bridge:
+    develop:
+      watch:
+        - action: rebuild
+          path: ./sidecars/alexa-bridge
+          ignore: [.venv/, __pycache__/, .pytest_cache/, .ruff_cache/]
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      GROCERY_ENV_FILE: /dev/null
+      SERVER_API_BASE_URL: http://backend:8000
+      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
+      VITE_WS_URL: ws://localhost:${BACKEND_PORT}/ws
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
+      VITE_AUTH_MODE: ${VITE_AUTH_MODE:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 24
+      start_period: 20s
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /workspace/frontend/src
+          initial_sync: true
+        - action: rebuild
+          path: ./frontend
+          ignore: [src/, node_modules/, .output/, test-results/, playwright-report/]
+        - action: rebuild
+          path: ./scripts

@@ -30,6 +30,8 @@ export interface OrderLine {
 	brand: string | null;
 	package_size: string | null;
 	url: string;
+	/** The chosen product's picture, when it has one. */
+	image_url: string | null;
 	status: OrderLineStatus;
 	/** Shelf price for one today. */
 	price: string | null;

@@ -19,7 +19,7 @@ function renderButton(
 	render(
 		choice ? (
 			<ProductChoiceProvider
-				value={{ chosen: null, onChoose: vi.fn(), ...choice }}
+				value={{ chosen: [], onChoose: vi.fn(), ...choice }}
 			>
 				{button}
 			</ProductChoiceProvider>
@@ -47,7 +47,7 @@ describe("ChooseProductButton", () => {
 	});
 
 	it("marks the product already chosen", () => {
-		renderButton({ chosen: { store: "coles", product_id: "c-milk-3l" } });
+		renderButton({ chosen: [{ store: "coles", product_id: "c-milk-3l" }] });
 
 		const button = screen.getByRole("button", {
 			name: "Coles Full Cream Milk at Coles is chosen",
@@ -58,7 +58,7 @@ describe("ChooseProductButton", () => {
 
 	it("does not mark the same id at another store as chosen", () => {
 		renderButton({
-			chosen: { store: "woolworths", product_id: "c-milk-3l" },
+			chosen: [{ store: "woolworths", product_id: "c-milk-3l" }],
 		});
 
 		expect(screen.getByRole("button", { name: /^Choose / })).toHaveAttribute(

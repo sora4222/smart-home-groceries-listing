@@ -5,6 +5,7 @@ import type {
 	GroceryItemEdit,
 	ItemSelection,
 	ProductChoice,
+	StoreId,
 } from "#/lib/api";
 
 /**
@@ -28,7 +29,7 @@ export function GroceryItemSection({
 	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
 	onChoose: (id: string, choice: ProductChoice) => Promise<void>;
-	onClearChoice: (id: string) => Promise<void>;
+	onClearChoice: (id: string, store: StoreId) => Promise<void>;
 }) {
 	if (items.length === 0) {
 		return empty ? (

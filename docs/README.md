@@ -11,6 +11,7 @@ Manual steps, ordered by dependency and grouped by place.
 | Doc | Read it when |
 |---|---|
 | [`human-setup.md`](human-setup.md) | Provisioning Clerk, Cloudflare, the Alexa skill, the triage model and the stack for the first time |
+| [`production.md`](production.md) | Running the app on the home server as systemd services, without Docker (`make build`, `sudo make hm-install-server`) |
 | [`using-the-app.md`](using-the-app.md) | Voice intake (add, remove, reduce, undo), a Woolworths shop, undoing a purchase, after an update, troubleshooting |
 
 ## Specs and findings

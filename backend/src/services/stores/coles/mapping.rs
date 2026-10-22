@@ -1,7 +1,8 @@
 //! Coles' products → [`Product`].
 
-use super::wire::{MultiBuy, Pricing, SearchPage, WireProduct};
+use super::wire::{ImageUri, MultiBuy, Pricing, SearchPage, WireProduct};
 use crate::services::stores::deal::Deal;
+use crate::services::stores::image::https_only;
 use crate::services::stores::measure;
 use crate::services::stores::money::{from_wire, positive_from_wire};
 use crate::services::stores::product::Product;
@@ -10,6 +11,9 @@ use crate::services::stores::unit_price::{normalise, UnitPrice};
 
 /// The `_type` Coles gives product results.
 const PRODUCT_TYPE: &str = "PRODUCT";
+
+/// Where the paths in `imageUris` live.
+const IMAGE_SERVER: &str = "https://productimages.coles.com.au/productimages";
 
 /// Every product on the page, in Coles' order, without paid placements.
 ///
@@ -43,14 +47,15 @@ fn is_advert(p: &WireProduct) -> bool {
     has_ad_id || p.featured == Some(true)
 }
 
-/// One product.
-fn product(p: WireProduct, site_url: &str) -> Product {
+/// One product, from a search result or a product page.
+pub fn product(p: WireProduct, site_url: &str) -> Product {
     let pricing = p.pricing.as_ref();
     let price = pricing.and_then(|pr| from_wire(pr.now));
     Product {
         store: Store::Coles,
         product_id: p.id.to_string(),
         url: product_url(site_url, &p),
+        image_url: image_url(&p.image_uris),
         was_price: pricing
             .and_then(|pr| positive_from_wire(pr.was))
             .filter(|was| Some(*was) > price),
@@ -68,6 +73,20 @@ fn product(p: WireProduct, site_url: &str) -> Product {
         package_size: p.size.filter(|s| !s.trim().is_empty()),
         price,
     }
+}
+
+/// The main picture (`type: default`), else the first one.
+fn image_url(uris: &[ImageUri]) -> Option<String> {
+    let main = uris
+        .iter()
+        .find(|image| image.kind.as_deref() == Some("default"))
+        .or_else(|| uris.first())?;
+    let path = main.uri.trim();
+    if path.starts_with("https://") {
+        return https_only(Some(path));
+    }
+    path.starts_with('/')
+        .then(|| format!("{IMAGE_SERVER}{path}"))
 }
 
 /// Coles marks specials by promotion type, or flags an online-only one.
@@ -155,6 +174,10 @@ mod tests {
         assert!(coke.on_special);
         assert_eq!(coke.category.as_deref(), Some("Soft Drinks"));
         assert_eq!(
+            coke.image_url.as_deref(),
+            Some("https://productimages.coles.com.au/productimages/1/123011.jpg")
+        );
+        assert_eq!(
             coke.url,
             "https://www.coles.com.au/product/coca-cola-classic-soft-drink-bottle-1-25l-123011"
         );
@@ -205,10 +228,46 @@ mod tests {
     }
 
     #[test]
+    fn a_product_without_pictures_has_no_image() {
+        let products = fixture();
+        let bananas = products.iter().find(|p| p.product_id == "409499").unwrap();
+        assert_eq!(bananas.image_url, None);
+    }
+
+    #[test]
+    fn an_image_path_must_be_a_path_on_the_image_server() {
+        let image = |uri: &str| ImageUri {
+            uri: uri.into(),
+            kind: None,
+        };
+        assert_eq!(image_url(&[image("javascript:alert(1)")]), None);
+        assert_eq!(
+            image_url(&[image("https://cdn.example/a.jpg")]).as_deref(),
+            Some("https://cdn.example/a.jpg")
+        );
+    }
+
+    #[test]
     fn slugs_are_lowercase_hyphenated_words() {
         assert_eq!(
             slugify("Coles Full Cream Milk 3L"),
             "coles-full-cream-milk-3l"
+        );
+    }
+
+    #[test]
+    fn a_product_page_maps_like_a_search_result() {
+        let json = include_str!("../../../../tests/fixtures/coles/product_milk.json");
+        let page: super::super::wire::ProductPage = serde_json::from_str(json).unwrap();
+        let found = product(page.page_props.product.unwrap(), "https://www.coles.com.au");
+        assert_eq!(found.product_id, "8150288");
+        assert_eq!(found.price, Some(dec!(4.95)));
+        assert_eq!(found.was_price, None);
+        assert_eq!(found.category.as_deref(), Some("Milk"));
+        assert!(found.available && !found.on_special);
+        assert_eq!(
+            found.url,
+            "https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288"
         );
     }
 }

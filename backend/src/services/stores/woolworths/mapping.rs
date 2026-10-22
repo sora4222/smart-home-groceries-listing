@@ -2,8 +2,9 @@
 
 use rust_decimal::Decimal;
 
-use super::wire::{Attributes, SearchResponse, Tag, WireProduct};
+use super::wire::{Attributes, ProductDetail, SearchResponse, Tag, WireProduct};
 use crate::services::stores::deal::Deal;
+use crate::services::stores::image::https_only;
 use crate::services::stores::measure;
 use crate::services::stores::money::{from_wire, positive_from_wire};
 use crate::services::stores::product::Product;
@@ -23,6 +24,11 @@ pub fn products(response: SearchResponse, site_url: &str) -> Vec<Product> {
         .collect()
 }
 
+/// The product on a product page, if the page has one.
+pub fn detail(response: ProductDetail, site_url: &str) -> Option<Product> {
+    response.product.map(|p| product(p, site_url))
+}
+
 /// One product.
 fn product(p: WireProduct, site_url: &str) -> Product {
     let price = from_wire(p.price);
@@ -30,6 +36,7 @@ fn product(p: WireProduct, site_url: &str) -> Product {
         store: Store::Woolworths,
         product_id: p.stockcode.to_string(),
         url: product_url(site_url, p.stockcode, p.url_friendly_name.as_deref()),
+        image_url: https_only(p.small_image_file.as_deref()),
         unit_price: unit_price(p.cup_price, p.cup_measure.as_deref()),
         was_price: positive_from_wire(p.was_price).filter(|was| Some(*was) > price),
         deals: p.centre_tag.as_ref().and_then(deal).into_iter().collect(),
@@ -115,6 +122,10 @@ mod tests {
         assert_eq!(pepsi.price, Some(dec!(4)));
         assert_eq!(pepsi.category.as_deref(), Some("Soft Drinks"));
         assert_eq!(
+            pepsi.image_url.as_deref(),
+            Some("https://cdn0.woolworths.media/content/wowproductimages/small/007985.jpg")
+        );
+        assert_eq!(
             pepsi.url,
             "https://www.woolworths.com.au/shop/productdetails/7985/pepsi-max-cola-no-sugar-soft-drink-bottle"
         );
@@ -160,5 +171,25 @@ mod tests {
     fn a_response_with_no_products_is_empty() {
         let empty: SearchResponse = serde_json::from_str(r#"{"Products":null}"#).unwrap();
         assert!(products(empty, "https://example.test").is_empty());
+    }
+
+    #[test]
+    fn a_product_page_maps_like_a_search_result() {
+        let json = include_str!("../../../../tests/fixtures/woolworths/product_722.json");
+        let found = detail(
+            serde_json::from_str(json).unwrap(),
+            "https://www.woolworths.com.au",
+        )
+        .unwrap();
+        assert_eq!(found.product_id, "722");
+        assert_eq!(found.brand.as_deref(), Some("Kleenex"));
+        assert_eq!(found.package_size.as_deref(), Some("12 pack"));
+        assert_eq!(found.price, Some(dec!(12)));
+        assert_eq!(found.was_price, Some(dec!(13.5)));
+        assert!(found.on_special && found.available);
+        assert_eq!(
+            found.url,
+            "https://www.woolworths.com.au/shop/productdetails/722/kleenex-complete-clean-double-length-toilet-paper"
+        );
     }
 }

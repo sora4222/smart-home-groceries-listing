@@ -34,7 +34,9 @@ src/
 │   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
-│   ├── selections.rs    # the one product chosen per item: GET/PUT/DELETE
+│   ├── selections.rs    # products chosen per item and store; PUT /api/order-stores
+│   ├── order_options.rs # GET /api/order-options — the planner
+│   ├── delivery_settings.rs # GET/PUT /api/delivery-settings
 │   ├── order_review.rs  # GET /api/order-review — committed choices re-priced
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept, reject, restore
 │   ├── google_tasks.rs  # /api/intake/google-tasks — sign-in, lists, choices, poll
@@ -50,6 +52,7 @@ src/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
 │   ├── clerk.rs         # Clerk JWKS verification (current implementation)
 │   ├── request_user.rs  # slot the extractor fills so the access log knows the user
+│   ├── socket.rs        # SocketUser: the /ws check, token from header or ?token=
 │   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
 │   ├── db.rs            # row types + status/source enums
@@ -95,6 +98,9 @@ src/
 │   │                    #   the pure rule the optimiser calls — skills/dislikes.md
 │   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),
 │   │                    #   summary.rs (by store + totals, pure), log.rs
+│   ├── order_plan/      # ways to buy with delivery: fees, option, search
+│   │                    #   (best store mix), rank (modes), build — skills/order-planning.md
+│   ├── delivery_settings/ # Settings › Delivery: fee rules per store, mode, cap
 │   ├── purchases/       # a filled trolley saved as bought (background), Undo,
 │   │                    #   price/fee/category rules (pure), history, read +
 │   │                    #   write repositories — docs/features/FEATURE_PURCHASE_HISTORY.md
@@ -155,7 +161,16 @@ All auth goes through `auth/mod.rs` — never call a provider SDK from a route.
 Swapping provider means implementing `AuthProvider` and changing
 `build_provider`; nothing else moves.
 
-`DEV_AUTH_BYPASS=true` turns the `AuthUser` extractor into a fixed dev user.
+`/ws` takes `SocketUser` (`auth/socket.rs`) instead: the same check, but the
+token may come as `?token=`, because browsers cannot set WebSocket headers.
+
+**A new household route goes in `tests/auth_required.rs`**, which checks every
+one answers 401 with no token and with a forged one. `tests/clerk_tokens.rs`
+signs real RS256 tokens with test-only keys against a mock JWKS
+(`tests/common/clerk.rs`, `TestApp::with_clerk`). Details:
+`docs/features/FEATURE_AUTH.md`.
+
+`DEV_AUTH_BYPASS=true` turns both extractors into a fixed dev user.
 It logs a warning at startup. Never set it on a host reachable through the
 Cloudflare Tunnel.
 
@@ -282,5 +297,7 @@ secret, and contain no rules about the grocery list.
 - `skills/triage.md` — LLM triage and the e2e stack
 - `skills/store-integration.md` — store endpoints, `wreq`, bot-protection rules,
   unit prices and deals
+- `skills/order-planning.md` — delivery fees, modes, the store-mix search,
+  and the `for_order` rule
 - `skills/dislikes.md` — dislike scopes, overrides, and how the optimiser
   asks which product it may buy

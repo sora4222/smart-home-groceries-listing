@@ -116,7 +116,7 @@ describe("GroceryItemCard", () => {
 			screen.getByRole("button", { name: "Clear the chosen product for milk" }),
 		);
 
-		expect(onClearChoice).toHaveBeenCalledWith(itemFixture().id);
+		expect(onClearChoice).toHaveBeenCalledWith(itemFixture().id, "coles");
 	});
 
 	it("says when no product has been chosen", () => {

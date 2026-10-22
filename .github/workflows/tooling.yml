@@ -21,14 +21,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: for test in scripts/*.test.sh; do sh "$test"; done
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.0
+      - run: pnpm install --frozen-lockfile
+      - run: make test-tooling
 
   shellcheck:
     name: shellcheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: shellcheck scripts/*.sh
+      - run: shellcheck scripts/*.sh deploy/*.sh deploy/bin/grocery-env
 
   actionlint:
     name: actionlint
@@ -45,3 +52,9 @@ jobs:
       - uses: actions/checkout@v7
       # Compose needs a .env to read; the example has every key.
       - run: cp .env.example .env && docker compose config --quiet
+      # Developers get the Docker database from the example's COMPOSE_PROFILES.
+      - run: docker compose config --services | grep -qx db
+      # A server with PostgreSQL installed drops the `db` profile; the backend's
+      # optional depends_on must still parse without it.
+      - run: COMPOSE_PROFILES=ollama docker compose config --quiet
+      - run: WEB_PORT=3000 BACKEND_PORT=8000 docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet

@@ -240,7 +240,7 @@ to the intended household devices. Do not reset all Serve configuration or
 rename the shared server. This Service uses its own DNS name and virtual IP.
 See [Tailscale Services](https://tailscale.com/docs/features/tailscale-services).
 
-Proposed production Environment changes, requiring the owner's approval:
+Production Environment changes approved and saved on 2026-10-22:
 
 | Variable | Value |
 |---|---|
@@ -259,7 +259,14 @@ handshake from the desktop computer after deployment. A backend health response
 alone does not establish that sign-in or authenticated trolley operations work.
 
 The Service routes and HTTPS backend health check passed from the Mac on
-2026-10-22. The production URL changes and deployment remain pending approval.
+2026-10-22. All five approved settings are saved in the production 1Password
+Environment, with one variable per name. Existing URL and CORS variables were
+edited in place through the desktop UI because the MCP append operation had
+previously created duplicates. The existing localhost CORS origin was retained.
+Deployment is pending SSH access: the required 1Password wrapper timed out
+waiting for CLI authorization. The live frontend returns 307 to sign-in; the
+API preflight still lacks the Tailscale frontend's allowed origin, so the saved
+configuration has not been verified in the running services.
 The server checkout has unrelated staged and unstaged work. Deploy an approved
 commit from a separate checkout; do not switch or overwrite that working tree.
 
@@ -271,3 +278,8 @@ The first browser run had one module-fetch failure after dependency installation
 changed during the run; the complete rerun with the final lockfile passed.
 Live Clerk sign-in and authenticated store fills remain unverified. Windows
 and Linux native builds have not been run locally.
+
+After merging current main (`c70e157`) into the desktop branch on 2026-10-22,
+`make check`, tooling tests, 359 frontend unit tests, 22 desktop tests and
+12 price-comparison browser tests passed. The broader suite counts above are
+from the earlier branch validation, not a rerun after that merge.

@@ -6,6 +6,10 @@ description: Change the Tauri desktop connection, native commands, store windows
 # Desktop client
 
 Read `docs/features/FEATURE_DESKTOP_APP.md` before changing behavior.
+For production URL changes or deployment, read the Tailscale Service section
+in `docs/production.md`. Verify the installed configuration loader before
+deploying from an isolated checkout; saved Environment values alone do not
+establish that the frontend build and running services use those values.
 `desktop/src-tauri/` owns native commands and settings. The frontend owns all
 screens and shared trolley programs. Keep each module responsible for one task.
 

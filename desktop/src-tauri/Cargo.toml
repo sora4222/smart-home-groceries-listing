@@ -1,0 +1,26 @@
+[package]
+name = "grocery-desktop"
+version = "0.1.0"
+description = "Desktop app: shows the grocery server's web app and does the Woolworths and Coles steps on this computer."
+edition = "2021"
+rust-version = "1.85"
+
+[lib]
+name = "grocery_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.1", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.1", features = ["tray-icon", "dynamic-acl"] }
+tauri-plugin-notification = "2.5.1"
+tauri-plugin-log = "2.10.0"
+tauri-plugin-single-instance = "2.5.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2.5.8"
+log = "0.4"
+
+[dev-dependencies]
+tempfile = "3"

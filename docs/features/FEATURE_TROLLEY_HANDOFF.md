@@ -143,6 +143,11 @@ outcome, problem). Lines are a snapshot; deleting the list item keeps them.
   `FillTrolleyBookmark`, `HandoffStatus`).
 - Setting: `STORE_TAB_SECRET`.
 
+## Desktop app
+In the desktop app the same handoff is filled by the app's own Woolworths
+window instead of the bookmark (**Fill trolley in the app**), with the same
+program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
+
 ## Not built
 - A live run of the Coles bookmark (first real run is the household's).
 - Reserving a Coles delivery time (find its calls in DevTools first).

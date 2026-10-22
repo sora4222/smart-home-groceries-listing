@@ -10,7 +10,8 @@ spending analysis and settings. Grocery rules and persistence belong to the
 
 From the repository root, `make dev` starts the complete stack and prints its
 local URLs. Source changes reload through Vite; configuration and dependency
-changes rebuild the frontend container. `make stop-all` stops the stack.
+changes rebuild the frontend container. `make dev-stop` stops the stack and
+retains database volumes.
 
 For only the web app, `make hm-dev-frontend` installs locked dependencies and
 starts Vite on `WEB_PORT`, default 3000. Set `VITE_API_BASE_URL` to the intended
@@ -20,8 +21,10 @@ This workflow starts no backend or database.
 
 Direct commands here are `pnpm dev`, `pnpm build`, and `pnpm start`.
 The build outputs the SSR bundle in `.output/`; `start` serves it through the
-shared environment loader. The root `make build` packages it for production
-alongside the backend and bridge.
+shared environment loader. Root `make build-frontend` copies the SSR bundle to
+`build/frontend/.output`. `make build` also packages it with the backend and
+bridge in `build/production`. Production frontend builds use the privileged
+configuration resolver described in [production setup](../docs/production.md).
 
 ## Environment variables required
 
@@ -45,10 +48,13 @@ changing them. PostgreSQL and intake secrets do not belong in this application.
 
 ## Checks and tests
 
-Use root `make check`, `make test-frontend` for Vitest, and
+Root `make format-frontend` applies Biome formatting, `make lint-frontend` applies
+Biome fixes, and `make type-frontend` checks TypeScript. `make check` applies
+fixes and runs all repository tests. Use `make test-frontend` for Vitest and
 `make test-frontend-playwright` for desktop/mobile browser coverage. The browser
 runner owns a disposable database and local servers with fake providers; Docker
 and Chromium are required. `make setup` installs the tooling and browser.
+Add `human=1` for full runner output.
 Raw `pnpm e2e` assumes an already isolated test stack and resets its data.
 
 ## Source ownership

@@ -136,17 +136,29 @@ hostname for
 
 ```bash
 make build          # as yourself: cargo, uv, pnpm into build/production
-sudo make hm-install-server   # /opt/grocery, PostgreSQL role, Ollama, cloudflared, services
+sudo make install-server   # /opt/grocery, PostgreSQL role, configured services
 ```
 
-On each run, `make hm-install-server`:
+If the configured Ollama or cloudflared executable is missing, install it first
+or explicitly allow the installer to download it:
+
+```bash
+sudo make install-server ALLOW_DEPENDENCY_INSTALL=1
+```
+
+The option also works with `make hm-update-server`. Existing `hm-install-server`
+and `hm-uninstall-server` commands remain aliases. Installer options and the
+root-only configuration remain in `/etc/grocery` for subsequent runs.
+
+On each run, `make install-server`:
 
 - creates the `DATABASE_URL` role and database if they are missing, and
   re-sets the role's password from 1Password. The password is sent as a
   SCRAM verifier, never as plain text;
-- installs Ollama with its official installer if it is missing, and pulls
-  the model;
-- adds Cloudflare's signed apt repository for cloudflared, so the server's
+- installs a missing Ollama with its official installer only when
+  `ALLOW_DEPENDENCY_INSTALL=1`, then pulls the configured model;
+- when cloudflared is missing and installation is explicitly allowed, adds
+  Cloudflare's signed apt repository for cloudflared, so the server's
   scheduled apt upgrades keep cloudflared up to date. Ollama is not an apt
   package: to update it, re-run its installer
   (`curl -fsSL https://ollama.com/install.sh | sh`).

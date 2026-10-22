@@ -1,7 +1,8 @@
 # Google Home Grocery List
 
 A self-hosted household grocery manager with a React 19 and TanStack Start web
-app, a Rust and Axum API, PostgreSQL, and a Python Alexa verification sidecar.
+app, a Rust and Axum API, PostgreSQL, a Flask/ask-sdk Python Alexa verification
+sidecar, and an optional Tauri desktop client.
 Review incoming items, compare Woolworths and Coles products, choose how to split
 a shop, and fill the stores' trolleys through bookmarks in your own browser.
 Production runs as systemd services on a Unix home server. Development uses
@@ -43,8 +44,9 @@ make dev
 `dev` builds and starts the complete stack, waits for backend and frontend health,
 and prints its local URLs. Frontend source changes reload through Vite. Backend
 and Alexa changes rebuild their containers. Ctrl-C removes this worktree's
-containers and network. `make stop-all` repeats that cleanup safely and retains
-all database and model volumes. `make hm-dev` streams full Compose output.
+containers and network. `make dev-stop` repeats that cleanup safely and retains
+all database and model volumes. `make dev human=1` streams full Compose output.
+The existing `stop-all` and `hm-dev` names remain aliases.
 Compact mode saves logs in a private temporary directory and prints its location.
 
 Development uses `docker-compose.dev.yml` over the base Compose file. API and web
@@ -90,40 +92,66 @@ Only `VITE_*` values are public browser configuration; never put secrets in them
 | Target | Purpose |
 |---|---|
 | `setup` | Install locked JavaScript/Python dependencies, fetch Rust crates, install Chromium. |
-| `dev` / `stop-all` | Start or stop the complete local development stack. |
-| `check` | Formatting, lint, configured type checks, and repository file-length gate. |
-| `format` | Apply formatters. `hm-fix` also applies supported lint fixes. |
-| `test` | Backend, frontend unit, Alexa, tooling, and Playwright suites. |
-| `test-backend`, `test-frontend`, `test-alexa`, `test-tooling`, `test-frontend-playwright` | Focused suites. |
-| `hm-test` | Full tests with human-readable output. |
+| `setup-env` | Create the ignored `.env` and fill empty generated secrets. |
+| `dev` / `dev-stop` | Start or stop the complete local development stack; retain volumes. |
+| `check` | Apply format/lint fixes, check types and file lengths, and run all tests. |
+| `format` / `lint` | Apply rustfmt/Biome/Ruff formatting or supported lint fixes. Component targets use `format-<component>` and `lint-<component>`. |
+| `test` | Backend, frontend unit, Alexa, desktop, tooling, and Playwright suites. |
+| `test-backend`, `test-frontend`, `test-alexa`, `test-desktop`, `test-tooling`, `test-frontend-playwright` | Focused suites. |
+| `test human=1` | Full test output. `hm-test` and existing component aliases do the same. |
 | `update-db` / `migration-new name="description"` | Apply embedded migrations without serving HTTP, or create a migration. Startup also applies migrations. |
+| `reset-db confirm=reset` | Delete and migrate only this worktree's running Compose database; stop its backend first. |
 | `hm-compose args='logs backend'` | Service commands using this worktree's Compose context. |
-| `build` | Build the production bundle in `build/production`. |
+| `build-backend`, `build-frontend`, `build-alexa` | Build individual server components into `build/<component>`. |
+| `build` | Build those components and assemble the installable bundle in `build/production`. |
+| `build-desktop` / `create-application-desktop` | Package the native client for this OS into `build/desktop`. |
+| `install-server` / `uninstall-server` | Install or remove systemd services; existing `hm-` aliases remain available. |
+| `all` | Run `check`, `test` and `build`; Make runs each test target once. |
+
+`check`, `format`, and `lint` can change source files. `check-format` remains a
+read-only formatting check. Component names are `backend`, `frontend`, `alexa` and
+`desktop`; type checks are `type-backend`, `type-frontend` and `type-desktop`.
+Commands default to compact output; use `human=1` to pass `--human` to the runners.
+Failures retain private logs and print the log location.
+
+`reset-db` refuses to run without `confirm=reset`. It never follows `DATABASE_URL`
+to a remote database. It requires the local Compose `db` service to be running,
+stops the backend, deletes its public schema and reapplies embedded SQLx migrations.
+Run `make dev` afterwards. For updates that retain records, use `update-db`.
+Worktree project names and ports already derive from the checkout path, so no
+`setup-env-worktree` copy step is needed.
 
 Tests require Docker. Backend and browser runners own disposable PostgreSQL 16
-containers on random ports and ignore application configuration. They never use
-a household database or require 1Password. Missing results, failures, unexpected
+containers on random ports. Unit and integration runners ignore household
+configuration and 1Password credentials. They never use a household database.
+Missing results, failures, unexpected
 skips and empty suites fail the gates. See the [testing guidance](.claude/skills/testing/SKILL.md).
 
 ## Production and repository layout
 
-On the server, use `make build` and `sudo make hm-install-server`.
+On the server, use `make build` and `sudo make install-server`.
 `make hm-update-server` pulls the checked-out branch, builds, checks migrations,
 backs up the database and installs. See [production operations](docs/production.md)
-for requirements, status, logs and removal. Production uses systemd, without Docker.
+for requirements, status, logs and removal. Missing Ollama or cloudflared must be
+installed separately unless you explicitly pass `ALLOW_DEPENDENCY_INSTALL=1` to
+`install-server`. Installation preserves the existing restricted database role
+and root-only configuration; removal retains configuration, databases and shared
+packages. Production uses systemd, without Docker.
 
 | Directory | Responsibility |
 |---|---|
 | [frontend](frontend/README.md) | Web interface, SSR, Vitest and browser tests. |
 | [backend](backend/README.md) | Authenticated REST/WebSocket API, grocery rules, integrations and migrations. |
 | [sidecars/alexa-bridge](sidecars/alexa-bridge/README.md) | Verify Amazon requests and forward intents to the API. |
+| [desktop](desktop/README.md) | Tauri client that loads the server web app and packages native installers. |
 | [scripts](scripts/) | Configuration, lifecycle, test and validation runners. |
 | [deploy](deploy/) | Production build, installation and systemd units. |
 | [docs](docs/README.md) | Feature contracts, provisioning and everyday workflows. |
 
 Project conventions are in [AGENTS.md](AGENTS.md), with layer-specific guidance
 in each application directory. Agent reference skills live in `.claude/skills/`
-and the component `skills/` directories.
+and the component `skills/` directories. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the software lifecycle and focused commands.
 
 ## Desktop client
 
@@ -138,7 +166,9 @@ After `make setup`, use `make hm-dev-desktop` or `make build-desktop`.
 Leave it blank to choose in the app. A saved address takes priority. Build
 artifacts contain this public URL, so never include credentials in it.
 Development instances use separate application identities for each worktree.
-`make test-desktop` runs native unit tests; `make check` includes native lint.
+`make test-desktop` runs native unit tests; `make check` includes native lint,
+type checks and tests. Installers are copied to `build/desktop` after a successful
+build. The server build leaves desktop packaging to `build-desktop`.
 
 The server's browser API and WebSocket URLs must be reachable from the desktop
 computer. `SERVER_API_BASE_URL` can keep SSR requests on server loopback while

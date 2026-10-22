@@ -26,6 +26,13 @@ fake sudo and op, checking token priority and that build subprocesses receive
 only resolved frontend settings. Keep real credentials out of test fixtures and output.
 The Node suite checks Compose wiring and needs Node 22+ and the Compose CLI,
 but no running containers or 1Password account.
+`scripts/compose-config.test.sh` checks both production profiles and the watched
+development overlay with the committed example and an empty environment.
+CI pins Compose 5.6.1 to support `initial_sync`; retain the same check in
+`make test-tooling` and the workflow when changing the Compose contract.
+For dependency-audit failures, update the affected packages only and verify
+frozen installation plus the original audit. Report retained advisory warnings
+and Git dependencies that the audit cannot inspect.
 
 ## Backend
 

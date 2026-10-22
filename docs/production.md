@@ -309,6 +309,10 @@ After merging current main (`c70e157`) into the desktop branch on 2026-10-22,
 `make check`, tooling tests, 359 frontend unit tests, 22 desktop tests and
 12 price-comparison browser tests passed. The broader suite counts above are
 from the earlier branch validation, not a rerun after that merge.
-PR #40's GitHub functional, build, native, CodeQL and secret checks passed.
-Four checks remain failed: backend, frontend and Alexa dependency audits, and
-Compose validation with a runner version that rejects `initial_sync`.
+PR #40's initial GitHub functional, build, native, CodeQL and secret checks
+passed. Its four failing audit/Compose checks prompted a separate follow-up:
+`rustls-webpki` 0.103.16, webpki roots 1.0.10, `certifi` 2026.10.19 and
+`launch-editor` 2.14.2, plus Compose 5.6.1 pinned in both tooling jobs.
+The shared Compose test validates profiles, watched source sync and loopback
+port mappings using only the committed example configuration. These follow-up
+changes are in the PR; the deployed application remains at `f49fad4`.

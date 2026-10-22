@@ -27,6 +27,9 @@ jobs:
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
+      - uses: docker/setup-compose-action@v2
+        with:
+          version: v5.6.1
       - run: pnpm install --frozen-lockfile
       - run: make test-tooling
 
@@ -50,11 +53,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # Compose needs a .env to read; the example has every key.
-      - run: cp .env.example .env && docker compose config --quiet
-      # Developers get the Docker database from the example's COMPOSE_PROFILES.
-      - run: docker compose config --services | grep -qx db
-      # A server with PostgreSQL installed drops the `db` profile; the backend's
-      # optional depends_on must still parse without it.
-      - run: COMPOSE_PROFILES=ollama docker compose config --quiet
-      - run: WEB_PORT=3000 BACKEND_PORT=8000 docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # The runner's bundled Compose can reject watch.initial_sync.
+      - uses: docker/setup-compose-action@v2
+        with:
+          version: v5.6.1
+      - run: sh scripts/compose-config.test.sh

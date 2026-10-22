@@ -26,6 +26,8 @@ uses the same overlay and worktree context, needs no application secrets, and
 retains volumes. `scripts/dev-context.mjs` derives defaults from the real checkout
 path; exported or selected-file project names and ports override them. Verify
 startup failure, child failure, interruption, repeated shutdown and isolation.
+Compose configuration contracts run through `scripts/compose-config.test.sh`
+in both `test-tooling` and CI, without reading application configuration.
 
 `hm-dev-frontend` retains host-only frontend development against a remote API.
 It needs only frontend settings and no Docker/database. It runs attached to its

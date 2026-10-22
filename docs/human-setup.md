@@ -28,7 +28,8 @@ not the Compose hostnames below.
 ## Prerequisites
 
 - Shell access to the home server, in a checkout of this repository, with
-  Docker (Compose v2.20 or later, for optional `depends_on`), `make`, `openssl`, Node 22 and `pnpm`.
+  Docker with Compose v5.6.1 or later (the version pinned in CI, supporting
+  watched development's `initial_sync`), `make`, `openssl`, Node 22 and `pnpm`.
 - A domain whose DNS is managed by Cloudflare (Cloudflare Registrar works).
 - The Amazon account the target Echo device is registered to.
 - Woolworths credentials (passkey or password manager).

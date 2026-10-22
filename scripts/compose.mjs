@@ -5,14 +5,17 @@ import { loadEnvironment, selectedEnvironmentFile } from './environment.mjs';
 import { databaseProfiles } from './database-profiles.mjs';
 import { cancellation, runProcess } from './test-process.mjs';
 
-/** Compose actions that need only Compose settings, never application secrets. */
-export const READ_ONLY_ACTIONS = ['down', 'logs', 'ps', 'exec', 'stop'];
+/**
+ * Actions that need only Compose settings, never application secrets. Some
+ * change containers (`down`, `stop`, `exec`); none starts the stack.
+ */
+export const COMPOSE_ONLY_ACTIONS = ['down', 'logs', 'ps', 'exec', 'stop'];
 
 /** Run one Compose action with resolved settings; `overrides` win over loaded values. */
 export async function runCompose({ action, args = [], files = [], overrides = {}, signal, log }) {
   const { file, required } = selectedEnvironmentFile();
-  const readOnly = READ_ONLY_ACTIONS.includes(action);
-  const env = loadEnvironment({ file, required, accepts: key => !readOnly || key.startsWith('COMPOSE_') });
+  const composeOnly = COMPOSE_ONLY_ACTIONS.includes(action);
+  const env = loadEnvironment({ file, required, accepts: key => !composeOnly || key.startsWith('COMPOSE_') });
   if (action === 'up') env.COMPOSE_PROFILES = databaseProfiles(env.DATABASE_URL, env.COMPOSE_PROFILES);
   const childEnv = { ...process.env, ...env, ...overrides };
   for (const key of Object.keys(childEnv)) if (key.startsWith('OP_')) delete childEnv[key];

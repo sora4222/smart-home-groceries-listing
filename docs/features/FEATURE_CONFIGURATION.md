@@ -61,8 +61,8 @@ Provisioning: [human setup](../human-setup.md#1password).
 Commands: [operations](../using-the-app.md#configuration-and-1password).
 
 Compose lifecycle commands share `runCompose` in `scripts/compose.mjs` and
-pass the selected file explicitly to Compose. Read-only actions
-(`READ_ONLY_ACTIONS`, including shutdown) select only Compose configuration and
-do not unlock application secrets. Development commands (`scripts/dev.mjs`,
+pass the selected file explicitly to Compose. Actions that need only Compose
+settings (`COMPOSE_ONLY_ACTIONS`: shutdown, `stop`, `exec`, `logs`, `ps`)
+select only Compose configuration and do not unlock application secrets. Development commands (`scripts/dev.mjs`,
 `scripts/dev-compose.mjs`) add the worktree project and ports from
 `scripts/dev-context.mjs`. Compose failures propagate to Make.

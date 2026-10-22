@@ -5,6 +5,12 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { COMPOSE_ONLY_ACTIONS } from './compose.mjs';
+
+test('service commands and shutdown need only Compose settings, never startup', () => {
+  for (const action of ['down', 'stop', 'exec', 'logs', 'ps']) assert.ok(COMPOSE_ONLY_ACTIONS.includes(action), action);
+  assert.ok(!COMPOSE_ONLY_ACTIONS.includes('up'));
+});
 
 test('up and down share selected Compose identity; down needs no provider and preserves failures', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-lifecycle-'));

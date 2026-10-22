@@ -263,12 +263,38 @@ The Service routes and HTTPS backend health check passed from the Mac on
 Environment, with one variable per name. Existing URL and CORS variables were
 edited in place through the desktop UI because the MCP append operation had
 previously created duplicates. The existing localhost CORS origin was retained.
-Deployment is pending SSH access: the required 1Password wrapper timed out
-waiting for CLI authorization. The live frontend returns 307 to sign-in; the
-API preflight still lacks the Tailscale frontend's allowed origin, so the saved
-configuration has not been verified in the running services.
-The server checkout has unrelated staged and unstaged work. Deploy an approved
-commit from a separate checkout; do not switch or overwrite that working tree.
+Deployment completed on 2026-10-22 at 20:03 Melbourne time after the owner
+approved 1Password CLI access. Application commit `f49fad4` was built from an
+isolated detached checkout at
+`/home/sora/projects/grocery-desktop-deploy-20261022-D4tQHy/checkout`.
+The existing server checkout's staged and unstaged work was preserved.
+
+The installed loader already reads the production Developer Environment using
+`/etc/grocery/op-environment-id`. The branch's older loader does not support
+that selection. This deployment retained the installed `grocery-env`,
+`service-env.mjs`, `service-environment.mjs`, administrative helpers and their
+support module in the staged artifacts, adding this branch's component
+allowlist so the frontend receives `SERVER_API_BASE_URL`. The frontend build
+used a snapshot of that loader. Build preparation, logs and verification are
+in the deployment directory above. A future install must retain or integrate
+that Environment-loading support before replacing `/opt/grocery`.
+
+The normal migration check found only the additive
+`20261018100000_selection_images.sql` migration. The database was backed up to
+`/var/backups/grocery/grocery-20261022-200341-f49fad4.dump` before applying it;
+the archive is readable and sqlx records the migration as successful.
+Pre-deployment application and configuration snapshots remain under
+`/var/backups/grocery/desktop-before-f49fad4/`.
+
+All four grocery services are active. Checks of the running frontend and
+backend confirm the approved configuration and absence of 1Password provider
+credentials. Built browser assets contain the approved API and WebSocket URLs.
+From the Mac, the frontend returns 307 to sign-in, API health returns 200,
+and the `/api/grocery-items` preflight allows the exact Tailscale frontend
+origin with credentials. Unauthenticated grocery API and WebSocket upgrade
+requests both return 401. These checks do not establish a successful
+authenticated WebSocket session. Desktop UI inspection was blocked by the
+locked Mac; live Clerk sign-in and authenticated store fills remain unverified.
 
 Branch validation on 2026-10-22 passed 635 backend tests, 344 frontend tests,
 92 Alexa tests, 136 browser tests and 22 native tests. Repository checks and
@@ -283,3 +309,6 @@ After merging current main (`c70e157`) into the desktop branch on 2026-10-22,
 `make check`, tooling tests, 359 frontend unit tests, 22 desktop tests and
 12 price-comparison browser tests passed. The broader suite counts above are
 from the earlier branch validation, not a rerun after that merge.
+PR #40's GitHub functional, build, native, CodeQL and secret checks passed.
+Four checks remain failed: backend, frontend and Alexa dependency audits, and
+Compose validation with a runner version that rejects `initial_sync`.

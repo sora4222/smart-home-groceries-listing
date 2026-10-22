@@ -1,194 +1,67 @@
-Welcome to your new TanStack Start app!
+# Frontend
 
-# Getting Started
+The household web interface uses React 19, TanStack Start for server rendering,
+TanStack Router for file-based routes, and Tailwind v4 with Shadcn/Radix components.
+It handles intake review, the grocery list, product choices, trolley handoff,
+spending analysis and settings. Grocery rules and persistence belong to the
+[Rust backend](../backend/README.md).
 
-To run this application:
+## Development
 
-```bash
-pnpm install
-pnpm dev
-```
+From the repository root, `make dev` starts the complete stack and prints its
+local URLs. Source changes reload through Vite; configuration and dependency
+changes rebuild the frontend container. `make stop-all` stops the stack.
 
-# Building For Production
+For only the web app, `make hm-dev-frontend` installs locked dependencies and
+starts Vite on `WEB_PORT`, default 3000. Set `VITE_API_BASE_URL` to the intended
+backend and allow the web origin in its `CORS_ORIGINS`. See
+[remote backend setup](../docs/human-setup.md#optional-web-app-on-your-own-computer).
+This workflow starts no backend or database.
 
-To build this application for production:
+Direct commands here are `pnpm dev`, `pnpm build`, and `pnpm start`.
+The build outputs the SSR bundle in `.output/`; `start` serves it through the
+shared environment loader. The root `make build` packages it for production
+alongside the backend and bridge.
 
-```bash
-pnpm build
-```
+## Environment variables required
 
-## Styling
+Vite loads the root `.env`, exported overrides, or an explicitly selected
+`GROCERY_ENV_FILE`. It resolves `CLERK_*`, `VITE_*` and `SERVER_API_BASE_URL` references through the
+shared loader. See [configuration sources](../docs/features/FEATURE_CONFIGURATION.md).
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+| Variable | Purpose |
+|---|---|
+| `VITE_CLERK_PUBLISHABLE_KEY` | Enable Clerk sign-in with the intended instance's public key. |
+| `CLERK_SECRET_KEY` | Server-side Clerk configuration when using Clerk. Never expose it through `VITE_*`. |
+| `VITE_API_BASE_URL` | Browser API address. Defaults to `http://localhost:8000` outside full-stack development. |
+| `SERVER_API_BASE_URL` | Optional internal API address for server rendering only. Compose supplies `http://backend:8000`; the browser keeps `VITE_API_BASE_URL`. |
+| `VITE_WS_URL` | Optional WebSocket address. Defaults to the API scheme/host plus `/ws`. |
+| `VITE_AUTH_MODE` | Explicit `off` for isolated development/tests with matching backend auth bypass. |
 
-### Removing Tailwind CSS
+Full-stack `dev` supplies the local API and WebSocket addresses. API and socket
+requests go directly from the browser to the backend. `VITE_*` values become
+public browser configuration at startup/build time. Restart or rebuild after
+changing them. PostgreSQL and intake secrets do not belong in this application.
 
-If you prefer not to use Tailwind CSS:
+## Checks and tests
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
+Use root `make check`, `make test-frontend` for Vitest, and
+`make test-frontend-playwright` for desktop/mobile browser coverage. The browser
+runner owns a disposable database and local servers with fake providers; Docker
+and Chromium are required. `make setup` installs the tooling and browser.
+Raw `pnpm e2e` assumes an already isolated test stack and resets its data.
 
-## Linting & Formatting
+## Source ownership
 
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
+| Path | Responsibility |
+|---|---|
+| `src/routes/` | Pages and route layouts; `routeTree.gen.ts` is generated. |
+| `src/components/` | Feature components and shared UI primitives. |
+| `src/lib/api/` | API modules grouped by domain. |
+| `src/lib/auth*.ts`, `src/components/auth/` | Clerk-specific client integration. |
+| `src/lib/store-tab/` | Store-tab handoff and bookmark behavior. |
+| `src/hooks/` | Shared interactions and live updates. |
+| `e2e/` | Playwright tests and isolated browser fixtures. |
 
-
-```bash
-pnpm lint
-pnpm format
-pnpm check
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+See [AGENTS.md](AGENTS.md) for component, authentication and routing rules, and
+[feature specs](../docs/features/) for behavior contracts.

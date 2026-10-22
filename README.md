@@ -1,138 +1,126 @@
 # Google Home Grocery List
 
-A self-hosted household grocery manager: say *"Alexa, add milk to the shopping
-list"*, review and confirm what was heard in a web app, and (eventually) have
-it purchase from Woolworths/Coles at the lowest total cost. Proof-of-concept,
-single home server: systemd services in production, Docker Compose for
-development, Cloudflare Tunnel. Full product spec: the
-"Google Home Grocery List — Application Specification" doc in the project's
-docs.
+A self-hosted household grocery manager with a React 19 and TanStack Start web
+app, a Rust and Axum API, PostgreSQL, and a Python Alexa verification sidecar.
+Review incoming items, compare Woolworths and Coles products, choose how to split
+a shop, and fill the stores' trolleys through bookmarks in your own browser.
+Production runs as systemd services on a Unix home server. Development uses
+Docker Compose.
 
-**Currently implemented:**
-- **Voice intake** — the generic webhook, the Alexa channel, the confirmation
-  queue and Pending Requests (`docs/features/FEATURE_VOICE.md`).
-- **LLM triage** — a local model (Ollama, llama.cpp or vLLM) checks every
-  intake item ("would a supermarket sell this?") before the household sees it; the `/triage` page holds what the
-  checker rejected or was unsure of (`FEATURE_TRIAGE.md`).
-- **The grocery list** — add, edit, annotate, chip and commit items
-  (`FEATURE_GROCERY_LIST.md`), with **item rules** that chip items
-  automatically (`FEATURE_ITEM_RULES.md`).
-- **Price comparison** — each item's products at Woolworths and Coles,
-  cheapest per unit first, with unit prices, specials and multibuys
-  (`FEATURE_STORE_INTEGRATION.md`), and choosing one product per item
-  (`FEATURE_PRODUCT_CHOICE.md`).
-- **Send to Woolworths** — puts every chosen Woolworths product into your own
-  Woolworths trolley through a bookmark you press on woolworths.com.au; you
-  pay on Woolworths (`FEATURE_TROLLEY_HANDOFF.md`,
-  `docs/FEAT_WOOLWORTHS_ACCESS.md`).
-- **Access logs** — every request is logged to a daily file and the
-  database; the `/logs` page shows who asked for what
-  (`FEATURE_ACCESS_LOGS.md`).
+## What works
 
-Ordering, checkout and spending analysis are not built yet; their
-`FEATURE_*.md` files are placeholders.
+- Alexa custom intents, a shared-secret webhook, and Google Tasks intake feed
+  the confirmation queue. Every added item needs a household member's acceptance.
+- Local LLM triage separates ordinary requests from items that need closer review.
+- The list supports quantities, notes, item rules, product choices and dislikes.
+- Product search and the order planner compare chosen products and configured
+  delivery fees across Woolworths and Coles.
+- Store bookmarks fill trolleys and offer to open checkout. Payment stays on the
+  store website. A successful trolley fill records an undoable purchase, which
+  feeds purchase history and spending analysis. It does not prove payment.
 
-> Despite the repository name, Google Home cannot be integrated directly — the
-> Smart Home Action / OAuth account-linking route was dropped. Alexa is the
-> working voice channel; Google Tasks and Google Keep are planned. See
-> `docs/features/FEATURE_VOICE.md`.
+Google Home's own shopping list has no integration here. Google Tasks is built
+for typed tasks, with fake and mock coverage; its real-account flow remains
+unverified. Google Keep is paused. Live delivery windows, order tracking and
+server-side checkout are not built. See the [feature specs](docs/features/)
+for each feature's status and validation limits.
 
-## First-time setup
-**Start with [`docs/human-setup.md`](docs/human-setup.md).** It covers every
-manual provisioning step (Clerk, Cloudflare Tunnel, the Alexa skill and its
-interaction model, `.env`, Woolworths), ordered by dependency. `make setup-env` fills in the random secrets.
+## Setup and development
 
-For everyday jobs (a Woolworths shop, changing the delivery time, fixes) see
-[`docs/using-the-app.md`](docs/using-the-app.md).
+Install Node.js 22 or newer, pnpm, Rust, uv, and Docker with Compose Watch support.
+Rust's native build dependencies are listed in [production setup](docs/production.md).
+`all` runs checks, tests and the production build when those prerequisites are ready.
+Use the [provisioning guide](docs/human-setup.md) for Clerk, Alexa, Cloudflare and
+store bookmarks, then:
 
-## Stack
-| Layer | Tech |
+```sh
+make setup
+make setup-env
+# Complete the required configuration described below.
+make dev
+```
+
+`dev` builds and starts the complete stack, waits for backend and frontend health,
+and prints its local URLs. Frontend source changes reload through Vite. Backend
+and Alexa changes rebuild their containers. Ctrl-C removes this worktree's
+containers and network. `make stop-all` repeats that cleanup safely and retains
+all database and model volumes. `make hm-dev` streams full Compose output.
+Compact mode saves logs in a private temporary directory and prints its location.
+
+Development uses `docker-compose.dev.yml` over the base Compose file. API and web
+ports bind to loopback; PostgreSQL has no published development port. Each
+worktree gets a default Compose project name and ports derived from its path.
+Override `COMPOSE_PROJECT_NAME`, `WEB_PORT`, or `BACKEND_PORT` when needed; explicit
+project names must be unique across concurrent worktrees. A port collision fails
+startup. Use separate tunnel tokens/routes across worktrees when remote intake
+must stay isolated. The new default development project uses its own volumes; existing
+Compose volumes remain available under their original project name.
+
+For a frontend on this computer against the home server, use
+`make hm-dev-frontend`. It retains the separate frontend workflow and its
+`WEB_PORT` default of 3000. See [remote backend setup](docs/human-setup.md#optional-web-app-on-your-own-computer).
+
+## Environment variables required
+
+[`make setup-env`](Makefile) creates the ignored root `.env` from
+[`.env.example`](.env.example) and fills empty generated secrets without replacing
+existing values. Exported values override the file. `GROCERY_ENV_FILE` selects
+another file, which must exist. Literal values and `op://` references work for
+both launchers and direct application startup. References require the host's
+1Password CLI access; application containers never receive the loader's `OP_*`
+credentials. See [configuration sources](docs/features/FEATURE_CONFIGURATION.md).
+
+| Component | Configuration |
 |---|---|
-| Frontend | React 19 + TanStack Start (SSR) + Shadcn-pattern UI + Tailwind v4 |
-| Backend | **Rust + Axum** (REST + WebSocket) |
-| Database | PostgreSQL + `sqlx` (migrations embedded in the binary) |
-| Auth | Clerk (JWT), abstracted behind `backend/src/auth/mod.rs` |
-| Alexa | `sidecars/alexa-bridge` — Python `ask-sdk`, the only Python here |
-| Stores | `wreq` (Chrome TLS emulation) for search · `chromiumoxide` for checkout (not yet built) |
-| Infra | Production: systemd services, no Docker (`docs/production.md`) · Development: Docker Compose · Cloudflare Tunnel |
+| Database | `DATABASE_URL`; `POSTGRES_PASSWORD` when using the Compose database. The URL's credentials must match the database. |
+| API authentication | `CLERK_JWKS_URL`. `DEV_AUTH_BYPASS=true` is only for isolated local development. |
+| Encryption | `CREDENTIAL_ENCRYPTION_KEY`, a base64-encoded 32-byte key. |
+| Intake and store bookmarks | `VOICE_WEBHOOK_SECRET`, `ALEXA_BRIDGE_SECRET`, `STORE_TAB_SECRET`. |
+| Alexa bridge | `ALEXA_SKILL_ID` and the matching `ALEXA_BRIDGE_SECRET`. |
+| Web sign-in | `VITE_CLERK_PUBLISHABLE_KEY`; server Clerk settings as described in the provisioning guide. |
+| Cloudflare | `CLOUDFLARE_TUNNEL_TOKEN`; development starts the tunnel by default. |
+| Optional integrations | LLM provider and Google OAuth settings in `.env.example`. `STORE_CLIENTS=fake` uses the built-in catalogue. |
 
-The backend is a single compiled binary with its migrations embedded: no
-interpreter, virtualenv or migration files on the home server.
+Full-stack development supplies its local API/WebSocket URLs and CORS origin.
+The separate frontend workflow uses `VITE_API_BASE_URL` and optional `VITE_WS_URL`.
+Only `VITE_*` values are public browser configuration; never put secrets in them.
 
-## Running it
-On the home server (no Docker): `make build && sudo make install`. See
-[`docs/production.md`](docs/production.md).
+## Commands and validation
 
-For development:
+| Target | Purpose |
+|---|---|
+| `setup` | Install locked JavaScript/Python dependencies, fetch Rust crates, install Chromium. |
+| `dev` / `stop-all` | Start or stop the complete local development stack. |
+| `check` | Formatting, lint, configured type checks, and repository file-length gate. |
+| `format` | Apply formatters. `hm-fix` also applies supported lint fixes. |
+| `test` | Backend, frontend unit, Alexa, tooling, and Playwright suites. |
+| `test-backend`, `test-frontend`, `test-alexa`, `test-tooling`, `test-frontend-playwright` | Focused suites. |
+| `hm-test` | Full tests with human-readable output. |
+| `update-db` / `migration-new name="description"` | Apply embedded migrations without serving HTTP, or create a migration. Startup also applies migrations. |
+| `hm-compose args='logs backend'` | Service commands using this worktree's Compose context. |
+| `build` | Build the production bundle in `build/production`. |
 
-```bash
-make setup-env              # makes .env and fills the random secrets
-                            # then fill the rest from docs/human-setup.md
-make up                     # Postgres, backend, Alexa bridge, Cloudflare Tunnel
-make migrate                # optional — the backend migrates itself at startup
+Tests require Docker. Backend and browser runners own disposable PostgreSQL 16
+containers on random ports and ignore application configuration. They never use
+a household database or require 1Password. Missing results, failures, unexpected
+skips and empty suites fail the gates. See the [testing guidance](.claude/skills/testing/SKILL.md).
 
-cd frontend && pnpm install && pnpm dev   # http://localhost:3000
-```
+## Production and repository layout
 
-`make hm-up` runs the containers in the foreground with full logs.
+On the server, use `make build` and `sudo make hm-install-server`.
+`make hm-update-server` pulls the checked-out branch, builds, checks migrations,
+backs up the database and installs. See [production operations](docs/production.md)
+for requirements, status, logs and removal. Production uses systemd, without Docker.
 
-To run only the web app on your own computer, against a backend on the home
-server, set `VITE_API_BASE_URL` in `.env` and run `make web`
-(`docs/human-setup.md`, "Optional: web app on your own computer").
+| Directory | Responsibility |
+|---|---|
+| [frontend](frontend/README.md) | Web interface, SSR, Vitest and browser tests. |
+| [backend](backend/README.md) | Authenticated REST/WebSocket API, grocery rules, integrations and migrations. |
+| [sidecars/alexa-bridge](sidecars/alexa-bridge/README.md) | Verify Amazon requests and forward intents to the API. |
+| [scripts](scripts/) | Configuration, lifecycle, test and validation runners. |
+| [deploy](deploy/) | Production build, installation and systemd units. |
+| [docs](docs/README.md) | Feature contracts, provisioning and everyday workflows. |
 
-To run the backend on the host instead of in its container:
-
-```bash
-make up                                   # Postgres only is enough
-cd backend && cargo run                   # reads .env via the environment
-```
-
-Set `STORE_CLIENTS=fake` to use a small built-in catalogue instead of the
-real Woolworths and Coles websites (development, tests, or a machine that
-should not reach the stores).
-
-Without Clerk configured yet, set `DEV_AUTH_BYPASS=true` in `.env` so the
-backend accepts requests without a JWT. It logs a warning at startup — see
-`docs/human-setup.md` for why this must never be set on a host reachable from
-the internet.
-
-## Testing
-```bash
-pnpm install       # root Testcontainers tooling
-cd frontend && pnpm install && pnpm exec playwright install chromium && cd ..
-make test          # Rust + Vitest + pytest + tooling + desktop/mobile Playwright
-make hm-test       # same, verbose
-```
-
-Tests require a running Docker daemon. Testcontainers starts a fresh PostgreSQL
-16 server for each backend or browser run, with random credentials, a random
-loopback port, and no application volume. SQLx creates a separate database per
-backend integration test. Cleanup runs after success, failure, and interrupts.
-Tests ignore the application's `.env`, database credentials, and Compose
-profiles. They never need a 1Password account or access to a household database.
-
-`make test-backend` and `make e2e` own their test infrastructure independently.
-See [database modes](docs/features/FEATURE_DATABASE.md) and the
-[testing skill](.claude/skills/testing/SKILL.md).
-
-## Repository layout
-```
-backend/          Rust + Axum API — see backend/AGENTS.md
-frontend/         TanStack Start app — see frontend/AGENTS.md
-sidecars/
-  alexa-bridge/   Python ask-sdk bridge — see its AGENTS.md
-docs/
-  features/       One spec-and-status doc per major goal
-  README.md       Which doc is for whom
-  human-setup.md  One-time provisioning (Clerk, Cloudflare, Alexa skill, .env)
-  using-the-app.md  Recurring workflows (voice intake, a shop, undo, fixes)
-skills/           Reference notes for agents working in this repo — read before
-                  touching migrations, the Makefile, git conventions, or
-                  store integrations
-```
-
-## Development rules
-See `AGENTS.md` for the non-negotiables (file length limits, commit
-convention, TDD, architecture boundaries, no Python in the backend).
-`backend/AGENTS.md`, `frontend/AGENTS.md` and
-`sidecars/alexa-bridge/AGENTS.md` cover their own layers.
+Project conventions are in [AGENTS.md](AGENTS.md), with layer-specific guidance
+in each application directory. Agent reference skills live in `.claude/skills/`
+and the component `skills/` directories.

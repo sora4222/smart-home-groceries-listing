@@ -20,6 +20,20 @@ function renderComparison() {
 	);
 }
 
+/** The product names in a list, top to bottom. */
+function articleNames(list: HTMLElement) {
+	return within(list)
+		.getAllByRole("article")
+		.map((article) => article.getAttribute("aria-label"));
+}
+
+async function pickSort(dialog: HTMLElement, label: string) {
+	await userEvent.click(
+		within(dialog).getByRole("combobox", { name: "Sort by" }),
+	);
+	await userEvent.click(await screen.findByRole("option", { name: label }));
+}
+
 async function open() {
 	await userEvent.click(
 		screen.getByRole("button", { name: "Compare prices for milk" }),
@@ -39,7 +53,7 @@ describe("PriceComparison", () => {
 		expect(search).not.toHaveBeenCalled();
 	});
 
-	it("shows each store's products once opened", async () => {
+	it("shows both stores' products in one list once opened", async () => {
 		const search = vi.spyOn(api.products, "forItem").mockResolvedValue(
 			searchFixture([
 				storeFixture({
@@ -64,12 +78,48 @@ describe("PriceComparison", () => {
 		expect(within(dialog).getByLabelText("Product filters")).toHaveTextContent(
 			"full cream",
 		);
-		expect(
-			await within(dialog).findByRole("region", { name: "Woolworths" }),
-		).toBeInTheDocument();
-		expect(
-			within(dialog).getByRole("region", { name: "Coles" }),
-		).toBeInTheDocument();
+		const list = await within(dialog).findByRole("list", { name: "Products" });
+		expect(articleNames(list)).toEqual([
+			"Woolworths Full Cream Milk",
+			"Coles Full Cream Milk",
+		]);
+	});
+
+	it("sorts both stores together by what the household picks", async () => {
+		vi.spyOn(api.products, "forItem").mockResolvedValue(
+			searchFixture([
+				storeFixture({
+					store: "woolworths",
+					store_name: "Woolworths",
+					products: [
+						productFixture({ product_id: "w", brand: "B", price: "2.00" }),
+					],
+				}),
+				storeFixture({
+					products: [
+						productFixture({ product_id: "c1", brand: "C", price: "1.00" }),
+						productFixture({ product_id: "c2", brand: "A", price: "3.00" }),
+					],
+				}),
+			]),
+		);
+		renderComparison();
+		const dialog = await open();
+		const list = await within(dialog).findByRole("list", { name: "Products" });
+
+		await pickSort(dialog, "Price: low to high");
+		expect(articleNames(list)).toEqual([
+			"C Full Cream Milk",
+			"B Full Cream Milk",
+			"A Full Cream Milk",
+		]);
+
+		await pickSort(dialog, "Name: A to Z");
+		expect(articleNames(list)).toEqual([
+			"A Full Cream Milk",
+			"B Full Cream Milk",
+			"C Full Cream Milk",
+		]);
 	});
 
 	it("narrows to specials when asked", async () => {
@@ -89,7 +139,7 @@ describe("PriceComparison", () => {
 		);
 		renderComparison();
 		const dialog = await open();
-		await within(dialog).findByRole("region", { name: "Coles" });
+		await within(dialog).findByRole("list", { name: "Products" });
 
 		await userEvent.click(
 			within(dialog).getByRole("switch", { name: "Specials only" }),
@@ -119,7 +169,7 @@ describe("PriceComparison", () => {
 		);
 
 		expect(
-			await within(dialog).findByRole("region", { name: "Coles" }),
+			await within(dialog).findByRole("list", { name: "Products" }),
 		).toBeInTheDocument();
 		expect(search).toHaveBeenCalledTimes(2);
 	});
@@ -147,7 +197,7 @@ describe("PriceComparison", () => {
 			</PriceComparison>,
 		);
 		const dialog = await open();
-		await within(dialog).findByRole("region", { name: "Coles" });
+		await within(dialog).findByRole("list", { name: "Products" });
 
 		expect(
 			within(dialog).getByRole("button", {
@@ -169,7 +219,7 @@ describe("PriceComparison", () => {
 		);
 		renderComparison();
 		const dialog = await open();
-		await within(dialog).findByRole("region", { name: "Coles" });
+		await within(dialog).findByRole("list", { name: "Products" });
 
 		expect(
 			within(dialog).queryByRole("button", { name: /^Choose / }),

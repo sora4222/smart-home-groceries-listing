@@ -3,8 +3,10 @@ import { createContext, type ReactNode, useContext, useState } from "react";
 import { ProductDislikesProvider } from "#/components/dislikes/product-dislikes";
 import { PastPurchasesProvider } from "#/components/products/past-purchases";
 import { ProductChoiceProvider } from "#/components/products/product-choice";
+import { ProductList } from "#/components/products/product-list";
+import { ProductSortSelect } from "#/components/products/product-sort-select";
 import { SpecialsOnlySwitch } from "#/components/products/specials-only-switch";
-import { StoreResults } from "#/components/products/store-results";
+import { StoreNotices } from "#/components/products/store-notices";
 import { TermChips } from "#/components/terms/term-chips";
 import { Button } from "#/components/ui/button";
 import {
@@ -18,7 +20,20 @@ import {
 import { useItemDislikes } from "#/hooks/useItemDislikes";
 import { useItemProducts } from "#/hooks/useItemProducts";
 import { useProductHistory } from "#/hooks/useProductHistory";
-import type { GroceryItem, ItemProducts, ProductChoice } from "#/lib/api";
+import type {
+	GroceryItem,
+	ItemProducts,
+	ProductChoice,
+	StoreProducts,
+} from "#/lib/api";
+import {
+	commonBasis,
+	DEFAULT_SORT,
+	type ProductSort,
+	type StoreListing,
+	sortListings,
+} from "#/lib/product-sort";
+import { visibleProducts } from "#/lib/specials";
 
 /** The item being compared, shared by the parts of one comparison only. */
 const ItemContext = createContext<GroceryItem | null>(null);
@@ -31,7 +46,7 @@ function useComparedItem(): GroceryItem {
 }
 
 /**
- * Woolworths and Coles side by side for one list item, in a sheet.
+ * Woolworths and Coles in one sortable list for one list item, in a sheet.
  *
  * ```tsx
  * <PriceComparison item={item}>
@@ -86,7 +101,7 @@ function Trigger() {
 	);
 }
 
-/** The sheet: the item, the specials filter, and each store's products. */
+/** The sheet: the item, the sort and specials filter, and the products. */
 function Content() {
 	const item = useComparedItem();
 	return (
@@ -96,8 +111,8 @@ function Content() {
 					Prices for {item.name} ×{item.quantity}
 				</SheetTitle>
 				<SheetDescription>
-					Cheapest per unit first, at Woolworths and Coles. Choose one product
-					to buy for this item.
+					Woolworths and Coles together, cheapest per unit first unless you sort
+					them another way. Choose one product to buy for this item.
 				</SheetDescription>
 				<TermChips terms={item.filter_terms} />
 			</SheetHeader>
@@ -111,6 +126,7 @@ function Content() {
 function Results({ item }: { item: GroceryItem }) {
 	const dislikes = useItemDislikes(item.id);
 	const [specialsOnly, setSpecialsOnly] = useState(false);
+	const [sort, setSort] = useState<ProductSort>(DEFAULT_SORT);
 	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}`;
 	const { state, retry } = useItemProducts(item.id, true, searchKey);
 
@@ -136,23 +152,48 @@ function Results({ item }: { item: GroceryItem }) {
 	return (
 		<ProductDislikesProvider value={{ itemId: item.id, ...dislikes }}>
 			<div className="flex flex-col gap-4 px-4 pb-4">
-				<SpecialsOnlySwitch
-					checked={specialsOnly}
-					onCheckedChange={setSpecialsOnly}
-				/>
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<ProductSortSelect value={sort} onValueChange={setSort} />
+					<SpecialsOnlySwitch
+						checked={specialsOnly}
+						onCheckedChange={setSpecialsOnly}
+					/>
+				</div>
+				<StoreNotices stores={state.data.stores} specialsOnly={specialsOnly} />
 				<WithPastPurchases search={state.data}>
-					{state.data.stores.map((results) => (
-						<StoreResults
-							key={results.store}
-							results={results}
-							quantity={state.data.item.quantity}
-							specialsOnly={specialsOnly}
-						/>
-					))}
+					<ProductList
+						listings={sortListings(
+							listingsOf(state.data.stores, specialsOnly),
+							sort,
+							{
+								quantity: state.data.item.quantity,
+								basis: commonBasis(
+									state.data.stores.flatMap((results) => results.products),
+								),
+							},
+						)}
+						quantity={state.data.item.quantity}
+					/>
 				</WithPastPurchases>
 			</div>
 		</ProductDislikesProvider>
 	);
+}
+
+/** Every product shown from the stores that answered, as one list. */
+function listingsOf(
+	stores: StoreProducts[],
+	specialsOnly: boolean,
+): StoreListing[] {
+	return stores
+		.filter((results) => results.status === "ok")
+		.flatMap((results) =>
+			visibleProducts(results.products, specialsOnly).map((product) => ({
+				store: results.store,
+				storeName: results.store_name,
+				product,
+			})),
+		);
 }
 
 /** Reads the past purchases of every product found, for their rows. */

@@ -8,9 +8,10 @@ built; they belong to Order Optimisation and Checkout.
 
 ## What this feature does
 A household member opens **Compare prices** on any list item. The backend
-asks both stores for the item at once and shows each store's products for
-it, cheapest per unit first, so the household can see what the item really
-costs before anything is ordered.
+asks both stores for the item at once and shows both stores' products in
+one list, cheapest per unit first, so the household can see what the item
+really costs before anything is ordered. The list can be sorted another way
+(see "Web app").
 
 Nothing is recommended or promoted. Adverts and sponsored placements from
 the stores are dropped, products are shown with the store's picture but
@@ -131,13 +132,25 @@ The fake catalogue covers milk, toilet paper and bananas. A query containing
 
 ## Web app
 `components/products/`: `PriceComparison` (compound: `.Trigger`,
-`.Content`, a Shadcn `Sheet`), `StoreResults`, `ProductRow`, `ProductImage`
-(the picture, or a placeholder when there is none or it fails to load; also
-used by the chosen product and the order review), `ProductPrice`,
-`UnitPriceLine`, `SpecialsOnlySwitch`. `hooks/useItemProducts.ts` searches
-only while the sheet is open, and again when the item's name, quantity or
-chips change. "Specials only" is a display filter (special or multibuy) — it
-never reorders.
+`.Content`, a Shadcn `Sheet`), `ProductList`, `StoreNotices`, `ProductRow`,
+`ProductImage` (the picture, or a placeholder when there is none or it fails
+to load; also used by the chosen product and the order review),
+`ProductPrice`, `UnitPriceLine`, `ProductSortSelect`, `SpecialsOnlySwitch`.
+`hooks/useItemProducts.ts` searches only while the sheet is open, and again
+when the item's name, quantity or chips change. "Specials only" is a display
+filter (special or multibuy) — it never reorders.
+
+**Sorting** (`lib/product-sort.ts`, client side only): both stores' products
+are mixed in one list, each labelled with its store. "Sort by" offers unit
+price, shelf price and name (brand + name, case-insensitive), each low→high
+and high→low; the default is unit price low→high. Unit price is the backend's
+effective one (after deals at the item's quantity), on the basis common to the
+whole search, before "Specials only" filters it. Unavailable products always
+go last, then products missing the sorted value (no price, no unit price, or
+a unit price on a basis other than the most common one), in either direction.
+Ties keep the backend's order. Stores that failed or show nothing get one
+line each above the list (`StoreNotices`). The sort is not saved; each open
+starts at the default.
 
 ## Not built yet
 - **Live check against the real stores from the home server.** The calls

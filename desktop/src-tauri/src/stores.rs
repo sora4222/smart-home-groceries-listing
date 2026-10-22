@@ -28,6 +28,37 @@ pub struct StoreAbilities {
     pub checkout: bool,
 }
 
+/// A store page the app shows in the store window, with the ability it needs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StorePage {
+    /// The website, to log in.
+    Home,
+    /// The trolley page, where the fill program runs.
+    Trolley,
+    /// The checkout page, to check and pay.
+    Checkout,
+}
+
+impl StorePage {
+    /// This page's address at `store`.
+    pub fn url(self, store: Store) -> &'static str {
+        match self {
+            StorePage::Home => store.home_url(),
+            StorePage::Trolley => store.trolley_url(),
+            StorePage::Checkout => store.checkout_url(),
+        }
+    }
+
+    /// True when `abilities` let the app show this page.
+    pub fn allowed(self, abilities: StoreAbilities) -> bool {
+        match self {
+            StorePage::Home => abilities.login,
+            StorePage::Trolley => abilities.fill_trolley,
+            StorePage::Checkout => abilities.checkout,
+        }
+    }
+}
+
 /// Every store, in the order the web app lists them.
 pub const ALL: [Store; 2] = [Store::Woolworths, Store::Coles];
 
@@ -51,7 +82,8 @@ impl Store {
     /// True when `page` is this store's own trolley page (any query string),
     /// where the fill program may start.
     pub fn is_trolley_page(self, page: &Url) -> bool {
-        let trolley = Url::parse(self.trolley_url()).expect("store trolley URLs are valid");
+        let trolley =
+            Url::parse(StorePage::Trolley.url(self)).expect("store trolley URLs are valid");
         self.owns(page) && page.path().trim_end_matches('/') == trolley.path()
     }
 
@@ -143,6 +175,23 @@ mod tests {
         assert!(!w.is_trolley_page(&url(w.checkout_url())));
         assert!(!w.is_trolley_page(&url("http://www.woolworths.com.au/shop/mytrolley")));
         assert!(!Store::Coles.is_trolley_page(&url(w.trolley_url())));
+    }
+
+    #[test]
+    fn each_page_pairs_its_address_with_its_ability() {
+        let w = Store::Woolworths;
+        assert_eq!(StorePage::Home.url(w), w.home_url());
+        assert_eq!(StorePage::Trolley.url(w), w.trolley_url());
+        assert_eq!(StorePage::Checkout.url(w), w.checkout_url());
+        let only_login = StoreAbilities {
+            store: w,
+            login: true,
+            fill_trolley: false,
+            checkout: false,
+        };
+        assert!(StorePage::Home.allowed(only_login));
+        assert!(!StorePage::Trolley.allowed(only_login));
+        assert!(!StorePage::Checkout.allowed(only_login));
     }
 
     #[test]

@@ -13,3 +13,5 @@ allowBuilds:
 overrides:
   seroval: ^1.6.8
   seroval-plugins: ^1.6.8
+  # Devtools' editor launcher must include the Windows command-injection fixes.
+  launch-editor: ^2.14.2

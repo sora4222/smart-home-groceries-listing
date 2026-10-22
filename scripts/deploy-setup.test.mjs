@@ -1,4 +1,4 @@
-/** `make install` helpers: PostgreSQL role setup and the triage model plan. */
+/** `make hm-install-server` helpers: PostgreSQL role setup and the triage model plan. */
 import assert from 'node:assert/strict';
 import { createHash, createHmac, pbkdf2Sync } from 'node:crypto';
 import { test } from 'node:test';

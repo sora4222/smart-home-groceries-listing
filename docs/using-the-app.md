@@ -26,7 +26,7 @@ and API details are in [`features/`](features/).
 
 ## Configuration and 1Password
 
-`make up`, `make hm-up`, and `make alexa-up` resolve references before
+`make dev` and `make hm-dev` resolve references before
 starting Compose. Backend, frontend, and bridge processes also load their own
 settings when started directly. Exported variables override `.env`.
 Restart the affected process after changing a value.
@@ -34,7 +34,7 @@ Restart the affected process after changing a value.
 For an arbitrary local command:
 
 ```bash
-make run-env cmd='docker compose up -d backend'
+make hm-compose args='up -d backend'
 ```
 
 Existing `cd frontend && pnpm dev` and `pnpm start` commands load Clerk
@@ -290,9 +290,9 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 | Checkout step added to the bookmarklets (2026-10-03) | Re-drag both bookmarklets, as below. |
 | Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
 | `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
-| Clerk sign-in arrived (stack ran with `DEV_AUTH_BYPASS=true`) | Rename `CLERK_PUBLISHABLE_KEY` to `VITE_CLERK_PUBLISHABLE_KEY` in `.env`, set `DEV_AUTH_BYPASS=false`, enable the Clerk allowlist ([`human-setup.md` §2](human-setup.md#2-clerk)), then `make down && make up` and restart `pnpm dev`. |
+| Clerk sign-in arrived (stack ran with `DEV_AUTH_BYPASS=true`) | Rename `CLERK_PUBLISHABLE_KEY` to `VITE_CLERK_PUBLISHABLE_KEY` in `.env`, set `DEV_AUTH_BYPASS=false`, enable the Clerk allowlist ([`human-setup.md` §2](human-setup.md#2-clerk)), then `make stop-all && make dev` for the full stack. |
 | New migration | None; migrations run on backend start. |
-| New `.env` key | `make setup-env`, fill any non-generated value, then `make down && make up`. |
+| New `.env` key | `make setup-env`, fill any non-generated value, then `make stop-all && make dev`. |
 | Alexa interaction model changed | Update the JSON in the Alexa console and rebuild ([`human-setup.md` §4](human-setup.md#4-alexa-skill)). |
 
 ---
@@ -311,7 +311,7 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 | "Coles is still loading" | Coles page config not ready; reload and re-run. |
 | **Saved as bought** never appears | Backend unreachable when the report was posted; items stay on the list. |
 | A line shows **Not added** | Not deliverable from your store right now; choose another product. |
-| Triage says "The checker could not be reached" | Model server down: `make up` (Ollama: also `docker compose exec ollama ollama pull llama3.2`), then **Accept** in Triage. |
+| Triage says "The checker could not be reached" | Model server down: `make dev` (Ollama: also `make hm-compose args='exec ollama ollama pull llama3.2'`), then **Accept** in Triage. |
 | Alexa: "I couldn't find … on the list" | No `active` item matched; check the exact name on **Grocery List**. |
 | Alexa: "The list is locked for purchase" | The list is committed; release it in the web app first. |
 | Google Tasks card: "connect Google Tasks again" | Access was revoked or expired: **Intake → Disconnect**, then connect again. |

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `sudo make install`: put the output of `make build` into service on this
+# `sudo make hm-install-server`: put the output of `make build` into service on this
 # server. Safe to re-run; each run is also how an update is deployed.
 #
 #   1. .env               -> /etc/grocery/grocery.env (root only)
@@ -23,9 +23,9 @@ services=(grocery-backend grocery-alexa-bridge grocery-frontend)
 
 log() { printf '==> %s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
-die() { printf 'make install: %s\n' "$*" >&2; exit 1; }
+die() { printf 'make hm-install-server: %s\n' "$*" >&2; exit 1; }
 
-[ "$(id -u)" -eq 0 ] || die "run with sudo: sudo make install"
+[ "$(id -u)" -eq 0 ] || die "run with sudo: sudo make hm-install-server"
 [ -x "$staged/bin/grocery-backend" ] || die "nothing built yet; run 'make build' as your own user first"
 [ -f "$root/.env" ] || die "no .env in $root; run 'make setup-env' and fill it in (docs/production.md)"
 node=$(command -v node) || die "node is not on root's PATH; install Node 22 system-wide"

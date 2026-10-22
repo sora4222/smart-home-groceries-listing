@@ -14,7 +14,7 @@ does not rewrite the connection URL or change a running database password.
 |---|---|
 | Compose startup / `make run-env` | `scripts/environment.mjs` merges sources and calls a replaceable resolver; `run-env.mjs` removes `OP_*` credentials before starting its child |
 | Backend binary / migrations | `backend/src/environment/` initializes backend settings before threads and logging; only `onepassword.rs` calls the CLI |
-| Vite dev/build / `pnpm start` | Shared JavaScript loader resolves `CLERK_*` and `VITE_*`; only Vite's public prefix reaches the browser |
+| Vite dev/build / `pnpm start` | Shared JavaScript loader resolves `CLERK_*`, `VITE_*` and `SERVER_API_BASE_URL`; only Vite's public prefix reaches the browser |
 | Alexa `load_settings()` | `alexa_bridge/environment.py` loads bridge settings only; database settings are neither retained nor resolved |
 | Production systemd units | `deploy/bin/grocery-env` runs as root before each start, calls `scripts/service-env.mjs` with the token file, and writes only that service's keys (`scripts/service-components.mjs`) for `EnvironmentFile=`; services get `GROCERY_ENV_FILE=/dev/null` and no `OP_*` |
 

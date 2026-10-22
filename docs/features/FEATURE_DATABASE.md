@@ -23,7 +23,7 @@ only changes the current invocation, leaving `.env` and existing data intact.
 ## Test infrastructure
 
 `make test` runs backend, frontend, Alexa, tooling, and browser tests without
-starting the application Compose stack. `make test-backend` and `make e2e`
+starting the application Compose stack. `make test-backend` and `make test-frontend-playwright`
 each own a PostgreSQL 16 Testcontainer with random credentials and a dynamically
 allocated loopback port. SQLx owns a database per backend integration test.
 Test startup waits for database readiness. No application volume or connection

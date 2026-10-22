@@ -8,9 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
 const executablePath = process.env.E2E_CHROMIUM_PATH || undefined;
 
 /**
- * End-to-end configuration. The stack has to be up first — `make up`, or
- * `pnpm dev` plus the backend — because these tests drive the real API and a
- * real PostgreSQL database rather than a mock.
+ * Browser tests drive the real API and PostgreSQL. The root
+ * `make test-frontend-playwright` owns an isolated stack. Raw Playwright
+ * requires separately provisioned test servers and resets their data.
  *
  * `API_BASE_URL` is where the tests reset state between runs; it defaults to
  * the same backend the app is pointed at.

@@ -6,8 +6,9 @@ through a Cloudflare Tunnel hostname. Steps for people:
 [`human-setup.md`](../human-setup.md#optional-web-app-on-your-own-computer).
 
 ## How the browser finds the backend
-The browser calls the backend directly; the web app's own server never
-proxies API calls. `frontend/src/lib/backend-url.ts` turns two `VITE_*`
+The browser calls the backend directly. Server-rendered route loaders also
+call the API; optional `SERVER_API_BASE_URL` selects an internal address for
+those requests without changing browser configuration. `frontend/src/lib/backend-url.ts` turns two `VITE_*`
 values into addresses, and `lib/config.ts` exports them for this build.
 
 | Key | Rule |
@@ -15,14 +16,18 @@ values into addresses, and `lib/config.ts` exports them for this build.
 | `VITE_API_BASE_URL` | Blank → `http://localhost:8000`. Trailing slashes dropped. Must start `http://` or `https://`, else the app throws at load with the key's name. |
 | `VITE_WS_URL` | Blank → the API address with `http` → `ws` (so `https` → `wss`) plus `/ws`. Must start `ws://` or `wss://`. |
 
-`VITE_*` values are fixed when Vite starts (`make web`, `make up`) or builds
+`VITE_*` values are fixed when Vite starts (`make hm-dev-frontend`, `make dev`) or builds
 (`make build`).
 
 ## Running only the web app
-`make web` installs frontend packages and runs `vite dev` on `WEB_PORT`
+`make hm-dev-frontend` installs frontend packages and runs `vite dev` on `WEB_PORT`
 (default 3000, `--strictPort`). It reads the checkout root `.env`, needs no
-Docker, database or backend settings, and accepts only `CLERK_*` and
-`VITE_*` keys (`frontend/vite.config.ts`).
+Docker, database or backend settings, and accepts only `CLERK_*`,
+`VITE_*` and `SERVER_API_BASE_URL` keys (`frontend/vite.config.ts`).
+
+Full-stack `make dev` supplies its own local API and socket URLs. Use
+`hm-dev-frontend` for a remote backend. Its separately launched host process
+is stopped with Ctrl-C in its terminal, outside Compose ownership.
 
 ## Server side
 - CORS: the web app's origin (`http://localhost:<WEB_PORT>`) must be in the

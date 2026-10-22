@@ -1,10 +1,10 @@
 #!/bin/sh
-# First step of `make update`, as your own user: bring the checked-out branch
+# First step of `make hm-update-server`, as your own user: bring the checked-out branch
 # up to date with its upstream, without merging or discarding anything.
 set -eu
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-die() { echo "make update: $*" >&2; exit 1; }
+die() { echo "make hm-update-server: $*" >&2; exit 1; }
 
 [ "$(id -u)" -ne 0 ] || die "run as your own user, not with sudo; it asks for sudo when it installs"
 branch=$(git -C "$root" symbolic-ref --quiet --short HEAD) || die "no branch is checked out (detached HEAD)"

@@ -332,36 +332,36 @@ Keep `DEV_AUTH_BYPASS=false`. The web app signs people in with Clerk
 (section 2); the bypass is for local development and e2e only.
 
 ```bash
-make up
+make dev
 ```
 
 With the Ollama profile, pull the model once (~2 GB). llama.cpp and vLLM
 download theirs on first start.
 
 ```bash
-docker compose exec ollama ollama pull llama3.2
+make hm-compose args='exec ollama ollama pull llama3.2'
 ```
 
-Start the frontend dev server (foreground):
+The frontend is included in `dev`. Keep it attached to its terminal and use a
+second terminal for service commands. Open the web URL printed after readiness.
+Set `WEB_PORT=3000` and `BACKEND_PORT=8000` in the selected configuration to keep
+fixed URLs, or use the worktree defaults. Any Google OAuth redirect must match
+the selected web port.
 
-```bash
-cd frontend && pnpm install && pnpm dev
-```
-
-**Verify:** the tunnel reports **Healthy** in Cloudflare, and
-[localhost:3000](http://localhost:3000) redirects to `/sign-in`. The first
+**Verify:** the tunnel reports **Healthy** in Cloudflare, and the printed web
+address redirects to `/sign-in`. The first
 time, use **Sign up** (`/sign-up`) with an allowlisted address; after that,
 sign in with **Continue with Google** or email and password. The Grocery
 List loads with your avatar top right.
 
 **Troubleshooting:**
 - Tunnel not Healthy → check `CLOUDFLARE_TUNNEL_TOKEN` for stray whitespace,
-  then `make down && make up`.
+  then `make stop-all && make dev`.
 - No sign-in page, and a **Sign-in is off** banner → `VITE_CLERK_PUBLISHABLE_KEY`
-  is empty; set it and restart `pnpm dev`.
+  is empty; set it and restart `make dev`.
 - "Not allowed to sign up" → add the address to the Clerk allowlist
   (section 2, step 3).
-- Anything else → `docker compose logs <service>`.
+- Anything else → `make hm-compose args='logs <service>'`.
 
 ---
 
@@ -386,7 +386,7 @@ Pending Requests. The rationale is in
   (section 4, step 7).
 - Remove/undo intents are not recognised → the interaction model was not
   rebuilt after adding them (section 4, steps 3–4).
-- Nothing arrives at all → `docker compose logs alexa-bridge`; a `403`
+- Nothing arrives at all → `make hm-compose args='logs alexa-bridge'`; a `403`
   means `ALEXA_SKILL_ID` does not match the skill.
 
 ---
@@ -438,7 +438,7 @@ delivery address.
 ## Optional: PostgreSQL installed on the server
 
 Run the app against a PostgreSQL installed on the home server (bare metal)
-instead of the `db` container. Do this before the first `make up`
+instead of the `db` container. Do this before the first `make dev`
 (section 6). Developer machines keep the default: `db` in
 `COMPOSE_PROFILES` starts PostgreSQL in Docker.
 
@@ -492,15 +492,15 @@ container runs.
 | `COMPOSE_PROFILES` | Without `db`, e.g. `ollama` |
 | `DATABASE_URL` | `postgres://grocery:<POSTGRES_PASSWORD>@host.docker.internal:5432/grocery` |
 
-**Verify:** `make up` starts no `db` container (`docker compose ps`), and
-`docker compose logs backend` shows the migrations applied with no
+**Verify:** `make dev` starts no `db` container (`make hm-compose args='ps'`), and
+`make hm-compose args='logs backend'` shows the migrations applied with no
 connection errors.
 
 **Moving data from the `db` container:** before step 5, with the old stack
 still up:
 
 ```bash
-docker compose exec -T db pg_dump -U grocery -Fc grocery > grocery.dump
+make hm-compose args='exec -T db pg_dump -U grocery -Fc grocery' > grocery.dump
 pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
 ```
 
@@ -509,7 +509,7 @@ pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
 | Backend logs `connection refused` | `listen_addresses` misses `172.17.0.1`, or the firewall blocks 5432 from Docker. |
 | Backend logs `no pg_hba.conf entry` | Add the step 3 line, then restart PostgreSQL. |
 | Backend logs `password authentication failed` | The password in `DATABASE_URL` differs from the role's, or has an unencoded special character. |
-| `make up` stops with "COMPOSE_PROFILES does not include db" | `DATABASE_URL` still names `db`; finish step 5. On a developer machine, add `db` instead (a `.env` made before the `db` profile existed lacks it). |
+| `make dev` stops with "COMPOSE_PROFILES does not include db" | `DATABASE_URL` still names `db`; finish step 5. On a developer machine, add `db` instead (a `.env` made before the `db` profile existed lacks it). |
 | A `db` container still starts | `db` is still in `COMPOSE_PROFILES`, in `.env` or exported in the shell (the shell wins). |
 
 ---
@@ -549,7 +549,7 @@ Cloudflare passes WebSockets through without extra settings.
 | `CORS_ORIGINS` | must include the web app's origin, `http://localhost:3000` by default. Comma-separate more than one. |
 
 Restart the backend (`sudo systemctl restart grocery-backend`, or
-`make restart` under Compose).
+`make stop-all && make dev` under Compose).
 
 ### Your computer
 
@@ -567,8 +567,8 @@ Clerk development keys (`pk_test_…`) work on `localhost`. Production keys
 (`pk_live_…`) work only on the domain set in Clerk, so use the development
 instance's keys here.
 
-Then run `make web` and open [localhost:3000](http://localhost:3000).
-`WEB_PORT=3001 make web` picks another port; add that origin to
+Then run `make hm-dev-frontend` and open [localhost:3000](http://localhost:3000).
+`WEB_PORT=3001 make hm-dev-frontend` picks another port; add that origin to
 `CORS_ORIGINS` on the server.
 
 **Verify:** `curl https://grocery-api.<your-domain>/api/health` answers, and
@@ -580,8 +580,8 @@ browser console.
 | Console: `blocked by CORS policy` | The origin in the address bar is missing from the server's `CORS_ORIGINS`, or the backend was not restarted. |
 | Every request is `401` | The server's `CLERK_JWKS_URL` is from a different Clerk instance than the keys on your computer. |
 | Clerk error about the domain or key | A `pk_live_…` key on `localhost`; use the development instance's keys. |
-| Console: `VITE_API_BASE_URL must start with http:// or https://` | Add the scheme to the value, then restart `make web`. |
-| Requests still go to `localhost:8000` | `VITE_*` values are read at start: restart `make web`. |
+| Console: `VITE_API_BASE_URL must start with http:// or https://` | Add the scheme to the value, then restart `make hm-dev-frontend`. |
+| Requests still go to `localhost:8000` | `VITE_*` values are read at start: restart `make hm-dev-frontend`. |
 
 ---
 
@@ -617,7 +617,7 @@ the list, records each open task, then deletes it. Spec:
 | Client ID (`….apps.googleusercontent.com`) | `GOOGLE_CLIENT_ID` |
 | Client secret (`GOCSPX-…`) | `GOOGLE_CLIENT_SECRET` |
 
-4. **Home server shell:** `make up` to restart with the new values.
+4. **Home server shell:** `make dev` to restart with the new values.
 5. **Web app on the home server** ([localhost:3000](http://localhost:3000)):
    **Intake → Connect Google Tasks**, pick the account, accept the
    unverified-app warning (**Advanced → Go to Grocery list**) and allow Tasks
@@ -629,7 +629,7 @@ the list, records each open task, then deletes it. Spec:
 
 | Symptom | Fix |
 |---|---|
-| Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make up`. |
+| Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make dev`. |
 | Google says `redirect_uri_mismatch` | The client's redirect URI must be exactly `http://localhost:3000/settings/intake`. |
 | Card says "connect Google Tasks again" | **Disconnect**, then repeat step 5. |
 

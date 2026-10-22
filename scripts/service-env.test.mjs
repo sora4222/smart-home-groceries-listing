@@ -13,6 +13,7 @@ const FIXTURE = [
   'DATABASE_URL=postgres://grocery:pw@localhost:5432/grocery',
   'CLERK_SECRET_KEY=sk_test_fixture',
   'VITE_API_BASE_URL=http://localhost:8000',
+  'SERVER_API_BASE_URL=http://backend:8000',
   'ALEXA_SKILL_ID=amzn1.ask.skill.fixture',
   'ALEXA_BRIDGE_SECRET=bridge-fixture',
   'CLOUDFLARE_TUNNEL_TOKEN=tunnel-fixture',
@@ -31,10 +32,11 @@ test('each service receives only its own keys', () => withDir(dir => {
   const bridge = resolveComponent({ name: 'alexa-bridge', file, inherited: {} });
   assert.deepEqual(Object.keys(bridge).sort(), ['ALEXA_BRIDGE_SECRET', 'ALEXA_SKILL_ID']);
   const frontend = resolveComponent({ name: 'frontend', file, inherited: {} });
-  assert.deepEqual(Object.keys(frontend).sort(), ['CLERK_SECRET_KEY', 'VITE_API_BASE_URL']);
+  assert.deepEqual(Object.keys(frontend).sort(), ['CLERK_SECRET_KEY', 'SERVER_API_BASE_URL', 'VITE_API_BASE_URL']);
   const backend = resolveComponent({ name: 'backend', file, inherited: {} });
   assert.ok(backend.DATABASE_URL && backend.ALEXA_BRIDGE_SECRET);
   assert.equal(backend.CLERK_SECRET_KEY, undefined);
+  assert.equal(backend.SERVER_API_BASE_URL, undefined);
 }));
 
 test('listening addresses and 1Password credentials are never passed through', () => {

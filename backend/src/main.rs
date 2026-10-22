@@ -3,7 +3,7 @@
 //! Three modes, chosen by argument:
 //!
 //! * no arguments — open the pool, apply migrations, serve until signalled;
-//! * `--migrate-only` — apply migrations and exit, for `make migrate`;
+//! * `--migrate-only` — apply migrations and exit, for `make update-db`;
 //! * `--health-check` — probe the running server and exit 0 or 1, so the
 //!   container healthcheck needs no `curl` in the runtime image.
 

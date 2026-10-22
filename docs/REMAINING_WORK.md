@@ -27,9 +27,9 @@ Use this as the task list for finishing the project. Each task has an id, what t
 ## 2. Make the app run (do this first)
 
 **A1. Fix "Failed to fetch" after sign-in.**
-Cause found: the page calls `http://localhost:8000` (`VITE_API_BASE_URL`) and nothing answered. The frontend dev server (`pnpm dev`, port 3000) does not start the backend. `make up` starts the backend in Docker.
+Cause found: the page calls `http://localhost:8000` (`VITE_API_BASE_URL`) and nothing answered. The frontend dev server (`pnpm dev`, port 3000) does not start the backend. `make dev` starts the backend in Docker.
 Steps:
-1. Run `make up`, then `docker compose ps` and check `backend` and `db` are healthy.
+1. Run `make dev`, then `docker compose ps` and check `backend` and `db` are healthy.
 2. If `backend` is not running, read `docker compose logs backend` and fix the cause (missing `.env` value, database not ready, port 8000 taken).
 3. Run `curl -i http://localhost:8000/health` and expect 200.
 4. Reload `http://localhost:3000` after sign-in.
@@ -189,4 +189,4 @@ The spec still says store orders use chromiumoxide browser automation on the ser
 - The desktop app shows real delivery windows and fees from both stores, and the planner recommends the cheapest valid order.
 - One tap places that order with the saved card.
 - The order appears in purchase history and on the Spending page.
-- `make up` and `make desktop` start everything, and the human setup steps work for a new person.
+- `make dev` and `make desktop` start everything, and the human setup steps work for a new person.

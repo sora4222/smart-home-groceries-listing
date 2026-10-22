@@ -1,14 +1,14 @@
 # Production server (no Docker)
 
 Runs the app on an Ubuntu 26.04 home server as systemd services, without
-Docker. `make build` compiles everything as your user; `sudo make install`
+Docker. `make build` compiles everything as your user; `sudo make hm-install-server`
 installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
 the services. Re-running both is also how an update is deployed.
 
 Do the vendor-console parts of [`human-setup.md`](human-setup.md) first
 (Clerk, Cloudflare Tunnel token, Alexa skill). This page replaces its
 section 6 and "Optional: PostgreSQL installed on the server" on the server.
-Developer machines keep Docker Compose (`make up`) and Testcontainers.
+Developer machines keep Docker Compose (`make dev`) and Testcontainers.
 
 ## What runs
 
@@ -62,7 +62,7 @@ not under a home directory, because the web app service runs it.
 |---|---|---|
 | Per-app service account | `/etc/1password/grocery.token` | Unattended boot (recommended) |
 | Shared service account | `/etc/1password/token` | Unattended boot |
-| Desktop app | `sudo make install OP_DESKTOP_USER=<login>` | Someone approves the 1Password prompt on each start |
+| Desktop app | `sudo make hm-install-server OP_DESKTOP_USER=<login>` | Someone approves the 1Password prompt on each start |
 
 Save a token without putting it in shell history or command arguments:
 
@@ -76,7 +76,7 @@ The service account needs read access to the project vault only.
 ## 2. `.env`
 
 **Where:** the repository checkout on the server. Make it with
-`make setup-env` if it does not exist yet. `sudo make install` copies it to
+`make setup-env` if it does not exist yet. `sudo make hm-install-server` copies it to
 `/etc/grocery/grocery.env` (root, `0600`) every time. Edit `.env`, not the
 copy.
 
@@ -95,7 +95,7 @@ These keys are ignored in production, so you can leave them as they are:
 - `COMPOSE_PROFILES`, `POSTGRES_PORT` and `BIND_ADDRESS`.
 - `ACCESS_LOG_DIR`: logs go to `/var/log/grocery`.
 
-`make install` stops with a clear message if `DATABASE_URL` or
+`make hm-install-server` stops with a clear message if `DATABASE_URL` or
 `INTAKE_LLM_BASE_URL` still names a Docker Compose host.
 
 `VITE_*` values are built into the web app by `make build`, so re-run
@@ -120,10 +120,10 @@ hostname for
 
 ```bash
 make build          # as yourself: cargo, uv, pnpm into build/production
-sudo make install   # /opt/grocery, PostgreSQL role, Ollama, cloudflared, services
+sudo make hm-install-server   # /opt/grocery, PostgreSQL role, Ollama, cloudflared, services
 ```
 
-On each run, `make install`:
+On each run, `make hm-install-server`:
 
 - creates the `DATABASE_URL` role and database if they are missing, and
   re-sets the role's password from 1Password. The password is sent as a
@@ -135,7 +135,7 @@ On each run, `make install`:
   package: to update it, re-run its installer
   (`curl -fsSL https://ollama.com/install.sh | sh`).
 
-**Verify:** `make install` ends with `backend is healthy`, `make status`
+**Verify:** `make hm-install-server` ends with `backend is healthy`, `make hm-status`
 shows each unit `active (running)`, and the Cloudflare tunnel reports
 **Healthy**. On the server, [localhost:3000](http://localhost:3000) redirects
 to `/sign-in`.
@@ -143,7 +143,7 @@ to `/sign-in`.
 ## Updating
 
 ```bash
-make update        # as yourself; asks for your sudo password once
+make hm-update-server        # as yourself; asks for your sudo password once
 ```
 
 Deploys the branch that is checked out:
@@ -156,12 +156,12 @@ Deploys the branch that is checked out:
    when:
    - a pending migration contains `DROP TABLE/COLUMN/SCHEMA`, `TRUNCATE`,
      `DELETE FROM` or a column type change. Read the file, then run
-     `make update ALLOW_DESTRUCTIVE=1`.
+     `make hm-update-server ALLOW_DESTRUCTIVE=1`.
    - the database has migrations the checkout does not know, which means
      an older branch. Its code would run against a newer schema.
 4. Backs the database up with `pg_dump -Fc` to `/var/backups/grocery/`
    (root only, newest 10 kept).
-5. Runs `make install`. The new backend binary applies the pending
+5. Runs `make hm-install-server`. The new backend binary applies the pending
    migrations (`--migrate-only`, as `nobody`) *before* `/opt/grocery` is
    switched over. If a migration fails, sqlx rolls it back and the running
    version is left untouched.
@@ -177,18 +177,18 @@ sudo systemctl stop grocery.target
 sudo cat /var/backups/grocery/<file>.dump | sudo -u postgres pg_restore --clean --if-exists -d grocery
 ```
 
-Then check out the matching commit and run `make update` again.
+Then check out the matching commit and run `make hm-update-server` again.
 
 ## Operating
 
 | Task | Command |
 |---|---|
-| State of every unit | `make status` |
-| Recent logs | `make logs`, or `journalctl -u grocery-backend -f` |
-| Deploy the checked-out branch | `make update` |
+| State of every unit | `make hm-status` |
+| Recent logs | `make hm-logs`, or `journalctl -u grocery-backend -f` |
+| Deploy the checked-out branch | `make hm-update-server` |
 | Restart everything | `sudo systemctl restart grocery.target` |
 | Stop everything | `sudo systemctl stop grocery.target` |
-| Remove (keeps `/etc/grocery`, the database and logs) | `sudo make uninstall` |
+| Remove (keeps `/etc/grocery`, the database and logs) | `sudo make hm-uninstall-server` |
 
 **Reaching the web app from another device:** the backend and web app
 listen on loopback, and the browser calls the backend at
@@ -204,8 +204,8 @@ see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 | Symptom | Fix |
 |---|---|
 | `grocery-env: cannot load KEY from 1Password` in `journalctl -u grocery-<unit>` | The token file is missing or lacks vault access, or the reference is wrong. Test it with `sudo /opt/grocery/libexec/grocery-env json <unit>` (this prints secrets; clear the terminal afterwards). The unit retries every 15 s. |
-| `make install`: `DATABASE_URL names "db"` | Set the host to `localhost` (section 2). |
-| Backend logs `password authentication failed` | Re-run `sudo make install`. It re-sets the role's password from `DATABASE_URL`. |
+| `make hm-install-server`: `DATABASE_URL names "db"` | Set the host to `localhost` (section 2). |
+| Backend logs `password authentication failed` | Re-run `sudo make hm-install-server`. It re-sets the role's password from `DATABASE_URL`. |
 | Backend logs `no pg_hba.conf entry` | Ubuntu's default `host all all 127.0.0.1/32 scram-sha-256` line was removed. Restore it and restart PostgreSQL. |
 | Alexa says the skill cannot be reached | Check that the tunnel route points at `http://localhost:8081` (section 3) and that `grocery-tunnel` is running. |
 | `make build`: `missing …` | Install the listed tool (section 1). |

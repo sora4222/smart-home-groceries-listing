@@ -5,47 +5,41 @@ description: Add or change this repository's Makefile targets, including compact
 
 # Make targets
 
-Keep targets grouped under the existing headings. Ordinary targets are compact
-for agents; an `hm-<target>` counterpart is appropriate when people need full
-output. Preserve an existing target's output and exit-status behavior unless
-changing it deliberately with matching tests.
+Use canonical `dev`, `stop-all`, `check`, `test`, and `build`, without aliases.
+Keep focused suites under `test-<component>`; browser coverage is
+`test-frontend-playwright`. Human-only operations use `hm-`, including
+`hm-dev-frontend`, `hm-compose` diagnostics and production `hm-*-server` targets. Update every caller when
+renaming a command. `format` applies formatting; `check` verifies all gates. Preserve the existing
+500-line script gate; authoring instructions can be stricter.
+Preserve nonzero statuses, signal statuses and the structured test verdict policy.
 
-Run each toolchain in its owned directory:
+Run Rust in `backend/` with cargo, Alexa in `sidecars/alexa-bridge/` with uv,
+and frontend commands in `frontend/` with pnpm. Tests own disposable databases
+and random ports; application configuration and a household stack are never test
+infrastructure. See the testing skill for runner contracts.
 
-- Rust backend: `backend/` with `cargo` on the host.
-- Alexa bridge: `sidecars/alexa-bridge/` with `uv run`.
-- Frontend: `frontend/` with `pnpm`.
+`dev` uses `scripts/dev.mjs`, the base Compose file and `docker-compose.dev.yml`.
+It supplies `SERVER_API_BASE_URL=http://backend:8000` for SSR while browsers
+use the published API port. It waits for health, watches frontend source and rebuilds backend/bridge images.
+Its finally block runs shutdown even on failure or cancellation. `stop-all`
+uses the same overlay and worktree context, needs no application secrets, and
+retains volumes. `scripts/dev-context.mjs` derives defaults from the real checkout
+path; exported or selected-file project names and ports override them. Verify
+startup failure, child failure, interruption, repeated shutdown and isolation.
 
-Backend and browser test targets own disposable PostgreSQL Testcontainers.
-Keep tests independent of application `.env`, profiles, secrets, and fixed
-ports. Include browser tests in `test`; preserve command failures rather than
-masking them with output filters. Keep process-group and container cleanup in
-the owned runners. Prefer existing targets over duplicating their behavior.
+`hm-dev-frontend` retains host-only frontend development against a remote API.
+It needs only frontend settings and no Docker/database. It runs attached to its
+own terminal; Compose shutdown does not own that separately launched process.
 
-`make web` runs only the frontend on the host (no Docker) against the
-backend at `VITE_API_BASE_URL`; keep it free of backend and database
-settings (`docs/features/FEATURE_REMOTE_BACKEND.md`).
+The Compose runner resolves `op://` settings on startup, explicitly maps values,
+and strips `OP_*` credentials before running Docker. Shutdown loads only project
+and port configuration. Keep the selected `--env-file` consistent; never replace
+explicit mappings with raw `env_file: .env`. Profiles follow the resolved
+`DATABASE_URL` and preserve unrelated profile choices. See
+`docs/features/FEATURE_CONFIGURATION.md`.
 
-Compose lifecycle commands use `scripts/compose.mjs` with the same selected
-`--env-file`. Shutdown loads only Compose settings and preserves failures
-without resolving application secrets. Startup resolves `op://` settings.
-Keep authentication on the host and backend environment mappings explicit;
-`env_file: .env` bypasses resolution. Test with fixture configuration through
-`make test-tooling`, without displaying real resolved Compose configuration.
-See `docs/features/FEATURE_CONFIGURATION.md` when adding settings.
-Choose the database profile from the resolved `DATABASE_URL`: enable `db` for
-the Compose hostname, remove it for external PostgreSQL, and preserve all
-other profiles and the original configuration file.
-
-Production targets (`build`, `install`, `update`, `uninstall`, `status`, `logs`) call
-the scripts in `deploy/` and never use Docker. `make build` runs as the
-developer and writes only `build/production`, laid out as `/opt/grocery`;
-`make install` runs as root and must stay re-runnable. Services read
-settings only through `deploy/bin/grocery-env`; a new key goes in the right
-component in `scripts/service-components.mjs` (`docs/production.md`).
-`make update` must stay non-destructive: it checks pending migrations with
-`scripts/migration-plan.mjs`, backs up, and only then installs.
-
-All launchers use `test-process.mjs` for process-group ownership and signal
-status. Race server exit promises against owned work with `withServers`;
-await cancellation cleanup before releasing the database.
+Production `build` and `hm-install-server`, `hm-update-server`,
+`hm-uninstall-server`, `hm-status`, `hm-logs` retain systemd deployment.
+Build as the developer into `build/production`; install as root. Updates check
+migrations and back up before installation. Settings flow through
+`deploy/bin/grocery-env` and `scripts/service-components.mjs`.

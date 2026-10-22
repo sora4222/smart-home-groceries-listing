@@ -3,7 +3,7 @@
 #
 #   grocery-env write COMPONENT   systemd ExecStartPre: writes
 #                                 /run/grocery-secrets/COMPONENT.env (root, 0600)
-#   grocery-env json COMPONENT    make install: prints the values as JSON
+#   grocery-env json COMPONENT    make hm-install-server: prints the values as JSON
 #
 # 1Password access, first match wins:
 #   1. /etc/1password/grocery.token   per-app service-account token
@@ -37,7 +37,7 @@ tokens=${GROCERY_OP_TOKENS:-/etc/1password/grocery.token /etc/1password/token}
 secrets=${GROCERY_SECRETS_DIR:-/run/grocery-secrets}
 safe_path=${GROCERY_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}
 
-[ -r "$config" ] || die "cannot read $config; run 'sudo make install' from the repository"
+[ -r "$config" ] || die "cannot read $config; run 'sudo make hm-install-server' from the repository"
 
 token=
 for candidate in $tokens; do

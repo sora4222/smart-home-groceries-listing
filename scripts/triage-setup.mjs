@@ -1,5 +1,5 @@
 /**
- * Decide whether `make install` must provide a local Ollama, and which model.
+ * Decide whether `make hm-install-server` must provide a local Ollama, and which model.
  *
  *   grocery-env json triage | node triage-setup.mjs   →  "ollama llama3.2" | "none"
  *

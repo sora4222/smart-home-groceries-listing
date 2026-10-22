@@ -13,7 +13,7 @@
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
-    "start": "node ../scripts/run-env.mjs --prefix CLERK_,VITE_ node .output/server/index.mjs",
+    "start": "node ../scripts/run-env.mjs --prefix CLERK_,VITE_,SERVER_API_BASE_URL node .output/server/index.mjs",
     "test": "vitest",
     "test:run": "vitest run",
     "e2e": "playwright test",

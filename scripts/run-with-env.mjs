@@ -3,7 +3,7 @@
  *
  *   grocery-env json backend | node run-with-env.mjs nobody CMD [ARGS...]
  *
- * Used by `make install` to apply migrations with the new backend binary
+ * Used by `make hm-install-server` to apply migrations with the new backend binary
  * before the running one is replaced. Secrets travel through the pipe, never
  * the command line, and the command gets no other variables (no `OP_*`).
  */

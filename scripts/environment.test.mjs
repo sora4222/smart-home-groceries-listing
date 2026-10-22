@@ -119,23 +119,23 @@ test('Compose passes resolved backend and Alexa settings without provider creden
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('make up selects Docker or external PostgreSQL and propagates Compose failures', () => {
+test('Compose startup selects Docker or external PostgreSQL and propagates Compose failures', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-startup-'));
   try {
     mkdirSync(join(dir, 'scripts'));
     copyFileSync('Makefile', join(dir, 'Makefile'));
-    for (const name of ['environment.mjs', 'run-env.mjs', 'compose.mjs', 'test-process.mjs', 'database-profiles.mjs']) {
+    for (const name of ['environment.mjs', 'run-env.mjs', 'compose.mjs', 'dev-context.mjs', 'test-process.mjs', 'database-profiles.mjs']) {
       copyFileSync(`scripts/${name}`, join(dir, 'scripts', name));
     }
     writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s" "$COMPOSE_PROFILES"\nexit 7\n', { mode: 0o700 });
     const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: join(dir, '.env') };
     writeFileSync(join(dir, '.env'), 'DATABASE_URL=postgres://fixture@db/grocery\nCOMPOSE_PROFILES=ollama\n');
-    const docker = spawnSync('make', ['up'], { cwd: dir, env, encoding: 'utf8' });
+    const docker = spawnSync('node', ['scripts/compose.mjs', 'up', '-d'], { cwd: dir, env, encoding: 'utf8' });
     assert.notEqual(docker.status, 0);
     assert.equal(docker.stdout, 'ollama,db');
     assert.equal(readFileSync(join(dir, '.env'), 'utf8'), 'DATABASE_URL=postgres://fixture@db/grocery\nCOMPOSE_PROFILES=ollama\n');
     writeFileSync(join(dir, '.env'), 'DATABASE_URL=postgres://fixture@host.docker.internal/grocery\nCOMPOSE_PROFILES=ollama,db\n');
-    const external = spawnSync('make', ['up'], { cwd: dir, env, encoding: 'utf8' });
+    const external = spawnSync('node', ['scripts/compose.mjs', 'up', '-d'], { cwd: dir, env, encoding: 'utf8' });
     assert.notEqual(external.status, 0);
     assert.equal(external.stdout, 'ollama');
   } finally { rmSync(dir, { recursive: true }); }

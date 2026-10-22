@@ -23,12 +23,12 @@ const BACKEND_KEYS = [
 /**
  * `keys` or `prefixes` select what a service may read; `rename` maps a `.env`
  * name to the name the program expects. `database` and `triage` are not
- * services: `make install` reads them to set up PostgreSQL and Ollama.
+ * services: `make hm-install-server` reads them to set up PostgreSQL and Ollama.
  */
 export const COMPONENTS = {
   backend: { keys: BACKEND_KEYS },
   'alexa-bridge': { keys: ['ALEXA_SKILL_ID', 'ALEXA_BRIDGE_SECRET', 'BACKEND_TIMEOUT_SECONDS', 'LOG_LEVEL'] },
-  frontend: { prefixes: ['CLERK_', 'VITE_'] },
+  frontend: { prefixes: ['CLERK_', 'VITE_'], keys: ['SERVER_API_BASE_URL'] },
   tunnel: { keys: ['CLOUDFLARE_TUNNEL_TOKEN'], rename: { CLOUDFLARE_TUNNEL_TOKEN: 'TUNNEL_TOKEN' } },
   database: { keys: ['DATABASE_URL'] },
   triage: { keys: ['INTAKE_LLM_PROVIDER', 'INTAKE_LLM_BASE_URL', 'INTAKE_LLM_MODEL'] },

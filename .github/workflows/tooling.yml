@@ -28,7 +28,7 @@ jobs:
         with:
           version: 10.28.0
       - run: pnpm install --frozen-lockfile
-      - run: for test in scripts/*.test.sh; do sh "$test"; done
+      - run: make test-tooling
 
   shellcheck:
     name: shellcheck
@@ -57,3 +57,4 @@ jobs:
       # A server with PostgreSQL installed drops the `db` profile; the backend's
       # optional depends_on must still parse without it.
       - run: COMPOSE_PROFILES=ollama docker compose config --quiet
+      - run: WEB_PORT=3000 BACKEND_PORT=8000 docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # `make build`: compile every production component into build/production,
-# laid out exactly as `make install` copies it to /opt/grocery. Runs as your
+# laid out exactly as `make hm-install-server` copies it to /opt/grocery. Runs as your
 # own user and needs neither root nor Docker.
 #
 #   bin/grocery-backend      Rust backend (release, migrations embedded)
@@ -19,7 +19,7 @@ target=${CARGO_TARGET_DIR:-$root/backend/target}
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'make build: %s\n' "$*" >&2; exit 1; }
 
-[ "$(id -u)" -ne 0 ] || die "run as your own user, not root (then: sudo make install)"
+[ "$(id -u)" -ne 0 ] || die "run as your own user, not root (then: sudo make hm-install-server)"
 missing=()
 for tool in cargo node pnpm uv git cmake clang pkg-config; do
   command -v "$tool" > /dev/null || missing+=("$tool")
@@ -57,7 +57,7 @@ for file in environment.mjs service-env.mjs service-components.mjs systemd-env.m
   install -m 644 "$root/scripts/$file" "$stage/lib/$file"
 done
 install -m 755 "$root/deploy/bin/grocery-env" "$stage/libexec/grocery-env"
-# The migrations the binary embeds, so `make update` can check them first.
+# The migrations the binary embeds, so `make hm-update-server` can check them first.
 cp -a "$root/backend/migrations" "$stage/migrations"
 cp -a "$root/deploy/systemd" "$stage/systemd"
 git -C "$root" describe --always --dirty > "$stage/VERSION" 2> /dev/null || echo unknown > "$stage/VERSION"
@@ -65,4 +65,4 @@ git -C "$root" describe --always --dirty > "$stage/VERSION" 2> /dev/null || echo
 rm -rf "$out"
 mv "$stage" "$out"
 trap - EXIT
-log "built $(cat "$out/VERSION") into build/production; next: sudo make install"
+log "built $(cat "$out/VERSION") into build/production; next: sudo make hm-install-server"

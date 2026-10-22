@@ -1,7 +1,5 @@
 # Predictable lifecycle commands. Use human=1 or the legacy hm- aliases for full logs.
 .DEFAULT_GOAL := check
-# Fixers modify shared component files, so one invocation runs targets in order.
-.NOTPARALLEL:
 HUMAN = $(if $(filter 1 true,$(human)),--human,)
 RUN = node scripts/command.mjs $(HUMAN) $@ --
 COMPONENTS := backend frontend alexa desktop
@@ -15,7 +13,8 @@ COMPONENTS := backend frontend alexa desktop
         $(addprefix hm-test-,$(COMPONENTS)) $(addprefix build-,$(COMPONENTS)) \
         $(addprefix format-,$(COMPONENTS)) $(addprefix lint-,$(COMPONENTS))
 
-all: check test build
+all: check
+	@$(MAKE) --no-print-directory build
 
 # Any local command can use the shared configuration and provider boundary.
 run-env:
@@ -88,8 +87,11 @@ migration-new:
 	 touch "$${next}_$${slug}.sql" && \
 	 echo "created backend/migrations/$${next}_$${slug}.sql"
 
-## Checks. Complete automatic fixes before checks/tests, including with make -j.
-check: format lint type-backend type-frontend type-desktop check-file-length test
+## Checks. Independent components share make -j jobs within each phase.
+# Finish source rewrites before readers, and finish checks before all builds.
+check: format
+	@$(MAKE) --no-print-directory lint
+	@$(MAKE) --no-print-directory type-backend type-frontend type-desktop check-file-length test
 
 format: $(addprefix format-,$(COMPONENTS))
 lint: $(addprefix lint-,$(COMPONENTS))

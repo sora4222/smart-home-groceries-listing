@@ -16,6 +16,7 @@ use serde::Serialize;
 use tokio::sync::oneshot;
 use url::Url;
 
+use crate::fill_failure::FillFailure;
 use crate::stores::Store;
 
 /// What the web app receives when a fill completes.
@@ -25,8 +26,8 @@ pub struct FillReport {
     pub message: String,
 }
 
-/// How an operation ended: the report, or a sentence saying why it failed.
-pub type FillOutcome = Result<FillReport, String>;
+/// How an operation ended: the report, or why it failed.
+pub type FillOutcome = Result<FillReport, FillFailure>;
 
 /// Where an operation is.
 enum Phase {
@@ -63,13 +64,10 @@ pub struct FillTicket<'a> {
 
 impl FillOperations {
     /// Begins a fill of `store` with `program`, unless one is already going.
-    pub fn begin(&self, store: Store, program: String) -> Result<FillTicket<'_>, String> {
+    pub fn begin(&self, store: Store, program: String) -> Result<FillTicket<'_>, FillFailure> {
         let mut state = self.lock();
         if state.operations.contains_key(&store) {
-            return Err(format!(
-                "A trolley fill is already running at {}. Wait for it to finish.",
-                store.display_name()
-            ));
+            return Err(FillFailure::Busy(store));
         }
         state.next_id += 1;
         let id = state.next_id;
@@ -143,8 +141,7 @@ impl FillTicket<'_> {
     /// Waits for the operation to end.
     pub async fn outcome(mut self) -> FillOutcome {
         let done = self.done.take().expect("outcome is awaited once");
-        done.await
-            .unwrap_or_else(|_| Err("The trolley fill stopped unexpectedly.".into()))
+        done.await.unwrap_or(Err(FillFailure::Stopped))
     }
 }
 
@@ -214,10 +211,7 @@ mod tests {
         let operations = FillOperations::default();
         let _first = operations.begin(Store::Woolworths, "one()".into()).unwrap();
         let refused = operations.begin(Store::Woolworths, "two()".into());
-        assert_eq!(
-            refused.err(),
-            Some("A trolley fill is already running at Woolworths. Wait for it to finish.".into())
-        );
+        assert_eq!(refused.err(), Some(FillFailure::Busy(Store::Woolworths)));
         assert!(operations.begin(Store::Coles, "other()".into()).is_ok());
     }
 
@@ -236,6 +230,16 @@ mod tests {
     }
 
     #[test]
+    fn a_vanished_operation_is_stopped() {
+        let operations = FillOperations::default();
+        let ticket = operations
+            .begin(Store::Woolworths, "fill()".into())
+            .unwrap();
+        operations.lock().operations.clear();
+        assert_eq!(block_on(ticket.outcome()), Err(FillFailure::Stopped));
+    }
+
+    #[test]
     fn dropping_the_ticket_abandons_the_waiting_program() {
         let operations = FillOperations::default();
         let ticket = operations
@@ -250,7 +254,7 @@ mod tests {
     fn an_old_ticket_never_abandons_a_newer_operation() {
         let operations = FillOperations::default();
         let old = operations.begin(Store::Woolworths, "old()".into()).unwrap();
-        operations.finish(Store::Woolworths, Err("failed".into()));
+        operations.finish(Store::Woolworths, Err(FillFailure::PageChanged));
         let _new = operations.begin(Store::Woolworths, "new()".into()).unwrap();
         drop(old);
         assert_eq!(

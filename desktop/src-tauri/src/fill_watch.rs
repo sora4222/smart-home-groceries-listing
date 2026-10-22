@@ -7,6 +7,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, Runtime, WebviewWindow};
 use tokio::sync::oneshot;
 
+use crate::fill_failure::FillFailure;
 use crate::fill_operation::{FillOperations, FillReport};
 use crate::fill_status::{self, PageStatus};
 use crate::stores::Store;
@@ -16,17 +17,13 @@ const POLL_EVERY: Duration = Duration::from_secs(1);
 /// How long one read may take before it is tried again.
 const READ_WITHIN: Duration = Duration::from_secs(5);
 
-/// Why a fill ends when its store window closes.
-pub const WINDOW_CLOSED: &str = "The store window was closed before the trolley was filled.";
-const PAGE_CHANGED: &str = "The store page changed before the trolley was filled. Try again.";
-
 /// Reads progress until the program reports or the operation ends elsewhere.
 pub async fn watch<R: Runtime>(app: AppHandle<R>, store: Store) {
     let operations = app.state::<FillOperations>();
     while operations.is_running(store) {
         tokio::time::sleep(POLL_EVERY).await;
         let Some(window) = app.get_webview_window(store.window_label()) else {
-            operations.finish(store, Err(WINDOW_CLOSED.into()));
+            operations.finish(store, Err(FillFailure::WindowClosed));
             return;
         };
         let status = match read(&window).await {
@@ -36,8 +33,10 @@ pub async fn watch<R: Runtime>(app: AppHandle<R>, store: Store) {
         match status {
             PageStatus::Running => {}
             PageStatus::Completed(message) => operations.finish(store, Ok(FillReport { message })),
-            PageStatus::Failed(message) => operations.finish(store, Err(message)),
-            PageStatus::Gone => operations.finish(store, Err(PAGE_CHANGED.into())),
+            PageStatus::Failed(message) => {
+                operations.finish(store, Err(FillFailure::Program(message)))
+            }
+            PageStatus::Gone => operations.finish(store, Err(FillFailure::PageChanged)),
         }
     }
 }

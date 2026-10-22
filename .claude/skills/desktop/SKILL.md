@@ -24,7 +24,8 @@ listeners while hidden in the tray. Tauri supports this on macOS 14+; do not
 claim Windows or Linux background behavior from this setting alone.
 
 One saved frontend origin wins over the runtime `GROCERY_DESKTOP_SERVER_URL`,
-then the build default. Validate origins before granting commands. Never grant
+then the build default (`startup.rs`; `lib.rs` stays wiring only). Validate
+origins before granting commands: only a `settings::ServerOrigin` is granted. Never grant
 wildcards, setup commands or plugin permissions to remote pages. Changing the
 saved origin restarts the app. Only the configured main-window origin may call
 native store commands.

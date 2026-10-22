@@ -13,11 +13,11 @@ use url::Url;
 
 use crate::fill_operation::FillOperations;
 use crate::fill_watch;
-use crate::stores::Store;
+use crate::stores::{Store, StorePage};
 
 /// Shows `store`'s window at `page`, making it the first time.
-pub fn show_at<R: Runtime>(app: &AppHandle<R>, store: Store, page: &str) -> tauri::Result<()> {
-    let url = Url::parse(page).expect("store pages are valid URLs");
+pub fn show_at<R: Runtime>(app: &AppHandle<R>, store: Store, page: StorePage) -> tauri::Result<()> {
+    let url = Url::parse(store.url(page)).expect("store pages are valid URLs");
     if let Some(window) = app.get_webview_window(store.window_label()) {
         window.navigate(url)?;
         return bring_forward(&window);

@@ -10,7 +10,7 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Runtime};
 
 use crate::fill_operation::FillOperations;
-use crate::stores::Store;
+use crate::stores::{Store, StorePage};
 use crate::windows::main_window::{self, MainPage};
 use crate::windows::store_window;
 
@@ -123,7 +123,7 @@ fn open_woolworths<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     if app.state::<FillOperations>().is_running(store) && store_window::reveal(app, store)? {
         return Ok(());
     }
-    store_window::show_at(app, store, store.home_url())
+    store_window::show_at(app, store, StorePage::Home)
 }
 
 #[cfg(test)]

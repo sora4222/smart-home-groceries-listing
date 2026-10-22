@@ -36,7 +36,7 @@ pub async fn fill_store_trolley<R: Runtime>(
     store: Store,
     program: String,
 ) -> Result<FillReport, String> {
-    if !StorePage::Trolley.allowed(store.abilities()) {
+    if !store.abilities().allows(StorePage::Trolley) {
         return Err(not_yet(store));
     }
     check_program(&program)?;
@@ -46,7 +46,7 @@ pub async fn fill_store_trolley<R: Runtime>(
         .inner()
         .begin(store, program)?;
     log::info!("[store] fill program for {store:?} waiting for the trolley page ({size} bytes)");
-    store_window::show_at(&app, store, StorePage::Trolley.url(store)).map_err(window_failed)?;
+    store_window::show_at(&app, store, StorePage::Trolley).map_err(window_failed)?;
     tokio::time::timeout(FILL_TIMEOUT, ticket.outcome())
         .await
         .unwrap_or_else(|_| Err("The trolley fill took too long and was stopped.".into()))
@@ -64,12 +64,12 @@ pub async fn open_store_checkout<R: Runtime>(
 /// Shows `page` in `store`'s window when the app may show it there, unless
 /// a fill is running in that window.
 fn show_page<R: Runtime>(app: &AppHandle<R>, store: Store, page: StorePage) -> Result<(), String> {
-    if !page.allowed(store.abilities()) {
+    if !store.abilities().allows(page) {
         return Err(not_yet(store));
     }
     refuse_while_filling(app, store)?;
     log::info!("[store] opening {store:?} at {page:?}");
-    store_window::show_at(app, store, page.url(store)).map_err(window_failed)
+    store_window::show_at(app, store, page).map_err(window_failed)
 }
 
 /// Refuses an empty or oversized program.

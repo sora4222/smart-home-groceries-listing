@@ -33,11 +33,28 @@ impl std::fmt::Display for AddressProblem {
     }
 }
 
+/// A server origin that passed [`parse_server_url`]: `scheme://host[:port]`,
+/// with nothing after the host. Holding one proves the address was checked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerOrigin(Url);
+
+impl ServerOrigin {
+    /// The origin as text, without a trailing `/`: `https://grocery.example.com`.
+    pub fn as_str(&self) -> &str {
+        self.0.as_str().trim_end_matches('/')
+    }
+
+    /// The origin's front page, for the main window to load.
+    pub fn into_url(self) -> Url {
+        self.0
+    }
+}
+
 /// Turns what the person typed into the server's origin, or says why not.
 ///
 /// Accepts `http` and `https`, a host, and an optional port. A trailing `/`
 /// is fine; anything after it is refused.
-pub fn parse_server_url(input: &str) -> Result<String, AddressProblem> {
+pub fn parse_server_url(input: &str) -> Result<ServerOrigin, AddressProblem> {
     let problem = |text: &str| Err(AddressProblem(text.to_string()));
     let trimmed = input.trim();
     if trimmed.is_empty() {
@@ -61,7 +78,8 @@ pub fn parse_server_url(input: &str) -> Result<String, AddressProblem> {
     if url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
         return problem("Use only the start of the address, like https://grocery.example.com");
     }
-    Ok(url.origin().ascii_serialization())
+    // Parsing already lowercased the host and dropped a default port.
+    Ok(ServerOrigin(url))
 }
 
 /// Reads the settings. A missing or unreadable file means "no settings yet":
@@ -90,7 +108,7 @@ pub fn load(dir: &Path) -> Settings {
             Settings::default()
         }
         Some(Ok(origin)) => Settings {
-            server_url: Some(origin),
+            server_url: Some(origin.as_str().to_string()),
         },
         None => settings,
     }
@@ -102,7 +120,7 @@ pub fn starting_url(
     saved: &Settings,
     runtime: Option<&str>,
     bundled: Option<&str>,
-) -> Result<Option<String>, AddressProblem> {
+) -> Result<Option<ServerOrigin>, AddressProblem> {
     saved
         .server_url
         .as_deref()
@@ -127,17 +145,18 @@ mod tests {
 
     #[test]
     fn accepts_an_https_origin_and_drops_the_trailing_slash() {
-        assert_eq!(
-            parse_server_url(" https://grocery.example.com/ "),
-            Ok("https://grocery.example.com".to_string())
-        );
+        let origin = parse_server_url(" https://grocery.example.com/ ").unwrap();
+        assert_eq!(origin.as_str(), "https://grocery.example.com");
+        assert_eq!(origin.into_url().as_str(), "https://grocery.example.com/");
     }
 
     #[test]
     fn keeps_a_port_and_accepts_http_for_a_home_network() {
         assert_eq!(
-            parse_server_url("http://192.168.1.20:3000"),
-            Ok("http://192.168.1.20:3000".to_string())
+            parse_server_url("http://192.168.1.20:3000")
+                .unwrap()
+                .as_str(),
+            "http://192.168.1.20:3000"
         );
     }
 
@@ -187,22 +206,24 @@ mod tests {
     #[test]
     fn defaults_support_tailscale_and_cloudflare_but_saved_settings_win() {
         let empty = Settings::default();
+        let start = |saved, runtime, bundled| {
+            starting_url(saved, runtime, bundled)
+                .unwrap()
+                .map(|origin| origin.as_str().to_string())
+        };
         assert_eq!(
-            starting_url(&empty, Some("http://100.91.154.126:3000"), None).unwrap(),
+            start(&empty, Some("http://100.91.154.126:3000"), None),
             Some("http://100.91.154.126:3000".into())
         );
         assert_eq!(
-            starting_url(&empty, None, Some("https://groceries.example.com")).unwrap(),
+            start(&empty, None, Some("https://groceries.example.com")),
             Some("https://groceries.example.com".into())
         );
         let saved = Settings {
             server_url: Some("https://server.tailnet.ts.net".into()),
         };
-        assert_eq!(
-            starting_url(&saved, Some("invalid"), None).unwrap(),
-            saved.server_url
-        );
-        assert_eq!(starting_url(&empty, Some(" "), None).unwrap(), None);
+        assert_eq!(start(&saved, Some("invalid"), None), saved.server_url);
+        assert_eq!(start(&empty, Some(" "), None), None);
         assert!(starting_url(&empty, Some("https://*.example.com"), None).is_err());
         assert!(starting_url(&empty, Some("https://%2a.example.com"), None).is_err());
     }

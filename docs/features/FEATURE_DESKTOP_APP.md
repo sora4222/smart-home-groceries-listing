@@ -114,8 +114,9 @@ Setup page only: `save_server_url {url}` → `200` or an error sentence;
 refuses anything that is not `http(s)://host[:port]`.
 
 ## Code
-- `desktop/src-tauri/src/`: `lib.rs` (wiring), `settings.rs` (server
-  address), `server_access.rs` (capability for the server origin),
+- `desktop/src-tauri/src/`: `lib.rs` (wiring only), `settings.rs` (server
+  address, checked once into a `ServerOrigin`), `startup.rs` (which page the
+  main window opens first, and granting that server), `server_access.rs` (capability for the server origin),
   `stores.rs` (`Store::url(StorePage)`, the one table of store addresses;
   abilities with `StoreAbilities::allows(page)`; which page is the trolley),
   `fill_operation.rs` (one fill

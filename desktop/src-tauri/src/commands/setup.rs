@@ -17,7 +17,7 @@ pub fn save_server_url<R: Runtime>(app: AppHandle<R>, url: String) -> Result<(),
     settings::save(
         &dir,
         &Settings {
-            server_url: Some(origin),
+            server_url: Some(origin.as_str().to_string()),
         },
     )
     .map_err(|err| {

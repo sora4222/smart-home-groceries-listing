@@ -29,6 +29,22 @@ for (const fail of ['', '--wait', '--watch', 'down']) {
   });
 }
 
+test('an invalid worktree context stops before Compose runs', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'grocery-dev-context-'));
+  try {
+    const file = join(dir, 'selected.env');
+    const calls = join(dir, 'calls');
+    writeFileSync(file, 'WEB_PORT=80\n');
+    writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$CALLS"\n', { mode: 0o700 });
+    const run = spawnSync('node', ['scripts/dev.mjs'], {
+      env: { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file, CALLS: calls }, encoding: 'utf8',
+    });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /Invalid WEB_PORT/);
+    assert.equal(readFileSync(calls, { encoding: 'utf8', flag: 'a+' }), '');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
 test('SIGINT cleans up the watched stack and preserves exit 130', async () => {
   const { spawn } = await import('node:child_process');
   const { setTimeout: delay } = await import('node:timers/promises');

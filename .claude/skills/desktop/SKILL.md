@@ -11,7 +11,10 @@ in `docs/production.md`. The versioned loader reads the Developer
 Environment selected by `/etc/grocery/op-environment-id` for both the frontend
 build and the services; do not deploy a hand-kept loader overlay. Saved
 Environment values alone do not prove the built assets use them, so check them.
-`desktop/src-tauri/` owns native commands and settings. The frontend owns all
+`desktop/src-tauri/` owns native commands and settings. Never build a webview
+window in a synchronous command or an event handler: it deadlocks on Windows.
+Use `async` commands, and run tray actions that create windows on their own
+thread (`tray.rs`). The frontend owns all
 screens and shared trolley programs. Keep each module responsible for one task.
 Queue notifications use the WebSocket `counts_snapshot` as a silent baseline
 on every connection. Keep pending and held coverage for the first live increase

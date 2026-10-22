@@ -1,4 +1,7 @@
 //! Commands that act at a store, in that store's window.
+//!
+//! They are `async` so Tauri runs them off the main thread: creating a webview
+//! from a synchronous command deadlocks on Windows (tauri-apps/wry#583).
 
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -11,7 +14,7 @@ pub const MAX_PROGRAM_BYTES: usize = 512 * 1024;
 
 /// Shows the store's website, to log in.
 #[tauri::command]
-pub fn open_store<R: Runtime>(app: AppHandle<R>, store: Store) -> Result<(), String> {
+pub async fn open_store<R: Runtime>(app: AppHandle<R>, store: Store) -> Result<(), String> {
     if !store.abilities().login {
         return Err(not_yet(store));
     }
@@ -25,7 +28,7 @@ pub fn open_store<R: Runtime>(app: AppHandle<R>, store: Store) -> Result<(), Str
 /// (`frontend/src/lib/store-tab/bookmarklet.ts`). It reports to the server
 /// itself; the web app follows the handoff and notifies when it is done.
 #[tauri::command]
-pub fn fill_store_trolley<R: Runtime>(
+pub async fn fill_store_trolley<R: Runtime>(
     app: AppHandle<R>,
     store: Store,
     program: String,
@@ -44,7 +47,10 @@ pub fn fill_store_trolley<R: Runtime>(
 
 /// Shows the store's checkout page, to check and pay.
 #[tauri::command]
-pub fn open_store_checkout<R: Runtime>(app: AppHandle<R>, store: Store) -> Result<(), String> {
+pub async fn open_store_checkout<R: Runtime>(
+    app: AppHandle<R>,
+    store: Store,
+) -> Result<(), String> {
     if !store.abilities().checkout {
         return Err(not_yet(store));
     }
@@ -84,6 +90,19 @@ mod tests {
         assert!(check_program("  ").is_err());
         assert!(check_program(&"x".repeat(MAX_PROGRAM_BYTES + 1)).is_err());
         assert!(check_program("(function(){})()").is_ok());
+    }
+
+    /// Compiles only for commands that return a future, which Tauri runs off
+    /// the main thread. Synchronous window creation deadlocks on Windows.
+    fn runs_off_the_main_thread<F: std::future::Future>(_: F) {}
+
+    #[test]
+    fn window_commands_are_async() {
+        let app = tauri::test::mock_app();
+        let handle = app.handle().clone();
+        runs_off_the_main_thread(open_store(handle.clone(), Store::Coles));
+        runs_off_the_main_thread(fill_store_trolley(handle.clone(), Store::Coles, "x".into()));
+        runs_off_the_main_thread(open_store_checkout(handle, Store::Coles));
     }
 
     #[test]

@@ -23,4 +23,5 @@ url = "2.5.8"
 log = "0.4"
 
 [dev-dependencies]
+tauri = { version = "2.12.1", features = ["test"] }
 tempfile = "3"

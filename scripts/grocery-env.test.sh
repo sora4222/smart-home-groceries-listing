@@ -18,6 +18,8 @@ check() {
 # The installed layout (/opt/grocery) in miniature, with a fake `op` that
 # answers only when the service-account token reached it.
 tmp=$(mktemp -d)
+# Node resolves module entrypoints through macOS /var symlinks.
+tmp=$(CDPATH='' cd "$tmp" && pwd -P)
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/opt/bin" "$tmp/opt/lib" "$tmp/opt/libexec" "$tmp/path" "$tmp/etc"
 cp "$here/../deploy/bin/grocery-env" "$tmp/opt/libexec/"
@@ -49,8 +51,8 @@ run write alexa-bridge > /dev/null
 check "writes only the component's keys, escaped for systemd" \
     "$(printf 'ALEXA_BRIDGE_SECRET="literal\\$secret"\nALEXA_SKILL_ID="resolved-skill"')" \
     "$(sort "$tmp/run/alexa-bridge.env")"
-check "resolved file is private to root" "600" "$(stat -c %a "$tmp/run/alexa-bridge.env")"
-check "secrets directory is private" "700" "$(stat -c %a "$tmp/run")"
+check "resolved file is private to root" "600" "$(node -e 'console.log((require("node:fs").statSync(process.argv[1]).mode & 0o777).toString(8))' "$tmp/run/alexa-bridge.env")"
+check "secrets directory is private" "700" "$(node -e 'console.log((require("node:fs").statSync(process.argv[1]).mode & 0o777).toString(8))' "$tmp/run")"
 check "no temporary files are left" "alexa-bridge.env" "$(ls -A "$tmp/run")"
 check "json output for install steps" \
     '{"DATABASE_URL":"postgres://grocery:pw@localhost/grocery"}' "$(run json database)"

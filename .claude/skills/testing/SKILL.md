@@ -9,6 +9,9 @@ Start with focused coverage, then run `make lint` and `make test` when the
 change warrants the full suite. Report any unavailable infrastructure or
 skipped coverage rather than treating it as passing.
 
+Resolve temporary fixture paths with `pwd -P` before testing Node CLI entrypoints
+on macOS; use Node file modes for portable permission assertions.
+
 For repository tooling, add a matching `scripts/*.test.sh` test and include
 it in `make test-tooling`; workflow-only rules should use the same script.
 
@@ -58,7 +61,7 @@ interact before hydration completes.
 E2E runs with sign-in off: the backend with `DEV_AUTH_BYPASS=true` and the web
 app with `VITE_AUTH_MODE=off pnpm dev`, or a Clerk key in `.env` sends every
 test to the sign-in page.
-Use `make e2e` for an isolated database and local servers with fake providers.
+Use `make test-frontend-playwright` for an isolated database and local servers with fake providers.
 The runner sets random ports and the matching OAuth callback. Raw `pnpm e2e`
 assumes an already isolated test stack and resets its data. Verify resource
 cleanup when changing either runner; never reuse a household application stack.

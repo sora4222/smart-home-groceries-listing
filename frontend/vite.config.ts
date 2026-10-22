@@ -4,7 +4,10 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
-import { loadEnvironment } from "../scripts/environment.mjs";
+import {
+	loadEnvironment,
+	selectedEnvironmentFile,
+} from "../scripts/environment.mjs";
 import { accepts, component } from "../scripts/service-components.mjs";
 
 /**
@@ -23,8 +26,7 @@ function loadFrontendEnvironment(): void {
 	Object.assign(
 		process.env,
 		loadEnvironment({
-			required: process.env.GROCERY_ENV_FILE !== undefined,
-			file: process.env.GROCERY_ENV_FILE ?? new URL("../.env", import.meta.url),
+			...selectedEnvironmentFile(),
 			accepts: (key) => accepts(frontend, key),
 		}),
 	);

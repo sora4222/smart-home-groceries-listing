@@ -2,8 +2,7 @@
 import { createHash } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadEnvironment } from './environment.mjs';
-import { selectedEnvironmentFile } from './compose.mjs';
+import { loadEnvironment, selectedEnvironmentFile } from './environment.mjs';
 
 /** Compose files of the watched development stack. */
 export const DEVELOPMENT_FILES = ['docker-compose.yml', 'docker-compose.dev.yml'];

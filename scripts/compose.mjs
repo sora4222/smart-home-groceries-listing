@@ -1,18 +1,12 @@
 /** One selected Compose context for startup, shutdown, and auxiliary services. */
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadEnvironment } from './environment.mjs';
+import { loadEnvironment, selectedEnvironmentFile } from './environment.mjs';
 import { databaseProfiles } from './database-profiles.mjs';
 import { cancellation, runProcess } from './test-process.mjs';
 
 /** Compose actions that need only Compose settings, never application secrets. */
 export const READ_ONLY_ACTIONS = ['down', 'logs', 'ps', 'exec', 'stop'];
-
-/** The dotenv file Compose and the loaders share; an explicit choice must exist. */
-export function selectedEnvironmentFile() {
-  const explicit = process.env.GROCERY_ENV_FILE;
-  return { file: explicit ?? fileURLToPath(new URL('../.env', import.meta.url)), required: explicit !== undefined };
-}
 
 /** Run one Compose action with resolved settings; `overrides` win over loaded values. */
 export async function runCompose({ action, args = [], files = [], overrides = {}, signal, log }) {

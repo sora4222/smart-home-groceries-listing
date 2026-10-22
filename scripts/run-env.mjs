@@ -1,7 +1,6 @@
 /** Run a command with resolved configuration; leave .env unchanged. */
 import { cancellation, runProcess } from './test-process.mjs';
-import { fileURLToPath } from 'node:url';
-import { loadEnvironment } from './environment.mjs';
+import { loadEnvironment, selectedEnvironmentFile } from './environment.mjs';
 
 try {
   const argv = process.argv.slice(2);
@@ -9,8 +8,7 @@ try {
   const [command, ...args] = argv;
   if (!command) throw new Error('Usage: node scripts/run-env.mjs COMMAND [ARGS...]');
   const env = loadEnvironment({
-    required: process.env.GROCERY_ENV_FILE !== undefined,
-    file: process.env.GROCERY_ENV_FILE ?? fileURLToPath(new URL('../.env', import.meta.url)),
+    ...selectedEnvironmentFile(),
     accepts: key => !prefixes || prefixes.some(prefix => key.startsWith(prefix)),
   });
   const childEnv = { ...process.env, ...env };

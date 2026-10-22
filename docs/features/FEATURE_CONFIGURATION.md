@@ -20,7 +20,8 @@ does not rewrite the connection URL or change a running database password.
 
 The backend and bridge search the working directory and ancestors for `.env`.
 JavaScript entry points use the checkout root. `GROCERY_ENV_FILE` overrides
-that path. Explicit selection is required: a missing, unreadable, empty-string, or
+that path; `selectedEnvironmentFile()` in `scripts/environment.mjs` is the one
+place that applies this rule. Explicit selection is required: a missing, unreadable, empty-string, or
 directory path fails before exported values or provider resolution. Missing
 default discovery is optional. The shared fixtures in
 `scripts/environment-contract.json` run in JavaScript, Python, and Rust.

@@ -5,7 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
-import { loadEnvironment } from './environment.mjs';
+import { fileURLToPath } from 'node:url';
+import { loadEnvironment, selectedEnvironmentFile } from './environment.mjs';
+
+test('an explicit GROCERY_ENV_FILE is required; otherwise the checkout .env is optional', () => {
+  assert.deepEqual(selectedEnvironmentFile({ GROCERY_ENV_FILE: '/fixture/selected.env' }), { file: '/fixture/selected.env', required: true });
+  assert.deepEqual(selectedEnvironmentFile({}), { file: fileURLToPath(new URL('../.env', import.meta.url)), required: false });
+});
 
 test('loads literals without a secret provider and preserves exported overrides', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-env-'));

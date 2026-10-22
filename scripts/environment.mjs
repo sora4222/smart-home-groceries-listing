@@ -1,6 +1,7 @@
 /** Load dotenv configuration without executing shell code or printing values. */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { withOnePassword } from './op-auth.mjs';
 import { readEnvironmentVariables } from './op-environment.mjs';
@@ -14,6 +15,15 @@ export function readSecret(reference, inherited) {
     if (!value || value.startsWith('op://')) throw new Error('Unresolved 1Password value');
     return value;
   });
+}
+
+/**
+ * The dotenv file every loader reads: an explicit `GROCERY_ENV_FILE` must
+ * exist; the checkout's own `.env` is optional.
+ */
+export function selectedEnvironmentFile(inherited = process.env) {
+  const explicit = inherited.GROCERY_ENV_FILE;
+  return { file: explicit ?? fileURLToPath(new URL('../.env', import.meta.url)), required: explicit !== undefined };
 }
 
 /**

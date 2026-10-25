@@ -15,11 +15,13 @@ use url::Url;
 /// The file name inside the app's config folder.
 pub const SETTINGS_FILE: &str = "settings.json";
 
-/// What the desktop app remembers between runs.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Settings {
+/// What the desktop app remembers between runs, as written in the file.
+/// Only [`load`] and [`save`] see it; the rest of the app gets a checked
+/// [`ServerOrigin`].
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct Settings {
     /// The grocery server's origin, e.g. `https://grocery.example.com`.
-    pub server_url: Option<String>,
+    server_url: Option<String>,
 }
 
 /// Why a typed server address was refused. The message is shown on the
@@ -33,11 +35,28 @@ impl std::fmt::Display for AddressProblem {
     }
 }
 
+/// A server origin that passed [`parse_server_url`]: `scheme://host[:port]`,
+/// with nothing after the host. Holding one proves the address was checked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerOrigin(Url);
+
+impl ServerOrigin {
+    /// The origin as text, without a trailing `/`: `https://grocery.example.com`.
+    pub fn as_str(&self) -> &str {
+        self.0.as_str().trim_end_matches('/')
+    }
+
+    /// The origin's front page, for the main window to load.
+    pub fn into_url(self) -> Url {
+        self.0
+    }
+}
+
 /// Turns what the person typed into the server's origin, or says why not.
 ///
 /// Accepts `http` and `https`, a host, and an optional port. A trailing `/`
 /// is fine; anything after it is refused.
-pub fn parse_server_url(input: &str) -> Result<String, AddressProblem> {
+pub fn parse_server_url(input: &str) -> Result<ServerOrigin, AddressProblem> {
     let problem = |text: &str| Err(AddressProblem(text.to_string()));
     let trimmed = input.trim();
     if trimmed.is_empty() {
@@ -61,63 +80,66 @@ pub fn parse_server_url(input: &str) -> Result<String, AddressProblem> {
     if url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
         return problem("Use only the start of the address, like https://grocery.example.com");
     }
-    Ok(url.origin().ascii_serialization())
+    // Parsing already lowercased the host and dropped a default port.
+    Ok(ServerOrigin(url))
 }
 
-/// Reads the settings. A missing or unreadable file means "no settings yet":
-/// the setup page asks again rather than the app failing to start.
-pub fn load(dir: &Path) -> Settings {
+/// Reads the saved server origin. A missing or unreadable file means "no
+/// address yet": the setup page asks again rather than the app failing to
+/// start.
+pub fn load(dir: &Path) -> Option<ServerOrigin> {
     let path = dir.join(SETTINGS_FILE);
     let text = match fs::read_to_string(&path) {
         Ok(text) => text,
-        Err(err) if err.kind() == io::ErrorKind::NotFound => return Settings::default(),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => return None,
         Err(err) => {
             log::warn!("[settings] cannot read {}: {err}", path.display());
-            return Settings::default();
+            return None;
         }
     };
     let settings: Settings = match serde_json::from_str(&text) {
         Ok(settings) => settings,
         Err(err) => {
             log::warn!("[settings] {} is not valid: {err}", path.display());
-            return Settings::default();
+            return None;
         }
     };
     // A hand-edited address that is no longer valid is dropped, not trusted.
-    match settings.server_url.as_deref().map(parse_server_url) {
-        Some(Err(problem)) => {
+    match parse_server_url(&settings.server_url?) {
+        Ok(origin) => Some(origin),
+        Err(problem) => {
             log::warn!("[settings] saved server address refused: {problem}");
-            Settings::default()
+            None
         }
-        Some(Ok(origin)) => Settings {
-            server_url: Some(origin),
-        },
-        None => settings,
     }
 }
 
 /// A saved address takes priority over a launch or build default.
 /// Invalid defaults return an error so startup can show setup without granting access.
 pub fn starting_url(
-    saved: &Settings,
+    saved: Option<ServerOrigin>,
     runtime: Option<&str>,
     bundled: Option<&str>,
-) -> Result<Option<String>, AddressProblem> {
-    saved
-        .server_url
-        .as_deref()
-        .or_else(|| runtime.filter(|value| !value.trim().is_empty()))
+) -> Result<Option<ServerOrigin>, AddressProblem> {
+    if saved.is_some() {
+        return Ok(saved);
+    }
+    runtime
+        .filter(|value| !value.trim().is_empty())
         .or_else(|| bundled.filter(|value| !value.trim().is_empty()))
         .map(parse_server_url)
         .transpose()
 }
 
-/// Writes the settings, making the config folder if needed.
-pub fn save(dir: &Path, settings: &Settings) -> io::Result<()> {
+/// Saves `origin` as the server address, making the config folder if needed.
+pub fn save(dir: &Path, origin: &ServerOrigin) -> io::Result<()> {
     fs::create_dir_all(dir)?;
-    let text = serde_json::to_string_pretty(settings).map_err(io::Error::other)?;
+    let settings = Settings {
+        server_url: Some(origin.as_str().to_string()),
+    };
+    let text = serde_json::to_string_pretty(&settings).map_err(io::Error::other)?;
     fs::write(dir.join(SETTINGS_FILE), text)?;
-    log::info!("[settings] saved server address {:?}", settings.server_url);
+    log::info!("[settings] saved server address {}", origin.as_str());
     Ok(())
 }
 
@@ -127,17 +149,18 @@ mod tests {
 
     #[test]
     fn accepts_an_https_origin_and_drops_the_trailing_slash() {
-        assert_eq!(
-            parse_server_url(" https://grocery.example.com/ "),
-            Ok("https://grocery.example.com".to_string())
-        );
+        let origin = parse_server_url(" https://grocery.example.com/ ").unwrap();
+        assert_eq!(origin.as_str(), "https://grocery.example.com");
+        assert_eq!(origin.into_url().as_str(), "https://grocery.example.com/");
     }
 
     #[test]
     fn keeps_a_port_and_accepts_http_for_a_home_network() {
         assert_eq!(
-            parse_server_url("http://192.168.1.20:3000"),
-            Ok("http://192.168.1.20:3000".to_string())
+            parse_server_url("http://192.168.1.20:3000")
+                .unwrap()
+                .as_str(),
+            "http://192.168.1.20:3000"
         );
     }
 
@@ -159,52 +182,54 @@ mod tests {
     #[test]
     fn missing_file_means_no_settings() {
         let dir = tempfile::tempdir().unwrap();
-        assert_eq!(load(dir.path()), Settings::default());
+        assert_eq!(load(dir.path()), None);
     }
 
     #[test]
     fn saves_then_loads_the_same_address() {
         let dir = tempfile::tempdir().unwrap();
-        let settings = Settings {
-            server_url: Some("https://grocery.example.com".to_string()),
-        };
-        save(&dir.path().join("nested"), &settings).unwrap();
-        assert_eq!(load(&dir.path().join("nested")), settings);
+        let origin = parse_server_url("https://grocery.example.com").unwrap();
+        save(&dir.path().join("nested"), &origin).unwrap();
+        assert_eq!(load(&dir.path().join("nested")), Some(origin));
     }
 
     #[test]
     fn broken_or_edited_file_means_no_settings() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join(SETTINGS_FILE), "{not json").unwrap();
-        assert_eq!(load(dir.path()), Settings::default());
+        assert_eq!(load(dir.path()), None);
         fs::write(
             dir.path().join(SETTINGS_FILE),
             r#"{"server_url":"javascript:alert(1)"}"#,
         )
         .unwrap();
-        assert_eq!(load(dir.path()), Settings::default());
+        assert_eq!(load(dir.path()), None);
     }
+
     #[test]
     fn defaults_support_tailscale_and_cloudflare_but_saved_settings_win() {
-        let empty = Settings::default();
+        let start = |saved: Option<&str>, runtime, bundled| {
+            let saved = saved.map(|text| parse_server_url(text).unwrap());
+            starting_url(saved, runtime, bundled)
+                .unwrap()
+                .map(|origin| origin.as_str().to_string())
+        };
         assert_eq!(
-            starting_url(&empty, Some("http://100.91.154.126:3000"), None).unwrap(),
+            start(None, Some("http://100.91.154.126:3000"), None),
             Some("http://100.91.154.126:3000".into())
         );
         assert_eq!(
-            starting_url(&empty, None, Some("https://groceries.example.com")).unwrap(),
+            start(None, None, Some("https://groceries.example.com")),
             Some("https://groceries.example.com".into())
         );
-        let saved = Settings {
-            server_url: Some("https://server.tailnet.ts.net".into()),
-        };
+        let saved = "https://server.tailnet.ts.net";
         assert_eq!(
-            starting_url(&saved, Some("invalid"), None).unwrap(),
-            saved.server_url
+            start(Some(saved), Some("invalid"), None),
+            Some(saved.into())
         );
-        assert_eq!(starting_url(&empty, Some(" "), None).unwrap(), None);
-        assert!(starting_url(&empty, Some("https://*.example.com"), None).is_err());
-        assert!(starting_url(&empty, Some("https://%2a.example.com"), None).is_err());
+        assert_eq!(start(None, Some(" "), None), None);
+        assert!(starting_url(None, Some("https://*.example.com"), None).is_err());
+        assert!(starting_url(None, Some("https://%2a.example.com"), None).is_err());
     }
 
     #[test]
@@ -216,7 +241,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            load(dir.path()).server_url,
+            load(dir.path()).map(|origin| origin.as_str().to_string()),
             Some("https://grocery.example.com".into())
         );
     }

@@ -3,21 +3,22 @@
 //! Spec: `docs/features/FEATURE_DESKTOP_APP.md`.
 
 mod commands;
+mod fill_failure;
 mod fill_operation;
 mod fill_status;
 mod fill_watch;
 mod notify;
 mod server_access;
 mod settings;
+mod startup;
 mod stores;
 mod tray;
 mod windows;
 
-use tauri::{Manager, WindowEvent};
-use url::Url;
+use tauri::WindowEvent;
 
 use fill_operation::FillOperations;
-use windows::main_window::{self, MainPage, MAIN_LABEL};
+use windows::main_window::{self, MAIN_LABEL};
 
 /// Builds and runs the app.
 pub fn run() {
@@ -44,7 +45,7 @@ pub fn run() {
         ])
         .setup(|app| {
             let handle = app.handle();
-            main_window::open(handle, first_page(handle))?;
+            main_window::open(handle, startup::first_page(handle))?;
             tray::build(handle)?;
             Ok(())
         })
@@ -59,36 +60,4 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("the desktop app failed to start");
-}
-
-/// The server's web app when an address is saved (granting it the app's
-/// commands), else the setup page.
-fn first_page(app: &tauri::AppHandle) -> MainPage {
-    let saved = app
-        .path()
-        .app_config_dir()
-        .map(|dir| settings::load(&dir))
-        .unwrap_or_default();
-    let runtime = std::env::var("GROCERY_DESKTOP_SERVER_URL").ok();
-    let origin = match settings::starting_url(
-        &saved,
-        runtime.as_deref(),
-        option_env!("GROCERY_DESKTOP_SERVER_URL"),
-    ) {
-        Ok(Some(origin)) => origin,
-        Ok(None) => return MainPage::Setup,
-        Err(problem) => {
-            log::warn!("[app] server address refused: {problem}");
-            return MainPage::Setup;
-        }
-    };
-    let Ok(url) = Url::parse(&origin) else {
-        return MainPage::Setup;
-    };
-    if let Err(err) = server_access::grant(app, &origin) {
-        log::error!("[app] could not grant {origin} the app's commands: {err}");
-        return MainPage::Setup;
-    }
-    log::info!("[app] opening {origin}");
-    MainPage::Server(url)
 }

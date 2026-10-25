@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Manager, Runtime};
 
+use crate::fill_failure::FillFailure;
 use crate::fill_operation::{FillOperations, FillReport};
 use crate::stores::{Store, StorePage};
 use crate::windows::store_window;
@@ -44,12 +45,15 @@ pub async fn fill_store_trolley<R: Runtime>(
     let ticket = app
         .state::<FillOperations>()
         .inner()
-        .begin(store, program)?;
+        .begin(store, program)
+        .map_err(|failure| failure.to_string())?;
     log::info!("[store] fill program for {store:?} waiting for the trolley page ({size} bytes)");
     store_window::show_at(&app, store, StorePage::Trolley).map_err(window_failed)?;
+    // The IPC boundary: the web app reads a failure as its sentence.
     tokio::time::timeout(FILL_TIMEOUT, ticket.outcome())
         .await
-        .unwrap_or_else(|_| Err("The trolley fill took too long and was stopped.".into()))
+        .unwrap_or(Err(FillFailure::TimedOut))
+        .map_err(|failure| failure.to_string())
 }
 
 /// Shows the store's checkout page, to check and pay.

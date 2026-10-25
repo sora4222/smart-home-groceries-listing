@@ -2,7 +2,7 @@
 
 use tauri::{AppHandle, Manager, Runtime};
 
-use crate::settings::{self, Settings};
+use crate::settings;
 
 /// Saves the server address and restarts the app, which then opens the
 /// server and grants it the app's commands. Answers with a plain sentence
@@ -14,13 +14,7 @@ pub fn save_server_url<R: Runtime>(app: AppHandle<R>, url: String) -> Result<(),
         log::error!("[setup] no config folder: {err}");
         "The app has no folder to save settings in.".to_string()
     })?;
-    settings::save(
-        &dir,
-        &Settings {
-            server_url: Some(origin),
-        },
-    )
-    .map_err(|err| {
+    settings::save(&dir, &origin).map_err(|err| {
         log::error!("[setup] could not save settings: {err}");
         "The address could not be saved.".to_string()
     })?;

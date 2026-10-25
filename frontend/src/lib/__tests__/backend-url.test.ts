@@ -3,6 +3,27 @@ import { describe, expect, it } from "vitest";
 import { resolveBackendUrls } from "#/lib/backend-url";
 
 describe("resolveBackendUrls", () => {
+	it.each([
+		"https://groceries.example.test",
+		"https://groceries.example.test:8100",
+		"http://localhost:3000",
+	])(
+		"uses the page origin for proxied API and socket requests at %s",
+		(origin) => {
+			expect(resolveBackendUrls({ VITE_API_BASE_URL: "/" }, origin)).toEqual({
+				apiBaseUrl: origin,
+				wsUrl: `${origin.replace(/^http/, "ws")}/ws`,
+			});
+		},
+	);
+
+	it("uses the local backend during same-origin server rendering", () => {
+		expect(resolveBackendUrls({ VITE_API_BASE_URL: "/" })).toEqual({
+			apiBaseUrl: "http://localhost:8000",
+			wsUrl: "ws://localhost:8000/ws",
+		});
+	});
+
 	it("uses the same-machine backend when nothing is set", () => {
 		expect(resolveBackendUrls({})).toEqual({
 			apiBaseUrl: "http://localhost:8000",

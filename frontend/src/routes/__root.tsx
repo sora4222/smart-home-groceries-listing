@@ -20,6 +20,7 @@ import { useTriageToasts } from "#/hooks/useTriageToasts";
 import { useVoiceRequestToasts } from "#/hooks/useVoiceRequestToasts";
 import { AUTH_MODE } from "#/lib/auth-mode";
 import { fetchSignedIn } from "#/lib/auth-state";
+import { publicConfig, publicConfigScript } from "#/lib/public-config";
 import {
 	guardDecision,
 	isAuthPath,
@@ -83,6 +84,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 	return (
 		<html lang="en">
 			<head>
+				<script>{publicConfigScript(publicConfig())}</script>
 				<HeadContent />
 			</head>
 			<body>

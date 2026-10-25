@@ -1,5 +1,32 @@
 # Setup
 
+## Native service installation from a runtime bundle
+
+Use Ubuntu 26.04 with PostgreSQL. See [the deployment contract](features/FEATURE_SERVICE_DEPLOYMENT.md).
+
+1. Run `sudo bash deploy/service/install-dependencies.sh` for runtime prerequisites.
+2. Obtain a tested runtime bundle and verify its provenance using your server's
+   deployment policy. Local bundle installation trusts the supplied file.
+3. Run `sudo bash deploy/start.sh --bundle /protected/runtime.json.gz --config /protected/application.env`.
+   Use a mode-0600 input file, or preserve only intended application exports
+   through sudo. Startup persists values root-only for unattended reboots.
+4. Optional 1Password: add `--op-token-file /protected/token` and
+   `--op-environment-id ENVIRONMENT_ID`, or provide `OP_SERVICE_ACCOUNT_TOKEN`
+   and `OP_ENVIRONMENT_ID` as startup exports. Never put secrets in argv. Manage
+   Developer Environments through their MCP server and use an app-scoped service
+   account. Install the 1Password CLI only when using it. Omitted inputs retain
+   existing settings. A plain file/export installation requires no 1Password.
+5. Verify `systemctl is-enabled grocery.target` and
+   `systemctl is-active grocery-backend grocery-frontend`, then test sign-in and
+   a grocery operation through your private ingress. Services bind loopback;
+   exposing them is a separate access-policy decision.
+
+To adopt an existing native service, back it up, then run
+`sudo bash deploy/start.sh --adopt-existing`. This retains its data/configuration,
+installs the fixed control layer and enables services at boot without fetching
+or building new application code.
+
+
 One-time provisioning of the external services and the home-server
 deployment. Audience: a software developer comfortable with a shell, `.env`
 files, Docker Compose and vendor developer consoles. Sections are ordered by

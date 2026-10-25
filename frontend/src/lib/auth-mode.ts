@@ -13,6 +13,8 @@
  */
 export type AuthMode = "clerk" | "off";
 
+import { publicConfig } from "#/lib/public-config";
+
 /** The environment values the mode is decided from. */
 export interface AuthModeEnv {
 	VITE_AUTH_MODE?: string;
@@ -26,4 +28,4 @@ export function resolveAuthMode(env: AuthModeEnv): AuthMode {
 }
 
 /** This build's mode. */
-export const AUTH_MODE: AuthMode = resolveAuthMode(import.meta.env);
+export const AUTH_MODE: AuthMode = resolveAuthMode(publicConfig());

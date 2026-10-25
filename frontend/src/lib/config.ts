@@ -3,9 +3,10 @@
  * SERVER_API_BASE_URL for an internal network. Rules: lib/backend-url.ts.
  */
 import { resolveBackendUrls, resolveServerApiUrl } from "#/lib/backend-url";
+import { publicConfig } from "#/lib/public-config";
 
 const urls = resolveBackendUrls(
-	import.meta.env,
+	publicConfig(),
 	import.meta.env.SSR ? undefined : window.location.origin,
 );
 

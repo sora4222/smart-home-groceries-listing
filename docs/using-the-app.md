@@ -1,5 +1,24 @@
 # Operating the app
 
+## Verified updates and previews
+
+With the server repository's updater installed, use `sudo grocery-update` for
+the latest completed stable release, or `sudo grocery-update release-1.2.3` for
+one exact release. The systemd timer checks automatically.
+`make hm-update-server release=release-1.2.3` calls the same verifier.
+
+Merge reviewed code into main, then push a new `release-N.N.N` Git tag. The
+native-service Action tests installation/update before publishing. Never move
+an existing release tag. Use the server's `sudo grocery-preview BRANCH` command
+for an isolated preview; production data and credentials are never copied there.
+
+Restart affected services after changing a 1Password Environment. The supported
+public frontend settings also change on restart. Encryption-key or database
+target changes require deliberate migration. Old releases and backups are
+retained; manage retention after testing recovery. File rollback does not reverse
+a database migration.
+
+
 Recurring workflows once the stack is up. Audience: software developers.
 One-time provisioning is in [`human-setup.md`](human-setup.md); behaviour
 and API details are in [`features/`](features/).

@@ -1,5 +1,5 @@
 /** Back up and inspect the application database without exposing connection secrets. */
-import { createWriteStream, closeSync, openSync, readFileSync } from 'node:fs';
+import { closeSync, openSync, readFileSync, renameSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { databaseTarget, setupSql } from '../../scripts/database-setup-sql.mjs';
@@ -14,7 +14,8 @@ export function postgresEnvironment(url) {
   if (!['postgres:', 'postgresql:'].includes(value.protocol)) throw new Error('Invalid database protocol');
   return { ...systemEnvironment, PGHOST: value.hostname, PGPORT: value.port || '5432',
     PGUSER: decodeURIComponent(value.username), PGPASSWORD: decodeURIComponent(value.password),
-    PGDATABASE: decodeURIComponent(value.pathname.slice(1)), PGCONNECT_TIMEOUT: '10' };
+    PGDATABASE: decodeURIComponent(value.pathname.slice(1)), PGCONNECT_TIMEOUT: '10',
+    PGSSLMODE: value.searchParams.get('sslmode') || 'prefer' };
 }
 
 /** Provision a local application role only during fresh installation. */
@@ -37,12 +38,13 @@ export function inspectMigrations(directory, url) {
 /** Write an exclusive, root-only PostgreSQL dump. Failure stops installation. */
 export function backupDatabase(directory, url, commit) {
   const path = join(directory, new Date().toISOString().replaceAll(':', '-') + '-' + commit + '.dump');
-  const fd = openSync(path, 'wx', 0o600);
+  const fd = openSync(path + '.partial', 'wx', 0o600);
   try {
     const result = spawnSync('pg_dump', ['--format=custom', '--no-owner'], {
       env: postgresEnvironment(url), cwd: '/', stdio: ['ignore', fd, 'pipe'], timeout: 300000,
     });
     if (result.error || result.status !== 0) throw new Error('Database backup failed; deployment stopped');
   } finally { closeSync(fd); }
+  renameSync(path + '.partial', path);
   return path;
 }

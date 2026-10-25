@@ -7,6 +7,7 @@ import { decodeBundle, digest, extractBundle } from './bundle.mjs';
 import { backupDatabase, inspectMigrations, provisionDatabase } from './database.mjs';
 import { command, systemEnvironment } from './process.mjs';
 import { runtimeSettings } from './runtime.mjs';
+import { assertDataIdentity, recordDataIdentity } from './identity.mjs';
 
 const prefix = '/opt/grocery';
 const releases = '/opt/grocery-releases';
@@ -54,6 +55,7 @@ export function installRelease(path) {
   }
   const settings = runtimeSettings('backend');
   if (!settings.DATABASE_URL) throw new Error('Configure DATABASE_URL before installing');
+  assertDataIdentity(settings);
   const existing = existsSync(prefix);
   if (!existing) provisionDatabase(settings.DATABASE_URL);
   inspectMigrations(join(destination, 'migrations'), settings.DATABASE_URL);
@@ -76,6 +78,7 @@ export function installRelease(path) {
     command('systemctl', ['enable', 'grocery.target', ...services]);
     command('systemctl', ['start', 'grocery.target']);
     health();
+    recordDataIdentity(settings);
     console.log('Installed healthy release ' + bundle.version);
   } catch (error) {
     // Do not automatically start old code against a potentially changed schema.

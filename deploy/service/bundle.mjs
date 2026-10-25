@@ -22,10 +22,11 @@ export function decodeBundle(bytes) {
   const seen = new Set();
   let size = 0;
   for (const file of bundle.files) {
-    if (typeof file.path !== 'string' || !/^[A-Za-z0-9._@+/-]+$/.test(file.path)
+    // Nitro emits literal "[...].mjs" chunk names; these remain plain filesystem paths.
+    if (typeof file.path !== 'string' || !/^[A-Za-z0-9._@+/\x5b\x5d-]+$/.test(file.path)
       || file.path.split('/').some(part => !part || part === '.' || part === '..' || part.startsWith('.env'))
       || !allowed(file.path) || seen.has(file.path) || ![0o644, 0o755].includes(file.mode)
-      || typeof file.data !== 'string' || !/^[a-f0-9]{64}$/.test(file.sha256)) throw new Error('Invalid release entry');
+      || typeof file.data !== 'string' || !/^[a-f0-9]{64}$/.test(file.sha256)) throw new Error('Invalid release entry: ' + JSON.stringify(file.path).slice(0, 200));
     const data = Buffer.from(file.data, 'base64');
     if (data.toString('base64') !== file.data || digest(data) !== file.sha256) throw new Error('Release entry checksum mismatch');
     size += data.length;

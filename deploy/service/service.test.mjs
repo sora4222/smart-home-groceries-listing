@@ -11,6 +11,7 @@ import { startOptions } from './start-options.mjs';
 import { unchangedIdentity } from './runtime.mjs';
 import { postgresEnvironment } from './database.mjs';
 import { parseEnv } from 'node:util';
+import { assertDataIdentity, recordDataIdentity } from './identity.mjs';
 
 function fixture(run) {
   const directory = mkdtempSync(join(tmpdir(), 'grocery-release-test-'));
@@ -36,6 +37,11 @@ test('data-only bundle round trips runtime files, excluding root helpers and con
     assert.match(readFileSync(join(destination, 'bin/grocery-backend'), 'utf8'), /exit 0/);
     assert.throws(() => extractBundle(bundle, destination));
   } finally { rmSync(destination, { recursive: true, force: true }); }
+}));
+
+test('generated Nitro chunk names with literal brackets are valid runtime paths', () => fixture((source, metadata) => {
+  writeFileSync(join(source, 'frontend/.output/server/core+[...].mjs'), 'export {};');
+  assert.equal(decodeBundle(packBundle(source, metadata)).files.length, 4);
 }));
 
 test('bundle rejects traversal, installer replacement, duplicate paths and tampered bytes', () => fixture((source, metadata) => {
@@ -87,3 +93,13 @@ test('database secrets go to the subprocess environment rather than command argu
   assert.equal(env.OP_SERVICE_ACCOUNT_TOKEN, undefined);
   assert.throws(() => postgresEnvironment('https://example.invalid'));
 });
+
+test('retained identity permits password rotation and blocks data/key replacement', () => fixture((directory) => {
+  const file = join(directory, 'identity.json');
+  const settings = { DATABASE_URL: 'postgres://user:first@localhost/db', CREDENTIAL_ENCRYPTION_KEY: 'original-key' };
+  recordDataIdentity(settings, file);
+  assertDataIdentity({ ...settings, DATABASE_URL: 'postgres://user:rotated@localhost/db' }, file);
+  assert.throws(() => assertDataIdentity({ ...settings, DATABASE_URL: 'postgres://user:first@localhost/empty' }, file));
+  assert.throws(() => assertDataIdentity({ ...settings, CREDENTIAL_ENCRYPTION_KEY: 'wrong-key' }, file));
+  assert.ok(!readFileSync(file, 'utf8').includes('original-key'));
+}));

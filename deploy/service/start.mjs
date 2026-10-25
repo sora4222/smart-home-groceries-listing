@@ -9,6 +9,8 @@ import { startOptions } from './start-options.mjs';
 import { command, systemEnvironment } from './process.mjs';
 import { installRelease } from './install-release.mjs';
 import { unchangedIdentity } from './runtime.mjs';
+import { runtimeSettings } from './runtime.mjs';
+import { assertDataIdentity, recordDataIdentity } from './identity.mjs';
 
 /** Save only validated settings; omit 1Password integration entirely when unconfigured. */
 export function configure(options, inherited = process.env, etc = '/etc/grocery', tokenPath = '/etc/1password/grocery.token') {
@@ -31,6 +33,7 @@ export function configure(options, inherited = process.env, etc = '/etc/grocery'
     const resolve = (name, file, tokenFile, id) => resolveComponent({ name, file, tokenFile, environmentId: id, inherited: systemEnvironment });
     const next = resolve('backend', candidate, candidateToken, environmentId);
     if (!next.DATABASE_URL) throw new Error('DATABASE_URL is required');
+    assertDataIdentity(next);
     if (Object.keys(previous).length) {
       const before = resolve('backend', join(etc, 'grocery.env'), existingToken, currentId);
       unchangedIdentity(before, next);
@@ -53,6 +56,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     command('systemctl', ['enable', 'grocery.target', 'grocery-backend.service', 'grocery-frontend.service']);
     command('systemctl', ['restart', 'grocery.target']);
     command('systemctl', ['is-active', '--quiet', 'grocery-backend', 'grocery-frontend']);
+    recordDataIdentity(runtimeSettings('backend'));
     console.log('Grocery service configured, running and enabled at boot');
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

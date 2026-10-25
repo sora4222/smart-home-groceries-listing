@@ -8,7 +8,9 @@ install -d -m 755 "$fixed" "$fixed/bin" "$fixed/libexec" "$fixed/scripts" "$fixe
 for file in environment.mjs op-auth.mjs op-environment.mjs service-env.mjs service-components.mjs systemd-env.mjs database-setup-sql.mjs migration-plan.mjs; do
   install -m 644 "$root/scripts/$file" "$fixed/scripts/$file"
 done
-install -m 644 "$root"/deploy/service/*.mjs "$fixed/deploy/service/"
+for file in bundle configuration database identity install-release process runtime start-options start; do
+  install -m 644 "$root/deploy/service/$file.mjs" "$fixed/deploy/service/"
+done
 ln -sfn scripts "$fixed/lib"
 ln -sfn /usr/bin/node "$fixed/bin/node"
 install -m 755 "$root/deploy/bin/grocery-env" "$fixed/libexec/grocery-env"
@@ -29,6 +31,7 @@ done
 cat > /usr/local/sbin/grocery-install-release <<'SCRIPT'
 #!/bin/sh
 set -eu
+umask 077
 exec flock --nonblock /run/grocery-install.lock /usr/bin/node /usr/local/lib/grocery-service/deploy/service/install-release.mjs "$@"
 SCRIPT
 chmod 755 /usr/local/sbin/grocery-install-release

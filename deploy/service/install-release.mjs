@@ -44,6 +44,9 @@ export function installRelease(path) {
   mkdirSync('/var/backups/grocery', { recursive: true, mode: 0o700 });
   chmodSync('/var/backups/grocery', 0o700);
   const destination = join(releases, bundle.commit + '-' + digest(bytes).slice(0, 16));
+  if (existsSync(destination) && (!lstatSync(destination).isDirectory() || !existsSync(join(destination, 'release.json')))) {
+    throw new Error('Incomplete retained release directory; inspect it before retrying');
+  }
   if (!existsSync(destination)) {
     extractBundle(bundle, destination);
     for (const [name, target] of [['bin/node', '/usr/bin/node'], ['lib', fixed + '/lib'], ['libexec', fixed + '/libexec']]) symlinkSync(target, join(destination, name));
@@ -74,7 +77,8 @@ export function installRelease(path) {
     renameSync(temporary, prefix);
     switched = true;
     const services = ['grocery-backend.service', 'grocery-frontend.service'];
-    if (existsSync(join(destination, 'alexa-bridge/venv/bin/gunicorn'))) services.push('grocery-alexa-bridge.service');
+    const alexa = runtimeSettings('alexa-bridge');
+    if (existsSync(join(destination, 'alexa-bridge/venv/bin/gunicorn')) && alexa.ALEXA_SKILL_ID && alexa.ALEXA_BRIDGE_SECRET) services.push('grocery-alexa-bridge.service');
     command('systemctl', ['enable', 'grocery.target', ...services]);
     command('systemctl', ['start', 'grocery.target']);
     health();

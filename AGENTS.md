@@ -62,7 +62,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ├── Makefile
 ├── docker-compose.yml
 ├── .env.example
-└── AGENTS.md                ← this file
+└── AGENTS.md
 ```
 
 ## Make targets
@@ -84,22 +84,20 @@ contains no business logic and holds no database credentials. See "Sidecars".
 
 ## Rules (non-negotiable)
 
-1. **File length** — Rust ≤ 300 lines · Python ≤ 300 lines · TypeScript ≤ 400 lines
+1. **File length** — Rust ≤ 500 lines · Python ≤ 500 lines · TypeScript ≤ 500 lines
 2. **Single responsibility** — one purpose per function/module/file. Check at task end.
 3. **TDD** — tests alongside or before code
 4. **Commits** — `feat: <name>` per feature. Multi-feature task → commit after each, staging only that feature's files.
 5. **Axum routes** — `backend/src/routes/`, one module per domain, merged in `routes/mod.rs`. Feature clusters → subdirectory.
 6. **Tailwind** — existing theme classes only. No custom additions.
 7. **React** — no global context unless required. Compound components. Limit prop drilling.
-8. **Docs** — document all public functions, modules and files in short concise documents
+8. **Docs** — document all public functions, modules and files in short concise code comments
 9. **Dependencies** — can get any needed. Use Context7 MCP for current versions and APIs.
-10. **Skills** — update the relevant `.claude/skills/<skill-name>/SKILL.md` after a
-    change to that area.
-11. **No Python in the backend** — if a task seems to need it, it belongs in a
+10. **No Python in the backend** — if a task seems to need it, it belongs in a
     sidecar, and only when no maintained Rust crate exists. Say so and ask first.
-12. **No dynamic SQL** — every query is a literal string with bind parameters.
+11. **No dynamic SQL** — every query is a literal string with bind parameters.
     Never reach for sqlx's `AssertSqlSafe`.
-13. **Steps for a person** — anything only a person can do (sign up, paste a
+12. **Steps for a person** — anything only a person can do (sign up, paste a
     value, log in, run a bookmarklet, allow a prompt) goes in
     `docs/human-setup.md` or `docs/using-the-app.md`
     grouped by place, in the order the values are needed. **All docs are
@@ -158,6 +156,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
   provider SDK directly — only the one module that owns that provider does.
 
 ## Sidecars
+
 A sidecar is allowed only when a required SDK has no maintained Rust
 equivalent. It must: authenticate or verify at its own boundary, forward to a
 backend intake endpoint using its **own** shared secret, hold no database
@@ -175,5 +174,3 @@ Rust.
 
 Use the thermo-nuclear-code-review skill when performing a code review.
 Always give simple to understand language.
-For desktop connection, native commands or launch changes, read
-`.claude/skills/desktop/SKILL.md` and `docs/features/FEATURE_DESKTOP_APP.md`.

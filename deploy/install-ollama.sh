@@ -10,6 +10,10 @@ set -euo pipefail
 model=${1:?usage: install-ollama.sh MODEL}
 
 if ! command -v ollama > /dev/null; then
+  [ "${ALLOW_DEPENDENCY_INSTALL:-}" = 1 ] || {
+    echo 'Ollama is missing. Install it first or explicitly allow installation with ALLOW_DEPENDENCY_INSTALL=1.' >&2
+    exit 1
+  }
   echo "installing Ollama from ollama.com"
   installer=$(mktemp)
   trap 'rm -f "$installer"' EXIT

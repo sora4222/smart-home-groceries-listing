@@ -38,6 +38,9 @@ async function ready(url, servers, signal) {
 }
 
 const signal = cancellation();
+const args = process.argv.slice(2);
+const human = args[0] === '--human';
+if (human) args.shift();
 const dir = mkdtempSync(join(tmpdir(), 'grocery-e2e-'));
 const emptyEnv = join(dir, '.env');
 writeFileSync(emptyEnv, '', { mode: 0o600 });
@@ -77,8 +80,8 @@ try {
       await withServers(servers, serverSignal => ready(webUrl, servers, AbortSignal.any([signal, serverSignal])));
       console.log('e2e: isolated PostgreSQL, backend, and frontend ready');
       await withServers(servers, async serverSignal => {
-        await runProcess('pnpm', ['e2e', '--reporter=json', ...process.argv.slice(2)], {
-          cwd: frontend, env: { ...env, PLAYWRIGHT_JSON_OUTPUT_FILE: join(dir, 'results.json') }, signal: AbortSignal.any([signal, serverSignal]), log: join(dir, 'playwright.log'),
+        await runProcess('pnpm', ['e2e', human ? '--reporter=line,json' : '--reporter=json', ...args], {
+          cwd: frontend, env: { ...env, PLAYWRIGHT_JSON_OUTPUT_FILE: join(dir, 'results.json') }, signal: AbortSignal.any([signal, serverSignal]), log: human ? undefined : join(dir, 'playwright.log'),
         });
         verifyResults('e2e', readResults('playwright', join(dir, 'results.json')));
       });

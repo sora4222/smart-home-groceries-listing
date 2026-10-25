@@ -9,14 +9,16 @@ The Alexa verification process is a separate Python sidecar.
 
 Run `make dev` from the repository root for the complete local stack. It rebuilds
 this service when backend files change. The printed API address is bound to
-loopback. `make stop-all` removes development containers while retaining volumes.
+loopback. `make dev-stop` removes development containers while retaining volumes.
 
 For direct host execution, run `cargo run --bin grocery-backend` here with a
 reachable PostgreSQL server and a host-appropriate `DATABASE_URL`.
 The Compose development database is not published to the host.
 Startup loads configuration before logging and applies embedded migrations.
 `make update-db` applies migrations without starting HTTP; it uses the selected
-`DATABASE_URL`, so select the intended database first.
+`DATABASE_URL`, so select the intended database first. `make build-backend`
+compiles the release binary with embedded migrations into `build/backend`;
+`make build` includes it in the systemd server bundle at `build/production`.
 
 ## Environment variables required
 
@@ -41,10 +43,13 @@ credentials leave those integrations unavailable; never publish an auth-bypassed
 
 ## Checks and tests
 
-From the root, `make check` includes Clippy, rustfmt, cargo check and the
-repository file-length gate. `make test-backend` owns a disposable PostgreSQL
+From the root, `make format-backend` applies rustfmt, `make lint-backend` applies
+Clippy fixes, and `make type-backend` runs cargo check. `make check` applies
+fixes, checks file lengths and types, and runs all repository tests.
+`make test-backend` owns a disposable PostgreSQL
 Testcontainer and ignores application database settings. Docker and the root
-pnpm dependencies are required. SQLx creates a fresh database per integration
+pnpm dependencies are required. Add `human=1` for full runner output.
+SQLx creates a fresh database per integration
 test. Direct `cargo test` requires a separate test PostgreSQL role that can create
 databases; use the owned runner for routine development.
 

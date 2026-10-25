@@ -3,6 +3,7 @@
  * computer from the backend (for example a laptop, with the backend behind a
  * Cloudflare Tunnel), so both addresses come from `VITE_*` values.
  *
+ * `/` selects the current page's origin behind a reverse proxy.
  * Blank values count as not set. The socket address follows the API address
  * unless given (`https` → `wss`). Pure, so it is unit-tested.
  */
@@ -23,9 +24,15 @@ export interface BackendUrls {
 }
 
 /** Reads both addresses, failing loudly on one the browser cannot use. */
-export function resolveBackendUrls(env: BackendUrlEnv): BackendUrls {
+export function resolveBackendUrls(
+	env: BackendUrlEnv,
+	pageOrigin?: string,
+): BackendUrls {
+	const configuredApi = env.VITE_API_BASE_URL?.trim();
 	const apiBaseUrl = withoutTrailingSlash(
-		env.VITE_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL,
+		configuredApi === "/"
+			? pageOrigin || DEFAULT_API_BASE_URL
+			: configuredApi || DEFAULT_API_BASE_URL,
 	);
 	requireScheme("VITE_API_BASE_URL", apiBaseUrl, ["http://", "https://"]);
 

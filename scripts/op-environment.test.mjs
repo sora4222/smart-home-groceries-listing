@@ -21,7 +21,10 @@ function withFakeOp(run) {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-op-environment-'));
   try {
     writeFileSync(join(dir, 'op'), FAKE_OP, { mode: 0o700 });
-    return run(dir, { PATH: `${dir}:/usr/bin:/bin`, AUTH_TRACE: join(dir, 'trace') });
+    // macOS adds this variable when Node starts, independently of the fake CLI.
+    const platform = process.env.__CF_USER_TEXT_ENCODING;
+    return run(dir, { PATH: `${dir}:/usr/bin:/bin`, AUTH_TRACE: join(dir, 'trace'),
+      ...(platform ? { __CF_USER_TEXT_ENCODING: platform } : {}) });
   } finally { rmSync(dir, { recursive: true }); }
 }
 

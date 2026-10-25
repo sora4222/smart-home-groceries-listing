@@ -1,8 +1,8 @@
 # Alexa bridge sidecar
 
-Verifies that an incoming request really came from Amazon, pulls the item and
-quantity out of the intent, and posts them to the Rust backend. That is all it
-does.
+A Python 3.13 Flask service using Amazon's `ask-sdk` verifies Alexa requests,
+extracts intent slots, and forwards them to the Rust backend. Development uses
+uv and Compose Watch; production runs under gunicorn as a systemd service.
 
 **This is the only Python in the repository.** It exists because Amazon's
 request signing and skill request model are implemented in the `ask-sdk`
@@ -64,7 +64,9 @@ make test-alexa        # bridge tests only
 ```
 
 The full-stack development command rebuilds the bridge when its files change.
-`make stop-all` removes the development containers and retains their volumes.
+`make dev-stop` removes the development containers and retains their volumes.
+`make build-alexa` creates the relocatable production virtualenv in `build/alexa`;
+`make build` includes it at `build/production/alexa-bridge`.
 The root `.env`, exported overrides, and an explicit `GROCERY_ENV_FILE` are
 supported during direct startup too, including `op://` references. See
 [configuration sources](../../docs/features/FEATURE_CONFIGURATION.md).
@@ -78,7 +80,11 @@ uv sync --frozen
 uv run python -m alexa_bridge.app
 ```
 
-## Tests
+## Checks and tests
+
+From the root, `make format-alexa` applies Ruff formatting and `make lint-alexa`
+applies Ruff lint fixes. `make check` applies fixes, checks types and file lengths,
+and runs all repository tests. `make test-alexa human=1` streams pytest output.
 
 ```bash
 make test-alexa        # from the repository root

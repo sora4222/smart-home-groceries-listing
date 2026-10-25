@@ -4,7 +4,10 @@
  */
 import { resolveBackendUrls, resolveServerApiUrl } from "#/lib/backend-url";
 
-const urls = resolveBackendUrls(import.meta.env);
+const urls = resolveBackendUrls(
+	import.meta.env,
+	import.meta.env.SSR ? undefined : window.location.origin,
+);
 
 export const API_BASE_URL: string = import.meta.env.SSR
 	? resolveServerApiUrl(urls.apiBaseUrl, process.env.SERVER_API_BASE_URL)

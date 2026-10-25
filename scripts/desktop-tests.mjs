@@ -9,16 +9,19 @@ import { verifyResults } from './test-results.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'grocery-desktop-tests-'));
 const log = join(dir, 'cargo.log');
+const human = process.argv.includes('--human');
 try {
   const result = await cargoResults([], {
-    dir, cwd: new URL('../desktop/src-tauri/', import.meta.url), log,
+    dir, cwd: new URL('../desktop/src-tauri/', import.meta.url), log: human ? undefined : log,
     env: desktopEnvironment(process.env), signal: cancellation(),
   });
   verifyResults('desktop', result);
   rmSync(dir, { recursive: true });
 } catch (error) {
   console.error(error.message);
-  try { console.error(readFileSync(log, 'utf8').split('\n').slice(-30).join('\n')); } catch {}
-  console.error(`Desktop test log: ${log}`);
+  if (!human) {
+    try { console.error(readFileSync(log, 'utf8').split('\n').slice(-30).join('\n')); } catch {}
+    console.error(`Desktop test log: ${log}`);
+  }
   process.exitCode ||= 1;
 }

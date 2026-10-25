@@ -694,6 +694,8 @@ frontend's API configuration. It does not start an API or database locally.
    configure frontend and API HTTPS hostnames in the tunnel. Keep API routes and
    `/ws` pointed at the backend.
 2. Set `VITE_API_BASE_URL` to the API origin reachable from the desktop computer.
+   If every frontend origin proxies `/api`, `/api/*`, and `/ws` to the backend,
+   use `/` instead so browser traffic follows the current frontend origin.
    Leave `VITE_WS_URL` blank to derive its socket URL, or provide the explicit
    `wss://` endpoint. Use HTTPS for the API when filling store trolleys because
    store pages use HTTPS and block insecure remote fetches. Do not use `localhost` for the browser API unless the API

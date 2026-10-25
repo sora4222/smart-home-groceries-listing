@@ -33,6 +33,9 @@ CI pins Compose 5.6.1 to support `initial_sync`; retain the same check in
 For dependency-audit failures, update the affected packages only and verify
 frozen installation plus the original audit. Report retained advisory warnings
 and Git dependencies that the audit cannot inspect.
+Keep unrelated lockfile versions and platform metadata unchanged. Frontend
+transitive updates also need type checks, unit tests and a production build;
+backend updates need a locked build check.
 
 ## Backend
 

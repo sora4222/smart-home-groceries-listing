@@ -16,3 +16,19 @@ it.each([true, false])("selects the API for SSR=%s", async (ssr) => {
 	);
 	expect(config.WS_URL).toBe("ws://localhost:43001/ws");
 });
+
+it.each([true, false])("uses the proxy origin with SSR=%s", async (ssr) => {
+	vi.stubEnv("SSR", ssr);
+	vi.stubEnv("VITE_API_BASE_URL", "/");
+	vi.stubEnv("VITE_WS_URL", "");
+	vi.stubEnv("SERVER_API_BASE_URL", "http://backend:8000");
+	const config = await import("#/lib/config");
+	expect(config.API_BASE_URL).toBe(
+		ssr ? "http://backend:8000" : window.location.origin,
+	);
+	if (!ssr) {
+		expect(config.WS_URL).toBe(
+			`${window.location.origin.replace(/^http/, "ws")}/ws`,
+		);
+	}
+});

@@ -73,6 +73,9 @@ jobs:
         env:
           CONFIGURATION_MODE: ${{ matrix.configuration }}
         run: sudo env GROCERY_DISPOSABLE_TEST=1 node deploy/service/integration-test.mjs build/grocery-linux-x64.json.gz "$CONFIGURATION_MODE"
+      - name: Diagnose disposable-runner services
+        if: failure()
+        run: sudo journalctl -u grocery-backend -u grocery-frontend -n 80 --no-pager
   publish:
     needs: [build, installation]
     if: github.event_name == 'push' && github.event.deleted == false

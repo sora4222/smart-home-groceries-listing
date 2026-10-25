@@ -31,12 +31,12 @@ if (mode === 'file' || mode === 'op-file') args.push('--config', configuration);
 else startEnv = { ...env };
 if (mode === 'op-file') args.push('--op-token-file', tokenFile, '--op-environment-id', 'fixture');
 if (mode === 'op-env') startEnv = { ...startEnv, OP_SERVICE_ACCOUNT_TOKEN: 'fixture-token', OP_ENVIRONMENT_ID: 'fixture' };
-command('bash', args, { env: startEnv, timeout: 600000 });
+command('bash', args, { env: startEnv, timeout: 600000, stdio: 'inherit' });
 assert.equal(existsSync(opMarker), mode.startsWith('op-'));
 const dbEnv = postgresEnvironment(env.DATABASE_URL);
 command('psql', ['-Xq', '-v', 'ON_ERROR_STOP=1', '-c', "create table deployment_sentinel(id integer primary key, payload text); insert into deployment_sentinel values(1,'retain household information')"], { env: dbEnv });
 const before = readFileSync('/etc/grocery/grocery.env');
-command('/usr/local/sbin/grocery-install-release', [bundlePath], { timeout: 600000 });
+command('/usr/local/sbin/grocery-install-release', [bundlePath], { timeout: 600000, stdio: 'inherit' });
 assert.deepEqual(readFileSync('/etc/grocery/grocery.env'), before);
 assert.equal(command('psql', ['-XAtqc', 'select payload from deployment_sentinel where id=1'], { env: dbEnv }).trim(), 'retain household information');
 // A destructive migration is rejected before stopping the healthy application.

@@ -1,7 +1,7 @@
 /** Bounded subprocesses with secret-safe errors and explicit environments. */
 import { spawnSync } from 'node:child_process';
 
-export const systemEnvironment = { PATH: '/usr/local/bin:/usr/bin:/bin', HOME: '/root', GROCERY_ENV_FILE: '/dev/null' };
+export const systemEnvironment = { PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', HOME: '/root', GROCERY_ENV_FILE: '/dev/null' };
 
 /** Run a fixed program; keep stdout private unless the caller explicitly uses it. */
 export function command(program, args, options = {}) {

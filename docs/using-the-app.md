@@ -31,6 +31,24 @@ starting Compose. Backend, frontend, and bridge processes also load their own
 settings when started directly. Exported variables override `.env`.
 Restart the affected process after changing a value.
 
+`make build` runs as your user. It reads the checkout's `.env` by default;
+`GROCERY_ENV_FILE` selects another file, including a mounted 1Password `.env`.
+Exported frontend settings override the file. A missing default `.env` is
+allowed; an explicitly selected file must be readable.
+
+To build with a 1Password Developer Environment:
+
+1. Run `make build OP_ENVIRONMENT_ID=<id>` using the same ID selected for
+   production installation. The Environment overrides the file; exports
+   override both. CLI reads use your exported service-account token first,
+   then desktop integration if needed.
+2. Install with `sudo make hm-install-server OP_ENVIRONMENT_ID=<id>`.
+   Installation and service startup use the server's protected credentials.
+
+Builds do not read `/etc/1password` or `/etc/grocery`. Provider credentials
+authorize configuration loading and are removed before the compiler starts.
+Literal frontend settings require no 1Password access.
+
 For an arbitrary local command:
 
 ```bash

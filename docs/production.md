@@ -1,8 +1,8 @@
 # Production server (no Docker)
 
 Runs the app on an Ubuntu 26.04 home server as systemd services, without
-Docker. `make build` compiles everything as your user, using sudo to resolve
-frontend configuration. `sudo make hm-install-server` installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
+Docker. `make build` compiles everything as your user without sudo.
+`sudo make hm-install-server` installs it, sets up the PostgreSQL role, Ollama and cloudflared, and starts
 the services. Re-running both is also how an update is deployed.
 
 Do the vendor-console parts of [`human-setup.md`](human-setup.md) first
@@ -69,8 +69,9 @@ with `sudo make hm-install-server OP_ENVIRONMENT_ID=<id>`; this writes
 `/etc/grocery/op-environment-id`. `grocery-env` then reads the Environment
 through `op run --environment` (1Password CLI 2.41 or later) with the same
 access option above. Environment values override `.env`, which may then be
-absent. The frontend build reads the same ID file, so `make build` and the
-services use one source. A 1Password community report says service accounts
+absent. Builds select an Environment explicitly with `OP_ENVIRONMENT_ID`;
+they do not read the installed server's ID file or token files.
+A 1Password community report says service accounts
 could not read Environments in CLI 2.33 beta; verify the token on the server.
 
 Save a token without putting it in shell history or command arguments:
@@ -82,12 +83,15 @@ sudo sh -c 'umask 077; cat > /etc/1password/grocery.token'   # paste, Enter, Ctr
 
 The service account needs read access to the project vault only.
 
-The frontend build uses this same resolver and token-file priority through
-sudo, reading the checkout's `.env`. Only resolved `CLERK_*` and `VITE_*`
-settings reach the unprivileged build; the token stays in the resolver.
-A token-file authentication failure stops the build or service startup without
-falling back to a desktop account. Local development retains desktop fallback.
-No token file permissions need to be relaxed or token exported in your shell.
+The frontend build uses the caller's `.env`, `GROCERY_ENV_FILE`, or exported
+settings. An optional `OP_ENVIRONMENT_ID` selects a Developer Environment;
+its values override the file, and exports override both. References use the
+caller's exported service-account token first, then desktop integration.
+Only frontend component settings reach the compiler; provider credentials
+and backend-only settings are excluded. Literal settings need no 1Password
+access. See [build configuration](using-the-app.md#configuration-and-1password).
+Installed services retain the protected token-file priority above and stop on
+token-file authentication failure without falling back to a desktop account.
 
 ## 2. `.env`
 
@@ -293,11 +297,12 @@ The existing server checkout's staged and unstaged work was preserved.
 
 That deployment preserved a manually installed loader that read the
 Developer Environment from `/etc/grocery/op-environment-id`, because the
-branch's loader could not. The versioned loader now reads the same file (see
-section 1), so `make build` and `sudo make hm-install-server` no longer need
-that overlay. This has not yet been run on the server. Before the next install,
-confirm that the Environment ID file exists there, then check that the built
-browser assets contain the approved API and WebSocket URLs.
+branch's loader could not. The versioned service loader now reads the same
+file (see section 1), so installation no longer needs that overlay. Builds
+select the Environment separately with `OP_ENVIRONMENT_ID`. This has not yet
+been run on the server. Before the next install, use the same Environment ID
+for build and installation, then check that the built browser assets contain
+the approved API and WebSocket URLs.
 
 The normal migration check found only the additive
 `20261018100000_selection_images.sql` migration. The database was backed up to

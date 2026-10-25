@@ -106,3 +106,13 @@ launcher environment boundary. Keep frontend coverage for the native trolley
 steps and browser fallback, plus executing the shared fill program with delivery
 helpers and no automatic checkout. Native unit tests and a built bundle do not
 prove live Tailscale, Cloudflare, Clerk or authenticated store behavior.
+
+
+## Native service deployment
+
+Run `scripts/service-deployment.test.sh` for bundle/config checks. The real
+installation test requires root, `GROCERY_DISPOSABLE_TEST=1` and a disposable
+Ubuntu VM, and refuses existing installations. Never run it on the household
+server. Its optional 1Password cases use a fake CLI and fixture token. Cover
+data preservation, backup restore, destructive-migration rejection, boot
+enablement, restart and bootstrap-token exclusion. Keep CI free of site secrets.

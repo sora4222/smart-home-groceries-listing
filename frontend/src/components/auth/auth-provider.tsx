@@ -8,12 +8,14 @@ import { shadcn } from "@clerk/ui/themes";
 import type { ReactNode } from "react";
 
 import { AUTH_MODE } from "#/lib/auth-mode";
+import { publicConfig } from "#/lib/public-config";
 import { SIGN_IN_PATH, SIGN_UP_PATH } from "#/lib/sign-in-guard";
 
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 	if (AUTH_MODE === "off") return children;
 	return (
 		<ClerkProvider
+			publishableKey={publicConfig().VITE_CLERK_PUBLISHABLE_KEY}
 			appearance={{ theme: shadcn }}
 			signInUrl={SIGN_IN_PATH}
 			signUpUrl={SIGN_UP_PATH}

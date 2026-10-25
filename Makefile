@@ -151,7 +151,7 @@ create-application-desktop: build-desktop
 
 ## Production server. Explicit opt-in permits missing system dependency installation.
 install-server:
-	@ALLOW_DEPENDENCY_INSTALL=$(ALLOW_DEPENDENCY_INSTALL) bash deploy/install.sh
+	@bash deploy/start.sh $(args)
 
 uninstall-server:
 	@bash deploy/uninstall.sh
@@ -160,9 +160,10 @@ hm-install-server: install-server
 hm-uninstall-server: uninstall-server
 
 hm-update-server:
-	@sh deploy/pull.sh
-	@$(MAKE) --no-print-directory build
-	@sudo env ALLOW_DESTRUCTIVE=$(ALLOW_DESTRUCTIVE) ALLOW_DEPENDENCY_INSTALL=$(ALLOW_DEPENDENCY_INSTALL) bash deploy/update.sh
+	@sudo /usr/local/sbin/grocery-update $(release)
+
+package-server: build
+	@node deploy/service/package.mjs
 
 hm-status:
 	@systemctl --no-pager status grocery.target 'grocery-*.service' ollama.service 2>/dev/null | grep -E '^(●|○|×)|Active:' || true

@@ -2,7 +2,7 @@
 # Run repository-tooling suites through the same Make entrypoint in CI and locally.
 set -eu
 cd "$(dirname "$0")/.."
-for suite in compose-config desktop environment grocery-env test-database fill-env \
+for suite in service-deployment compose-config desktop environment grocery-env test-database fill-env \
   check-file-length check-migrations database-profiles; do
   sh "scripts/$suite.test.sh"
 done

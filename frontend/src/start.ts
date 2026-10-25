@@ -8,7 +8,15 @@ import { clerkMiddleware } from "@clerk/tanstack-react-start/server";
 import { createStart } from "@tanstack/react-start";
 
 import { AUTH_MODE } from "#/lib/auth-mode";
+import { publicConfig } from "#/lib/public-config";
 
 export const startInstance = createStart(() => ({
-	requestMiddleware: AUTH_MODE === "clerk" ? [clerkMiddleware()] : [],
+	requestMiddleware:
+		AUTH_MODE === "clerk"
+			? [
+					clerkMiddleware({
+						publishableKey: publicConfig().VITE_CLERK_PUBLISHABLE_KEY,
+					}),
+				]
+			: [],
 }));

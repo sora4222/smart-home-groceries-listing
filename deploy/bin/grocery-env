@@ -27,9 +27,9 @@ die() { echo "grocery-env: $*" >&2; exit 1; }
 mode=${1:-}
 name=${2:-}
 case $mode in
-  write) format=systemd ;;
+  write|check) format=systemd ;;
   json) format=json ;;
-  *) die "usage: grocery-env write|json COMPONENT" ;;
+  *) die "usage: grocery-env write|json|check COMPONENT" ;;
 esac
 [ -n "$name" ] || die "usage: grocery-env write|json COMPONENT"
 
@@ -82,6 +82,12 @@ resolve() {
       "$node" "$resolver" --format "$format" "$@" "$name" < "$config"
   fi
 }
+
+if [ "$mode" = check ]; then
+  resolve "$@" > /dev/null || die "could not validate the $name configuration"
+  echo "grocery-env: checked the $name configuration"
+  exit 0
+fi
 
 if [ "$format" = json ]; then
   resolve "$@"

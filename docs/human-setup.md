@@ -26,6 +26,35 @@ To adopt an existing native service, back it up, then run
 installs the fixed control layer and enables services at boot without fetching
 or building new application code.
 
+## GitHub release protections
+
+Configure these repository rulesets before enabling unattended release updates.
+The workflow and installer do not create GitHub rulesets. Confirm they are
+**Active**, rather than Evaluate or Disabled; this guide does not establish
+that the protections are configured.
+
+1. In **Settings → Rules → Rulesets**, create an Active branch ruleset for
+   `main`. Require pull requests and required status checks, require the branch
+   to be up to date before merging, and block force pushes and deletion.
+   After the native-service workflow has run, select its actual check names:
+   `build`, `installation (file)`, `installation (env)`,
+   `installation (op-file)` and `installation (op-env)`. Set GitHub Actions
+   as their expected source. The publication job is not a required PR check
+   because it runs only for production tags.
+2. Create an Active tag ruleset targeting `release-*` that restricts tag
+   creation. Allow bypass only to trusted maintainers responsible for
+   creating production releases.
+3. Create a separate Active tag ruleset for the same `release-*` pattern
+   that restricts updates and deletion, with no bypass actors. Keeping this
+   separate ensures creation bypass cannot rewrite or delete an existing tag.
+
+Review effective rules, required-check sources and bypass lists after setup.
+Main must pass required checks before merging; release tags must point to main
+commits. Create a new version tag for every release; never move an existing
+tag. For the current GitHub controls, see
+[creating repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository)
+and [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
+
 
 One-time provisioning of the external services and the home-server
 deployment. Audience: a software developer comfortable with a shell, `.env`
@@ -762,16 +791,18 @@ token, database credential or Clerk secret in the desktop app.
    current page after reconnecting a tunnel. Development builds have separate
    settings, cookies and instance locks for each worktree.
 
-The development Environment's `GROCERY_DESKTOP_SERVER_URL` points to
-`https://grocery-list-prod.tail33d20b.ts.net:8100`. Its optional
-`SERVER_API_BASE_URL` is blank. Use your existing local Environment mount, or
-launch with `op run --environment plbzra5axcjedn7hgppvry52bi -- make hm-dev-desktop`.
+Set the development Environment's `GROCERY_DESKTOP_SERVER_URL` to your
+frontend's HTTPS origin. Its optional `SERVER_API_BASE_URL` can be blank.
+Use your existing local Environment mount, or launch with
+`op run --environment ENVIRONMENT_ID -- make hm-dev-desktop` after replacing
+`ENVIRONMENT_ID` with your own selection.
 The launcher passes only the public default URL to the native build. Saved
 application settings still take priority.
 
-The exact proposed production settings and current Service host routes are in
-[production operations](production.md#grocery-production-service-on-tailscale).
-These require approval before changing the production Environment or deployment.
+The configuration and private Service routing guidance are in
+[production operations](production.md#private-ingress-with-tailscale).
+Keep deployment-specific hostnames and Environment selections in your private
+configuration.
 
 Routing references: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve)
 and [Cloudflare Tunnel protocols](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/protocols/).

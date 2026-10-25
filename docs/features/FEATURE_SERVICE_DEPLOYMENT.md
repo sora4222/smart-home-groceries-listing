@@ -34,8 +34,8 @@ real PostgreSQL/systemd installation, update preservation, backup restoration,
 destructive-migration rejection, boot enablement and restart. Its matrix covers
 file/export configuration without 1Password and fixture service-account inputs
 via files/exports. The fake CLI tests the contract; CI has no account secrets.
-Successful pushes publish attested stable `release-N.N.N` releases or immutable
-`preview-COMMIT` prereleases. Production release commits must belong to main.
-PR builds cannot publish. Host/workflow policy, verification and preview isolation
-belong to the server repository. Updating root control code is separately reviewed.
+Successful `release-N.N.N` tag pushes publish attested stable releases. Production
+release commits must belong to main. Branch pushes and PRs run the same tests
+without publishing. Host/workflow policy and verification belong to the server
+repository. Updating root control code is separately reviewed.
 Provenance establishes origin, not that application code is harmless.

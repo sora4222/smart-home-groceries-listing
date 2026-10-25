@@ -1,6 +1,6 @@
 # Operating the app
 
-## Verified updates and previews
+## Verified updates
 
 With the server repository's updater installed, use `sudo grocery-update` for
 the latest completed stable release, or `sudo grocery-update release-1.2.3` for
@@ -9,8 +9,8 @@ one exact release. The systemd timer checks automatically.
 
 Merge reviewed code into main, then push a new `release-N.N.N` Git tag. The
 native-service Action tests installation/update before publishing. Never move
-an existing release tag. Use the server's `sudo grocery-preview BRANCH` command
-for an isolated preview; production data and credentials are never copied there.
+an existing release tag. Branch pushes run the same installation/update tests
+without publishing or deploying a release.
 
 Restart affected services after changing a 1Password Environment. The supported
 public frontend settings also change on restart. Encryption-key or database

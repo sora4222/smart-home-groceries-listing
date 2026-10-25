@@ -77,9 +77,9 @@ contains no business logic and holds no database credentials. See "Sidecars".
 | `make check` | Formatting, lint, type checks and file-length gate |
 | `make hm-fix` | Apply what can be fixed automatically |
 | `make hm-dev` | Full-stack development with streamed logs |
-| `make build` | Production build into `build/production` (no Docker) |
-| `sudo make hm-install-server` | Install `build/production` as systemd services |
-| `make hm-update-server` | Pull the current branch, build, check migrations, back up the DB, install |
+| `make build` | Build `build/production` and package a configuration-free runtime bundle (no Docker) |
+| `sudo make hm-install-server` | Install the packaged runtime as systemd services; `bundle=PATH` selects another local bundle |
+| `make hm-update-server` | Verify and install a completed `release-N.N.N` release through the server updater |
 | `make hm-test` | Human-readable test output |
 
 ## Rules (non-negotiable)

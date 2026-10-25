@@ -41,6 +41,7 @@ export function installRelease(path) {
   const python = command('/usr/bin/python3', ['-c', 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")']).trim();
   if (bundle.python !== python) throw new Error('Release Python version mismatch');
   mkdirSync(releases, { recursive: true, mode: 0o755 });
+  chmodSync(releases, 0o755);
   mkdirSync('/var/backups/grocery', { recursive: true, mode: 0o700 });
   chmodSync('/var/backups/grocery', 0o700);
   const destination = join(releases, bundle.commit + '-' + digest(bytes).slice(0, 16));

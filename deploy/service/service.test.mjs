@@ -1,6 +1,6 @@
 /** Release/configuration security contracts, independent of host credentials or services. */
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -11,6 +11,8 @@ import { startOptions } from './start-options.mjs';
 import { unchangedIdentity } from './runtime.mjs';
 import { postgresEnvironment } from './database.mjs';
 import { parseEnv } from 'node:util';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { assertDataIdentity, recordDataIdentity } from './identity.mjs';
 
 function fixture(run) {
@@ -42,6 +44,18 @@ test('data-only bundle round trips runtime files, excluding root helpers and con
 test('generated Nitro chunk names with literal brackets are valid runtime paths', () => fixture((source, metadata) => {
   writeFileSync(join(source, 'frontend/.output/server/core+[...].mjs'), 'export {};');
   assert.equal(decodeBundle(packBundle(source, metadata)).files.length, 4);
+}));
+
+test('runtime remains readable/executable with a root-only deployment umask', () => fixture((source, metadata) => {
+  const bundle = decodeBundle(packBundle(source, metadata));
+  const destination = source + '-private-umask';
+  const previous = process.umask(0o077);
+  try {
+    extractBundle(bundle, destination);
+    assert.equal(statSync(join(destination, 'bin/grocery-backend')).mode & 0o777, 0o755);
+    assert.equal(statSync(join(destination, 'bin')).mode & 0o777, 0o755);
+    assert.equal(statSync(join(destination, 'frontend/.output/server/index.mjs')).mode & 0o777, 0o644);
+  } finally { process.umask(previous); rmSync(destination, { recursive: true, force: true }); }
 }));
 
 test('bundle rejects traversal, installer replacement, duplicate paths and tampered bytes', () => fixture((source, metadata) => {
@@ -102,4 +116,14 @@ test('retained identity permits password rotation and blocks data/key replacemen
   assert.throws(() => assertDataIdentity({ ...settings, DATABASE_URL: 'postgres://user:first@localhost/empty' }, file));
   assert.throws(() => assertDataIdentity({ ...settings, CREDENTIAL_ENCRYPTION_KEY: 'wrong-key' }, file));
   assert.ok(!readFileSync(file, 'utf8').includes('original-key'));
+}));
+
+test('installed configuration CLI executes correctly through a control/release symlink', () => fixture((directory) => {
+  const link = join(directory, 'resolver.mjs');
+  symlinkSync(fileURLToPath(new URL('../../scripts/service-env.mjs', import.meta.url)), link);
+  const result = spawnSync(process.execPath, [link, '--format', 'json', 'backend'], {
+    input: 'DATABASE_URL=postgres://fixture:fixture@localhost/fixture\n', encoding: 'utf8', env: { PATH: process.env.PATH },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).DATABASE_URL, 'postgres://fixture:fixture@localhost/fixture');
 }));

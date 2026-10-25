@@ -1,6 +1,6 @@
 /** A bounded, data-only release format. No archive links, owners or install hooks. */
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 
@@ -78,9 +78,12 @@ export function packBundle(source, metadata) {
 /** Extract a validated release only into a newly created, private directory. */
 export function extractBundle(bundle, destination) {
   mkdirSync(destination, { mode: 0o755 }); // Refuse pre-existing paths and symlinks.
+  chmodSync(destination, 0o755);
   for (const file of bundle.files) {
     const path = resolve(destination, file.path);
     mkdirSync(dirname(path), { recursive: true, mode: 0o755 });
+    for (let parent = dirname(path); parent !== resolve(destination); parent = dirname(parent)) chmodSync(parent, 0o755);
     writeFileSync(path, Buffer.from(file.data, 'base64'), { flag: 'wx', mode: file.mode });
+    chmodSync(path, file.mode); // Runtime readability must not depend on root's secret-safe umask.
   }
 }

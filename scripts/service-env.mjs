@@ -9,7 +9,7 @@
  * the environment or the command line, and is never printed. An optional
  * 1Password Developer Environment overrides the standard-input values.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { loadEnvironment } from './environment.mjs';
 import { accepts, component, renamed } from './service-components.mjs';
@@ -47,7 +47,14 @@ export function resolveComponent({ name, file, tokenFile, environmentId, inherit
   return renamed(spec, values);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/** Installed resolvers may be reached through a release/control symlink. */
+function invokedDirectly() {
+  if (!process.argv[1]) return false;
+  try { return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href; }
+  catch { return false; }
+}
+
+if (invokedDirectly()) {
   try {
     const options = parseArguments(process.argv.slice(2));
     // Exported variables are not configuration here: only standard input is.

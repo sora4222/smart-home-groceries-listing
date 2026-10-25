@@ -54,7 +54,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (options.bundle) installRelease(options.bundle);
     else if (!existsSync('/opt/grocery/bin/grocery-backend')) throw new Error('Supply --bundle for a first installation');
     command('systemctl', ['enable', 'grocery.target', 'grocery-backend.service', 'grocery-frontend.service']);
-    command('systemctl', ['restart', 'grocery.target']);
+    if (!options.bundle) command('systemctl', ['restart', 'grocery.target']);
     command('systemctl', ['is-active', '--quiet', 'grocery-backend', 'grocery-frontend']);
     recordDataIdentity(runtimeSettings('backend'));
     console.log('Grocery service configured, running and enabled at boot');

@@ -127,3 +127,21 @@ test('installed configuration CLI executes correctly through a control/release s
   assert.equal(result.status, 0);
   assert.equal(JSON.parse(result.stdout).DATABASE_URL, 'postgres://fixture:fixture@localhost/fixture');
 }));
+
+test('make installation consumes the packaged build and accepts an explicit bundle and configuration', () => fixture((directory) => {
+  mkdirSync(join(directory, 'deploy'));
+  writeFileSync(join(directory, 'deploy/start.sh'), '#!/bin/sh\nprintf "%s\\n" "$@"\n');
+  const makefile = fileURLToPath(new URL('../../Makefile', import.meta.url));
+  const install = (...args) => spawnSync('make', ['--silent', '--no-print-directory', '-f', makefile, 'install-server', ...args], {
+    cwd: directory, encoding: 'utf8', env: { PATH: process.env.PATH },
+  });
+  const defaults = install('args=--config /protected/application.env');
+  assert.equal(defaults.status, 0, defaults.stderr);
+  assert.deepEqual(defaults.stdout.trim().split('\n'), ['--bundle', join(directory, 'build/grocery-linux-' + process.arch + '.json.gz'), '--config', '/protected/application.env']);
+  const explicit = install('bundle=/protected/runtime candidate.json.gz');
+  assert.equal(explicit.status, 0, explicit.stderr);
+  assert.deepEqual(explicit.stdout.trim().split('\n'), ['--bundle', '/protected/runtime candidate.json.gz']);
+  const build = spawnSync('make', ['--dry-run', '--no-print-directory', '-f', makefile, 'build'], { cwd: directory, encoding: 'utf8' });
+  assert.equal(build.status, 0, build.stderr);
+  assert.ok(build.stdout.indexOf('deploy/service/package.mjs') > build.stdout.indexOf('deploy/build.sh --assemble'));
+}));

@@ -14,6 +14,9 @@ on macOS; use Node file modes for portable permission assertions.
 
 For repository tooling, add a matching `scripts/*.test.sh` test and include
 it in `make test-tooling`; workflow-only rules should use the same script.
+Native deployment coverage includes a fixture-only Make installation check:
+the default packaged build and explicit `bundle=PATH` must reach the startup
+script with configuration arguments intact, without touching host services.
 
 Configuration tests use fixture dotenv files and a fake `op` executable.
 Cover exported overrides and denied access without displaying real values.

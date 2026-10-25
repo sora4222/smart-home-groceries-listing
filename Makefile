@@ -3,10 +3,11 @@
 HUMAN = $(if $(filter 1 true,$(human)),--human,)
 RUN = node scripts/command.mjs $(HUMAN) $@ --
 COMPONENTS := backend frontend alexa desktop
+bundle ?= $(CURDIR)/build/grocery-linux-$(shell node -p process.arch).json.gz
 .PHONY: all setup setup-env run-env dev dev-stop stop-all hm-compose hm-dev-frontend \
         test test-tooling test-frontend-playwright update-db reset-db migration-new \
         check check-format check-file-length check-desktop format lint hm-fix \
-        type-backend type-frontend type-desktop build install-server uninstall-server \
+        type-backend type-frontend type-desktop build package-server install-server uninstall-server \
         hm-install-server hm-uninstall-server hm-update-server hm-status hm-logs \
         hm-dev hm-test hm-test-tooling hm-test-frontend-playwright hm-dev-desktop \
         create-application-desktop $(addprefix test-,$(COMPONENTS)) \
@@ -140,6 +141,7 @@ hm-fix: format
 ## Builds. Individual outputs in build/<component>; installable server in build/production.
 build: build-backend build-frontend build-alexa
 	@$(RUN) bash deploy/build.sh --assemble
+	@node deploy/service/package.mjs
 
 build-backend build-frontend build-alexa:
 	@$(RUN) bash deploy/build-component.sh $(@:build-%=%)
@@ -149,9 +151,9 @@ build-desktop:
 
 create-application-desktop: build-desktop
 
-## Production server. Explicit opt-in permits missing system dependency installation.
+## Production server. Build/package as your user; install the explicit local runtime bundle.
 install-server:
-	@bash deploy/start.sh $(args)
+	@bash deploy/start.sh --bundle "$(bundle)" $(args)
 
 uninstall-server:
 	@bash deploy/uninstall.sh
@@ -163,7 +165,6 @@ hm-update-server:
 	@sudo /usr/local/sbin/grocery-update $(release)
 
 package-server: build
-	@node deploy/service/package.mjs
 
 hm-status:
 	@systemctl --no-pager status grocery.target 'grocery-*.service' ollama.service 2>/dev/null | grep -E '^(●|○|×)|Active:' || true

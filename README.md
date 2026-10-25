@@ -130,13 +130,15 @@ skips and empty suites fail the gates. See the [testing guidance](.claude/skills
 ## Production and repository layout
 
 On the server, use `make build` and `sudo make install-server`.
-`make hm-update-server` pulls the checked-out branch, builds, checks migrations,
-backs up the database and installs. See [production operations](docs/production.md)
-for requirements, status, logs and removal. Missing Ollama or cloudflared must be
-installed separately unless you explicitly pass `ALLOW_DEPENDENCY_INSTALL=1` to
-`install-server`. Installation preserves the existing restricted database role
-and root-only configuration; removal retains configuration, databases and shared
-packages. Production uses systemd, without Docker.
+The build also creates a configuration-free runtime bundle; installation consumes
+that bundle. Supply startup settings with `args='--config /protected/application.env'`
+on a fresh host. Optional 1Password inputs use protected files or exports.
+`make hm-update-server` calls the server repository's verifier for the latest
+completed `release-N.N.N` release; it does not deploy the checked-out branch.
+See [production operations](docs/production.md) for prerequisites, GitHub rules,
+backups, status and recovery. Install optional Ollama/cloudflared dependencies
+separately. Updates preserve configuration and database identity; production uses
+systemd, without Docker. Removal retains configuration, databases and shared packages.
 
 | Directory | Responsibility |
 |---|---|

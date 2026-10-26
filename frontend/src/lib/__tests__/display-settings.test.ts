@@ -19,6 +19,10 @@ describe("parseDisplay", () => {
 		);
 	});
 
+	it("reads the store's own picture size", () => {
+		expect(parseDisplay('{"imageSize":"full"}').imageSize).toBe("full");
+	});
+
 	it("reads what was saved", () => {
 		expect(
 			parseDisplay(

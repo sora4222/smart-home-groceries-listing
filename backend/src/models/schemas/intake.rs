@@ -1,4 +1,4 @@
-//! Bodies for `/settings/intake` and the Google Tasks channel.
+//! Bodies for `/settings/help` and the Google Tasks channel.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ pub const MAX_POLL_SECONDS: i32 = 3600;
 /// The gap before anyone chooses one, matching the column default.
 pub const DEFAULT_POLL_SECONDS: i32 = 60;
 
-/// What Google sent back to `/settings/intake` after the household signed in.
+/// What Google sent back to `/settings/help` after the household signed in.
 #[derive(Debug, Deserialize, Validate)]
 pub struct GoogleSignInFinish {
     #[validate(length(min = 1, max = 2048))]
@@ -53,7 +53,7 @@ pub struct TaskListResponse {
     pub title: String,
 }
 
-/// The Google Tasks channel as `/settings/intake` shows it. Never carries the
+/// The Google Tasks channel as `/settings/help` shows it. Never carries the
 /// token itself.
 #[derive(Debug, Serialize)]
 pub struct GoogleTasksStatus {
@@ -88,7 +88,7 @@ pub struct TriageStatusResponse {
     pub model: String,
 }
 
-/// Everything `/settings/intake` shows.
+/// Everything `/settings/help` shows.
 #[derive(Debug, Serialize)]
 pub struct IntakeSettingsResponse {
     pub google_tasks: GoogleTasksStatus,

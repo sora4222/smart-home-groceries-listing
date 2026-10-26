@@ -39,7 +39,7 @@ pub fn google_tasks_settings(mode: GoogleTasksMode, base_url: &str) -> GoogleTas
         mode,
         client_id: "test-client-id".to_string(),
         client_secret: "test-client-secret".to_string(),
-        redirect_uri: "http://localhost:3000/settings/intake".to_string(),
+        redirect_uri: "http://localhost:3000/settings/help".to_string(),
         auth_url: format!("{base_url}/o/oauth2/v2/auth"),
         token_url: format!("{base_url}/token"),
         api_base: base_url.to_string(),

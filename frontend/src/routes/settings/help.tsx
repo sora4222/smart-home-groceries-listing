@@ -17,7 +17,7 @@ export const Route = createFileRoute("/settings/help")({
  * Google Tasks is set up here; Alexa, the webhook and the item checker are
  * set in the server's `.env` and only shown.
  *
- * Google's sign-in returns to `/settings/intake`, which forwards here.
+ * Google's sign-in returns here (`GOOGLE_REDIRECT_URI`).
  */
 function HelpPage() {
 	const settings = Route.useLoaderData();

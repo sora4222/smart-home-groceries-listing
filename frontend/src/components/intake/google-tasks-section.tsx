@@ -26,7 +26,7 @@ export function useGoogleTasksSection(): GoogleTasksState {
 }
 
 /**
- * The Google Tasks card on `/settings/intake`: connect the account, pick the
+ * The Google Tasks card on `/settings/help`: connect the account, pick the
  * list that is the grocery inbox, switch checking on, and see how the last
  * check went. The parts share state through a context local to this card.
  */

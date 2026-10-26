@@ -61,7 +61,7 @@ where
     Ok(())
 }
 
-/// Saves the household's choices from `/settings/intake`.
+/// Saves the household's choices from `/settings/help`.
 pub async fn save_choices<'e, E>(
     executor: E,
     list: Option<(&str, &str)>,

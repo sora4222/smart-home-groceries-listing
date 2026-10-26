@@ -9,7 +9,7 @@ console and Cloudflare Tunnel wiring is a manual setup step — see
 A household member says *"Alexa, add two oat milk to the shopping list."* The
 item lands as **pending** — never directly on the active grocery list. An LLM
 first checks it is something a supermarket sells (`FEATURE_TRIAGE.md`); items
-it rejects or is unsure about wait in the triage half of `/pending` instead. A household
+it rejects or is unsure about wait on the Pending page instead. A household
 member then reviews it in the web app's Pending Requests view and accepts or
 rejects it.
 

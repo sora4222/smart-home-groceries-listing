@@ -2,9 +2,9 @@
 
 Status: **implemented** — every intake item is checked by a classifier
 ("would a supermarket sell this?") before the household sees it, and the
-lower half of `/pending` shows what it held or rejected (`/triage` redirects there). **Restore to source** is built
+Pending page shows what it held or rejected. **Restore to source** is built
 for Google Tasks items (`FEATURE_GOOGLE_TASKS.md`). Steps for people: `docs/human-setup.md` §5 and §6 and `docs/using-the-app.md`
-("Check the triage section") — keep those in step with this spec.
+("Triage review") — keep those in step with this spec.
 
 ## What this feature does
 Triage filters out what is clearly not a grocery item ("car service"). It

@@ -3,7 +3,7 @@
 //!
 //! The OAuth client id and secret come from the household's own Google Cloud
 //! project (`docs/human-setup.md`). Which list to watch, whether polling is on
-//! and how often are chosen on `/settings/intake` and kept in the database.
+//! and how often are chosen on `/settings/help` and kept in the database.
 
 use std::fmt;
 use std::time::Duration;
@@ -30,7 +30,7 @@ pub struct GoogleTasksSettings {
     pub client_id: String,
     /// `GOOGLE_CLIENT_SECRET`. Never logged.
     pub client_secret: String,
-    /// `GOOGLE_REDIRECT_URI`: the web app's `/settings/intake` page, exactly
+    /// `GOOGLE_REDIRECT_URI`: the web app's `/settings/help` page, exactly
     /// as registered on the OAuth client.
     pub redirect_uri: String,
     /// Google's sign-in page. Overridable only for tests.
@@ -64,7 +64,7 @@ impl GoogleTasksSettings {
             client_id: optional("GOOGLE_CLIENT_ID").unwrap_or_default(),
             client_secret: optional("GOOGLE_CLIENT_SECRET").unwrap_or_default(),
             redirect_uri: optional("GOOGLE_REDIRECT_URI")
-                .unwrap_or_else(|| "http://localhost:3000/settings/intake".to_string()),
+                .unwrap_or_else(|| "http://localhost:3000/settings/help".to_string()),
             auth_url: google_endpoint(
                 "GOOGLE_OAUTH_AUTH_URL",
                 "https://accounts.google.com/o/oauth2/v2/auth",

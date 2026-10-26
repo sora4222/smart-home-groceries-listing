@@ -96,7 +96,7 @@ the desktop account.
 Environment values override retained local settings at every service start;
 omitted Environment keys retain local fallbacks. Builds select an Environment
 separately, but release bundles need no production configuration. See
-[build configuration](using-the-app.md#configuration-and-1password).
+[1Password setup](human-setup.md#1password).
 
 ## 2. Application configuration
 
@@ -115,7 +115,7 @@ retain existing database credentials and the encryption key during migration.
 | `INTAKE_LLM_BASE_URL` | `http://127.0.0.1:11434/v1` for a separately managed local Ollama |
 | `INTAKE_LLM_MODEL` | Your installed model; `llama3.2` when empty |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Optional token from human setup; enable the tunnel service separately. |
-| `VITE_API_BASE_URL`, `VITE_WS_URL` | API HTTPS/WSS URLs reachable by the browser, or loopback URLs when using an SSH tunnel. |
+| `VITE_API_BASE_URL`, `VITE_WS_URL` | Prefer `/` and an explicitly empty socket URL behind a proxy routing `/api` and `/ws`. Separate HTTPS/WSS API URLs require an exact frontend origin in `CORS_ORIGINS`. |
 | `SERVER_API_BASE_URL` | Normally `http://127.0.0.1:8000` for server-side rendering |
 | `DEV_AUTH_BYPASS` | `false` |
 
@@ -199,11 +199,17 @@ Local health alone does not prove authentication or external integrations.
 ## Updating
 
 Install the server repository's updater and configure
-[GitHub release protections](human-setup.md#github-release-protections) before
+[GitHub release protections](human-setup.md#optional-github-release-protections) before
 enabling unattended deployment. Merge reviewed code into main and push a new
 `release-N.N.N` tag. The native-service Action builds and tests installation,
 update and recovery across four configuration modes before publishing an
 attested runtime. Branches and pull requests run tests without publishing.
+
+The updater retains site configuration. It does not deploy the server
+repository's Caddyfile, change Tailscale Serve routes, or update 1Password
+Environment values. Apply those changes separately and restart affected
+services. A successful release installation or local health check does not
+prove browser API or WebSocket routing.
 
 ```bash
 make hm-update-server                       # latest completed stable release
@@ -260,6 +266,7 @@ see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 | Symptom | Fix |
 |---|---|
 | A component cannot resolve a setting | Run `sudo /usr/local/lib/grocery-service/libexec/grocery-env check <component>` without printing values. Check token access, Environment selection and references. Units retry every 15 seconds. |
+| Browser preflight has no `Access-Control-Allow-Origin` | With separate API URLs, include the exact page origin, including its port, in `CORS_ORIGINS` and restart the backend. For same-origin mode, first proxy `/api` and `/ws` on every frontend origin, then set `VITE_API_BASE_URL=/`, clear `VITE_WS_URL` and restart the frontend. A release retains old site settings. |
 | `make hm-install-server`: `DATABASE_URL names "db"` | Set the host to `localhost` (section 2). |
 | Backend logs `password authentication failed` | Coordinate the database role password and configured URL. Reinstalling does not rotate an existing role's password. |
 | Backend logs `no pg_hba.conf entry` | Ubuntu's default `host all all 127.0.0.1/32 scram-sha-256` line was removed. Restore it and restart PostgreSQL. |
@@ -268,6 +275,36 @@ see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 | Triage says "The checker could not be reached" | `systemctl status ollama`, then `ollama list` should show the model. |
 
 ## Private ingress with Tailscale
+
+### Same-origin proxy
+
+Prefer a frontend HTTPS origin that routes `/api`, `/api/*` and `/ws` to
+`127.0.0.1:8000`, and other paths to `127.0.0.1:3000`. Preserve paths and
+WebSocket upgrades. The server repository owns the Caddy configuration and
+its ingress verification scripts.
+
+Before changing frontend settings, install and reload the proxy configuration.
+Route every frontend endpoint through it, including any older Tailscale port
+used by desktop clients. Forwarding that port directly to Node on 3000 bypasses
+the API proxy. A loopback-only Caddy listener can provide the shared routing
+when Tailscale Serve terminates HTTPS. Preserve its incoming Host header.
+
+Manage production Environment settings through the 1Password MCP server.
+When its available tool only appends variables, edit existing keys in the
+1Password editor and verify that each name occurs once. Set
+`VITE_API_BASE_URL=/`, `VITE_WS_URL=` and
+`SERVER_API_BASE_URL=http://127.0.0.1:8000`. Restart `grocery-frontend`.
+These public runtime settings need no rebuild. Retain the existing API endpoint
+and required `CORS_ORIGINS` entries for older clients; restart the backend if
+its allowlist changes.
+
+Verify the public runtime settings injected into the served sign-in HTML,
+authenticated navigation between Pending and Triage, and the `/ws` route.
+Unauthenticated protected API requests and WebSocket upgrades should return
+401, rather than frontend HTML or a sign-in redirect. The server repository's
+access and frontend checks cover those deployment boundaries without tokens.
+
+### Separate frontend and API origins
 
 For a Tailscale Service, configure separate frontend and API HTTPS endpoints
 under your own service name. The loopback listeners and any existing intake

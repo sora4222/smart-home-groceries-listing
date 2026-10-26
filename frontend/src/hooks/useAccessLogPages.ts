@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { type AccessLogEntry, type AccessLogPage, api } from "#/lib/api";
 
 /**
- * The `/logs` page's rows: the first page as loaded, "Load older" to append
+ * The `/settings/logs` page's rows: the first page as loaded, "Load older" to append
  * the next page, and the health-check switch, which starts again from the
  * newest rows. A failed load keeps what is shown and says so.
  */

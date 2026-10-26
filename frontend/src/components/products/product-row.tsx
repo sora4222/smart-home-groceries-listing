@@ -43,7 +43,9 @@ export function ProductRow({
 			data-product-id={product.product_id}
 			aria-label={title}
 			className={cn(
-				"flex items-start gap-3 py-3",
+				"flex gap-3 py-3",
+				// A picture at the store's size gets its own line.
+				imageSize === "full" ? "flex-col" : "items-start",
 				!product.available && "opacity-60",
 			)}
 		>

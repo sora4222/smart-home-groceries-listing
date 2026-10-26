@@ -185,7 +185,11 @@ describe("ProductResults", () => {
 		const onChoose = vi.fn().mockResolvedValue(undefined);
 		render(
 			<ProductChoiceProvider
-				value={{ chosen: [{ store: "coles", product_id: "a" }], onChoose }}
+				value={{
+					chosen: [{ store: "coles", product_id: "a" }],
+					onChoose,
+					onUnchoose: vi.fn(),
+				}}
 			>
 				<ProductResults item={itemFixture()} />
 			</ProductChoiceProvider>,

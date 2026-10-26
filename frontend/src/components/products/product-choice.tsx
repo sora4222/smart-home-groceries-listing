@@ -3,8 +3,8 @@ import { createContext, useContext } from "react";
 import type { ProductChoice } from "#/lib/api";
 
 /**
- * What a price comparison knows about choosing: the products already chosen
- * for its item (one per store at most), and how to choose another.
+ * What a Select item page knows about choosing: the products already chosen
+ * for its item, and how to choose or un-choose one.
  *
  * Scoped to one Select item page — never global. Outside one, the
  * value is `null` and the parts that choose render nothing, so product lists
@@ -15,6 +15,8 @@ export interface ProductChoiceValue {
 	chosen: ProductChoice[];
 	/** Saves a new choice. Rejects when the backend refused it. */
 	onChoose: (choice: ProductChoice) => Promise<void>;
+	/** Clears a chosen product. */
+	onUnchoose: (choice: ProductChoice) => Promise<void>;
 }
 
 const ProductChoiceContext = createContext<ProductChoiceValue | null>(null);

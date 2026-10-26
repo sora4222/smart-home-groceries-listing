@@ -67,7 +67,7 @@ export function ProductRow({
 
 				<UnitPriceLine product={product} />
 
-				<div className="flex flex-wrap items-center gap-1">
+				<div className="flex flex-wrap items-center gap-1 empty:hidden">
 					{!product.available && <Badge variant="outline">Unavailable</Badge>}
 					{product.on_special && <Badge variant="secondary">Special</Badge>}
 					{product.deals.map((deal) => (
@@ -75,11 +75,16 @@ export function ProductRow({
 							{deal.description}
 						</Badge>
 					))}
+				</div>
+
+				{/* Actions on their own row, always at the right, so they line up
+				    from product to product on a phone. */}
+				<div className="flex flex-wrap items-center justify-end gap-1">
 					<a
 						href={product.url}
 						target="_blank"
 						rel="noreferrer noopener"
-						className="ml-auto inline-flex items-center gap-1 rounded-sm text-xs text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+						className="mr-auto inline-flex items-center gap-1 rounded-sm text-xs text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 						aria-label={`View ${title} at ${storeName} (opens in a new tab)`}
 					>
 						View at {storeName}

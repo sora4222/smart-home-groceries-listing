@@ -19,7 +19,12 @@ function renderButton(
 	render(
 		choice ? (
 			<ProductChoiceProvider
-				value={{ chosen: [], onChoose: vi.fn(), ...choice }}
+				value={{
+					chosen: [],
+					onChoose: vi.fn(),
+					onUnchoose: vi.fn(),
+					...choice,
+				}}
 			>
 				{button}
 			</ProductChoiceProvider>
@@ -54,6 +59,25 @@ describe("ChooseProductButton", () => {
 		});
 		expect(button).toHaveAttribute("aria-pressed", "true");
 		expect(button).toHaveTextContent("Chosen");
+	});
+
+	it("clears a chosen product when pressed again", async () => {
+		const onUnchoose = vi.fn().mockResolvedValue(undefined);
+		renderButton({
+			chosen: [{ store: "coles", product_id: "c-milk-3l" }],
+			onUnchoose,
+		});
+
+		await userEvent.click(
+			screen.getByRole("button", {
+				name: "Coles Full Cream Milk at Coles is chosen",
+			}),
+		);
+
+		expect(onUnchoose).toHaveBeenCalledWith({
+			store: "coles",
+			product_id: "c-milk-3l",
+		});
 	});
 
 	it("does not mark the same id at another store as chosen", () => {

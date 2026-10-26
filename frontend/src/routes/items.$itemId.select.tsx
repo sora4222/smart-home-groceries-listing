@@ -58,6 +58,8 @@ function SelectItemRoute() {
 				value={{
 					chosen,
 					onChoose: (choice) => choices.choose(item.id, choice),
+					onUnchoose: (choice) =>
+						choices.clear(item.id, choice.store, choice.product_id),
 				}}
 			>
 				<ProductResults item={item} />

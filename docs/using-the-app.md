@@ -1,24 +1,5 @@
 # Operating the app
 
-## Verified updates
-
-With the server repository's updater installed, use `sudo grocery-update` for
-the latest completed stable release, or `sudo grocery-update release-1.2.3` for
-one exact release. The systemd timer checks automatically.
-`make hm-update-server release=release-1.2.3` calls the same verifier.
-
-Merge reviewed code into main, then push a new `release-N.N.N` Git tag. The
-native-service Action tests installation/update before publishing. Never move
-an existing release tag. Branch pushes run the same installation/update tests
-without publishing or deploying a release.
-
-Restart affected services after changing a 1Password Environment. The supported
-public frontend settings also change on restart. Encryption-key or database
-target changes require deliberate migration. Old releases and backups are
-retained; manage retention after testing recovery. File rollback does not reverse
-a database migration.
-
-
 Recurring workflows once the stack is up. Audience: software developers.
 One-time provisioning is in [`human-setup.md`](human-setup.md); behaviour
 and API details are in [`features/`](features/).
@@ -39,50 +20,8 @@ and API details are in [`features/`](features/).
 | [Access log review](#access-log-review) | Web app `/settings/logs` |
 | [Add a household member](#add-a-household-member) | Clerk dashboard |
 | [After an update](#after-an-update) | Varies |
+| [Desktop connection and shopping](#desktop-connection-and-shopping) | Desktop app |
 | [Troubleshooting](#troubleshooting) | — |
-
----
-
-## Configuration and 1Password
-
-`make dev` and `make hm-dev` resolve references before
-starting Compose. Backend, frontend, and bridge processes also load their own
-settings when started directly. Exported variables override `.env`.
-Restart the affected process after changing a value.
-
-`make build` runs as your user. It reads the checkout's `.env` by default;
-`GROCERY_ENV_FILE` selects another file, including a mounted 1Password `.env`.
-Exported frontend settings override the file. A missing default `.env` is
-allowed; an explicitly selected file must be readable.
-
-To build with a 1Password Developer Environment:
-
-1. Run `make build OP_ENVIRONMENT_ID=<id>` using the same ID selected for
-   production installation. The Environment overrides the file; exports
-   override both. CLI reads use your exported service-account token first,
-   then desktop integration if needed.
-2. Install with `sudo make hm-install-server OP_ENVIRONMENT_ID=<id>`.
-   Installation and service startup use the server's protected credentials.
-
-Builds do not read `/etc/1password` or `/etc/grocery`. Provider credentials
-authorize configuration loading and are removed before the compiler starts.
-Literal frontend settings require no 1Password access.
-
-For an arbitrary local command:
-
-```bash
-make hm-compose args='up -d backend'
-```
-
-Existing `cd frontend && pnpm dev` and `pnpm start` commands load Clerk
-settings before startup. `cargo run` from `backend/` and the bridge's
-`create_app()` load their own settings. Start containers through the shared
-loader so the images receive resolved values.
-
-Concurrent worktrees need separate `.env` files, `COMPOSE_PROJECT_NAME`,
-`POSTGRES_PORT`, and frontend ports. `GROCERY_ENV_FILE` selects another file.
-Desktop approvals and optional service-account provisioning are in
-[setup](human-setup.md#1password).
 
 ---
 
@@ -324,10 +263,8 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 
 | Change | Action |
 |---|---|
-| Checkout step added to the bookmarklets (2026-10-03) | Re-drag both bookmarklets, as below. |
 | Bookmarklet source changed | Re-drag **Fill Woolworths trolley** from **Send to Woolworths** (and **Fill Coles trolley** from **Send to Coles**); delete the old bookmarks. |
 | `STORE_TAB_SECRET` or the app origin changed | Re-drag both bookmarklets (they embed both values). |
-| Clerk sign-in arrived (stack ran with `DEV_AUTH_BYPASS=true`) | Rename `CLERK_PUBLISHABLE_KEY` to `VITE_CLERK_PUBLISHABLE_KEY` in `.env`, set `DEV_AUTH_BYPASS=false`, enable the Clerk allowlist ([`human-setup.md` §2](human-setup.md#2-clerk)), then `make stop-all && make dev` for the full stack. |
 | New migration | None; migrations run on backend start. |
 | New `.env` key | `make setup-env`, fill any non-generated value, then `make stop-all && make dev`. |
 | Alexa interaction model changed | Update the JSON in the Alexa console and rebuild ([`human-setup.md` §4](human-setup.md#4-alexa-skill)). |

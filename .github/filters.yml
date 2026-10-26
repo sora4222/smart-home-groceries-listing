@@ -45,6 +45,22 @@ e2e:
   - .env.example
   - .github/workflows/e2e.yml
 
+# Audits check the lock files, so they only need to run when those change.
+# New advisories are caught by the daily scheduled run on main.
+cargo-audit:
+  - *ci
+  - backend/Cargo.toml
+  - backend/Cargo.lock
+  - backend/.cargo/audit.toml
+  - .github/workflows/audit.yml
+
+pnpm-audit:
+  - *ci
+  - frontend/package.json
+  - frontend/pnpm-lock.yaml
+  - frontend/pnpm-workspace.yaml
+  - .github/workflows/audit.yml
+
 docker-backend:
   - *ci
   - backend/**

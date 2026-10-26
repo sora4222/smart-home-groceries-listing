@@ -1,4 +1,4 @@
-# Rust backend: format, lint, tests and a dependency audit.
+# Rust backend: format, lint and tests. The dependency audit is in audit.yml.
 # The same checks a contributor runs with `make lint` and `make test-backend`.
 # On a pull request each job runs only when its files change (.github/filters.yml).
 name: Backend
@@ -77,16 +77,3 @@ jobs:
           workspaces: backend
       - run: pnpm install --frozen-lockfile && make test-backend
         working-directory: .
-
-  audit:
-    name: cargo audit
-    needs: changes
-    if: contains(fromJSON(needs.changes.outputs.changes), 'backend')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-audit
-      - run: cargo audit

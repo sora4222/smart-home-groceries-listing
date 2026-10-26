@@ -35,6 +35,10 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api/voice-requests/{request_id}/accept", post(accept))
         .route("/api/voice-requests/{request_id}/reject", post(reject))
+        .route(
+            "/api/voice-requests/{request_id}/undo-accept",
+            post(undo_accept),
+        )
 }
 
 /// What to do when the accepted name is already on the active list.
@@ -102,13 +106,14 @@ async fn accept(
     Query(query): Query<AcceptQuery>,
     OptionalValidatedJson(decision): OptionalValidatedJson<VoiceRequestDecision>,
 ) -> Result<Json<VoiceRequestAcceptResult>, ApiError> {
-    let (request, item) = VoiceService::new(&state.pool, &state.hub)
+    let (request, item, merged) = VoiceService::new(&state.pool, &state.hub)
         .accept(request_id, &decision, &user.id, query.on_duplicate())
         .await?;
 
     Ok(Json(VoiceRequestAcceptResult {
         voice_request: request.into(),
         grocery_item: item.into(),
+        merged,
     }))
 }
 
@@ -121,6 +126,19 @@ async fn reject(
 ) -> Result<Json<VoiceRequestResponse>, ApiError> {
     let request = VoiceService::new(&state.pool, &state.hub)
         .reject(request_id)
+        .await?;
+    Ok(Json(request.into()))
+}
+
+/// `POST /api/voice-requests/{id}/undo-accept` — the Undo on an accept's
+/// toast: takes the item back off the list and returns the request to the queue.
+async fn undo_accept(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(request_id): Path<Uuid>,
+) -> Result<Json<VoiceRequestResponse>, ApiError> {
+    let request = VoiceService::new(&state.pool, &state.hub)
+        .undo_accept(request_id)
         .await?;
     Ok(Json(request.into()))
 }

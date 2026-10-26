@@ -56,3 +56,12 @@ pub fn rejected(request: &VoiceRequest) {
         "intake request rejected"
     );
 }
+
+/// An accept was undone and the request is back in the queue.
+pub fn accept_undone(request: &VoiceRequest) {
+    tracing::info!(
+        request_id = %request.id,
+        item = %request.parsed_name,
+        "intake request accept undone"
+    );
+}

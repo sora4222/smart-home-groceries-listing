@@ -86,4 +86,6 @@ impl From<VoiceRequest> for VoiceRequestResponse {
 pub struct VoiceRequestAcceptResult {
     pub voice_request: VoiceRequestResponse,
     pub grocery_item: GroceryItemResponse,
+    /// True when the accept added to an item already on the list.
+    pub merged: bool,
 }

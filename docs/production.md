@@ -96,7 +96,7 @@ the desktop account.
 Environment values override retained local settings at every service start;
 omitted Environment keys retain local fallbacks. Builds select an Environment
 separately, but release bundles need no production configuration. See
-[build configuration](using-the-app.md#configuration-and-1password).
+[1Password setup](human-setup.md#1password).
 
 ## 2. Application configuration
 
@@ -199,7 +199,7 @@ Local health alone does not prove authentication or external integrations.
 ## Updating
 
 Install the server repository's updater and configure
-[GitHub release protections](human-setup.md#github-release-protections) before
+[GitHub release protections](#github-release-protections) before
 enabling unattended deployment. Merge reviewed code into main and push a new
 `release-N.N.N` tag. The native-service Action builds and tests installation,
 update and recovery across four configuration modes before publishing an
@@ -239,6 +239,35 @@ operation explicitly. Recover matching application/configuration and the
 original encryption key together. The installed data-identity guard prevents
 accidental database/key replacement; intentional moves need a coordinated
 migration. Restart and verify application operations before resuming updates.
+
+### GitHub release protections
+
+Configure these repository rulesets before enabling unattended release updates.
+The workflow and installer do not create GitHub rulesets. Confirm they are
+**Active**, rather than Evaluate or Disabled; this guide does not establish
+that the protections are configured.
+
+1. In **Settings → Rules → Rulesets**, create an Active branch ruleset for
+   `main`. Require pull requests and required status checks, require the branch
+   to be up to date before merging, and block force pushes and deletion.
+   After the native-service workflow has run, select its actual check names:
+   `build`, `installation (file)`, `installation (env)`,
+   `installation (op-file)` and `installation (op-env)`. Set GitHub Actions
+   as their expected source. The publication job is not a required PR check
+   because it runs only for production tags.
+2. Create an Active tag ruleset targeting `release-*` that restricts tag
+   creation. Allow bypass only to trusted maintainers responsible for
+   creating production releases.
+3. Create a separate Active tag ruleset for the same `release-*` pattern
+   that restricts updates and deletion, with no bypass actors. Keeping this
+   separate ensures creation bypass cannot rewrite or delete an existing tag.
+
+Review effective rules, required-check sources and bypass lists after setup.
+Main must pass required checks before merging; release tags must point to main
+commits. Create a new version tag for every release; never move an existing
+tag. For the current GitHub controls, see
+[creating repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository)
+and [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
 
 ## Operating
 

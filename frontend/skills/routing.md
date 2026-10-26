@@ -29,7 +29,7 @@ export const Route = createFileRoute('/pending')({
 ## Search params
 Validate them on the route and give the page a default:
 `validateSearch: (s) => (s.tab === "rejected" ? { tab: "rejected" } : {})`,
-then `const { tab = "held" } = Route.useSearch()` (see `routes/triage.tsx`).
+then `const { tab = "held" } = Route.useSearch()` (see `routes/pending.tsx`).
 A toast or link can then open a tab directly.
 
 ## Mutations

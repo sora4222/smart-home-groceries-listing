@@ -96,7 +96,7 @@ the desktop account.
 Environment values override retained local settings at every service start;
 omitted Environment keys retain local fallbacks. Builds select an Environment
 separately, but release bundles need no production configuration. See
-[build configuration](using-the-app.md#configuration-and-1password).
+[1Password setup](human-setup.md#1password).
 
 ## 2. Application configuration
 
@@ -199,7 +199,7 @@ Local health alone does not prove authentication or external integrations.
 ## Updating
 
 Install the server repository's updater and configure
-[GitHub release protections](human-setup.md#github-release-protections) before
+[GitHub release protections](human-setup.md#optional-github-release-protections) before
 enabling unattended deployment. Merge reviewed code into main and push a new
 `release-N.N.N` tag. The native-service Action builds and tests installation,
 update and recovery across four configuration modes before publishing an

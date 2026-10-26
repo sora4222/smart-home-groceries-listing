@@ -17,6 +17,7 @@ import {
 	filterListings,
 	NO_FILTERS,
 	type ProductFilters,
+	storesShown,
 } from "#/lib/product-filters";
 import {
 	commonBasis,
@@ -38,10 +39,9 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 	const [specialsOnly, setSpecialsOnly] = useState(false);
 	const [sort, setSort] = useState<ProductSort>(DEFAULT_SORT);
 	const [filters, setFilters] = useState<ProductFilters>(NO_FILTERS);
-	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}`;
-	const { state, retry } = useItemProducts(item.id, true, searchKey);
+	const { state, retry } = useItemProducts(item);
 
-	if (state.status === "idle" || state.status === "loading") {
+	if (state.status === "loading") {
 		return (
 			<output className="block text-sm text-muted-foreground">
 				Searching the stores…
@@ -60,9 +60,7 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 		);
 	}
 
-	const stores = state.data.stores.filter(
-		(results) => filters.store === "both" || results.store === filters.store,
-	);
+	const stores = storesShown(state.data.stores, filters);
 	const listings = filterListings(
 		listingsOf(stores, specialsOnly, display.showUnavailable),
 		filters,

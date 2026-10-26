@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { productFixture } from "#/components/products/__tests__/fixtures";
-import type { StoreProduct } from "#/lib/api";
-import { filterListings, measureOf, NO_FILTERS } from "#/lib/product-filters";
+import type { StoreId, StoreProduct, StoreProducts } from "#/lib/api";
+import {
+	filterListings,
+	measureOf,
+	NO_FILTERS,
+	storesShown,
+} from "#/lib/product-filters";
 import type { StoreListing } from "#/lib/product-sort";
 
 function listing(
@@ -64,10 +69,19 @@ describe("filterListings", () => {
 		]);
 	});
 
-	it("keeps one store", () => {
+	it("keeps one store's results", () => {
+		const results = (store: StoreId): StoreProducts => ({
+			store,
+			store_name: store,
+			status: "ok",
+			message: null,
+			products: [],
+		});
+		const both = [results("woolworths"), results("coles")];
 		expect(
-			ids(filterListings(all, { ...NO_FILTERS, store: "woolworths" })),
-		).toEqual(["rice", "eggs"]);
+			storesShown(both, { ...NO_FILTERS, store: "coles" }).map((s) => s.store),
+		).toEqual(["coles"]);
+		expect(storesShown(both, NO_FILTERS)).toHaveLength(2);
 	});
 
 	it("keeps grams or litres", () => {

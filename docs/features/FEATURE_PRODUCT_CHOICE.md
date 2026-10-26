@@ -1,124 +1,75 @@
-# Feature: Product Choice (one product per store for each item)
+# Feature: Product Choice
 
-Status: **implemented** — the household picks a product for each list item
-from the item's price comparison, and may pick one at each store. The order review (`/order`,
-`FEATURE_ORDER_OPTIMISATION.md`) reads these choices to know what to buy.
+Status: **implemented.** The household picks the products to buy for each
+list item. The order review (`/order`, `FEATURE_ORDER_OPTIMISATION.md`)
+reads these choices.
 
-## What this feature does
-On any list item, **Compare prices** opens the Woolworths and Coles results
-(`FEATURE_STORE_INTEGRATION.md`). Each product now has a **Choose** button.
-Choosing saves that product as the item's product; the item's card shows it
-("Coles Full Cream Milk · 3L · Coles · $4.95 each") with a **Clear** button,
-or "No product chosen yet".
-
-- **One product per store.** Choosing again at the same store replaces that
-  store's choice. Choosing at the other store keeps the first choice as
-  well, so the order screen can compare the stores
-  (`FEATURE_ORDER_OPTIMISATION.md`).
-- **One of them is bought.** The newest choice is the one the order buys
-  (`for_order`), until the order screen switches the item to its other store.
-  The card shows the other store's choice under it as "Also at …".
-- **Undo.** Choosing and clearing each show a toast with **Undo**, which puts
-  back the store's earlier product and the store the order bought from
-  (`lib/choice-undo.ts`).
-- **Works on a committed list.** Choosing is what the order needs, so it is
-  not locked by "Ready to order". Ordered items cannot be re-chosen (409).
-- **Nothing is chosen for the household.** No default, no suggestion — the
-  household picks (reducing marketing-driven buying is a project goal).
+## Behaviour
+- **Select item** on a list card opens `/items/$itemId/select`, a full page
+  with both stores' products (`FEATURE_STORE_INTEGRATION.md`). Each product
+  has **Choose**.
+- **Several products per item.** An item with quantity 1 keeps one product
+  per store; choosing again swaps it. An item with quantity N can keep up to
+  N products at a store. A new product starts at 1, taken from the product
+  buying the most. 409 when every product already buys 1.
+- **Counts add up to the quantity.** Each product has a count. With two or
+  more, the card shows a count dropdown per product. A lone product buys the
+  whole quantity. Counts are corrected on read when the item's quantity
+  changes (`services/selections/allocation.rs`).
+- **One store is bought.** Choosing makes that store the one the order buys
+  (`for_order` on every product there). The card shows the other store's
+  choice as "Also at …".
+- **Undo.** Choose, clear and count changes show a toast with Undo. Undo puts
+  the changed store's products and counts back, then the store bought from
+  (`lib/choice-undo.ts`, `lib/item-restore.ts`).
+- Choosing works on a committed list. Ordered items return 409.
+- Nothing is chosen for the household. No defaults.
 
 ## Endpoints
 
-| Method | Path | Auth | Answer |
-|---|---|---|---|
-| `GET` | `/api/item-selections` | Clerk session | 200, each item's choice to buy with `also_chosen` (its other stores' choices) |
-| `PUT` | `/api/grocery-items/{id}/selection` | Clerk session | 200 the saved choice, now the one to buy |
-| `DELETE` | `/api/grocery-items/{id}/selection[?store=]` | Clerk session | 204 (also when there was none). With `store`, only that store's choice; clearing the one to buy hands that role to the other |
-| `PUT` | `/api/order-stores` `{picks: [{grocery_item_id, store}]}` | Clerk session | 204; 422 (nothing changed) when an item has no choice at its store |
+| Method | Path | Answer |
+|---|---|---|
+| `GET` | `/api/item-selections` | 200. For each item, the first product bought, `bought_with` (more products bought at that store), `also_chosen` (other store). Each has `quantity`. |
+| `PUT` | `/api/grocery-items/{id}/selection` | 200 saved choice. Body `{store, product_id}`. 404, 409 (renamed while choosing, ordered, no room), 422 (store no longer offers it), 503 (store down) |
+| `PUT` | `/api/grocery-items/{id}/selection/quantity` | 204. Body `{store, product_id, quantity}`. Others at the store share the rest. 404, 422 (no room for the others) |
+| `DELETE` | `/api/grocery-items/{id}/selection[?store=[&product_id=]]` | 204. One product, one store, or everything. Clearing the bought store hands that role to the other |
+| `PUT` | `/api/order-stores` `{picks: [{grocery_item_id, store}]}` | 204; 422 when an item has no choice at that store |
 
-`PUT` body: `{ "store": "woolworths" | "coles", "product_id": "<store's id>" }`.
-Only these two are sent — **the price and every other detail come from the
-store's own search answer**, never from the request.
-
-| `PUT` status | When |
-|---|---|
-| 200 | Saved (or replaced) |
-| 404 | No such item |
-| 409 | The item was renamed/re-chipped while choosing, or is already ordered |
-| 422 | Unknown store, empty id, the store no longer offers that product for this item and its chips, or it is unavailable |
-| 503 | That store could not be searched just now (`detail` says which) |
-
-A saved choice:
-
-```json
-{
-  "grocery_item_id": "…", "store": "coles", "store_name": "Coles",
-  "product_id": "c-milk-3l", "name": "Full Cream Milk", "brand": "Coles",
-  "package_size": "3L", "price": "4.95",
-  "unit_price": { "amount": "0.165", "per": "100mL" },
-  "total_price": "9.90", "priced_quantity": 2,
-  "url": "https://www.coles.com.au/…",
-  "image_url": "https://productimages.coles.com.au/productimages/…",
-  "selected_by": "user_…",
-  "selected_at": "2026-10-01T11:00:00Z"
-}
-```
-
-Money is a decimal **string**. `total_price` is what `priced_quantity` cost
-with the best deal when it was chosen — **the order screen must re-price**
-before buying, because prices and the item's quantity can change.
+Only the store and product id are sent. Price and other details come from
+the store's own search answer. Money is a decimal string. `total_price` is a
+snapshot; the order screen re-prices before buying.
 
 ## How a choice is checked
-1. The item's search is run again (`ProductSearchService`, usually answered
-   from the 10-minute cache), outside any transaction.
-2. The product must be in that store's results — so it must still match the
-   item's chips — and be available (`services/selections/offer.rs`).
-3. The item row is locked; if its name or chips changed since the search,
-   409. Then the item's other choice stops being the one to buy, and one
-   `INSERT … ON CONFLICT (grocery_item_id, store) DO UPDATE` saves this one
-   as the one to buy.
+1. The item's search runs again (usually from the 10-minute cache).
+2. The product must be in that store's results and available (`offer.rs`).
+3. The item row is locked. 409 if its name or chips changed. Then
+   `room.rs` makes room at the store and the row is upserted on
+   `(grocery_item_id, store, product_id)`.
 
 ## When a choice goes away
-| Change to the item | Choice |
-|---|---|
-| Removed | deleted (`ON DELETE CASCADE`) |
-| Renamed (other than case/spacing) | dropped, in the edit's transaction |
-| Chips changed | dropped |
-| Quantity or note changed | kept — re-priced by the order screen |
-
-The rule is `services/selections/staleness.rs::choice_still_fits`.
+Removing the item deletes its choices (cascade). Renaming it or changing its
+chips drops them (`staleness.rs`). Changing the quantity or note keeps them,
+and the counts are allocated again on read.
 
 ## Data
-`item_selections` (migration `0004`; `20261003070000` allows one row per
-store, `UNIQUE (grocery_item_id, store)`, and adds `for_order` with a partial
-unique index so exactly one row per item is bought). Columns: store, product_id, product_name, brand,
-package_size, price, unit_price + unit_price_per, total_price,
-priced_quantity, url, image_url, selected_by, selected_at. Prices are unscaled `NUMERIC`.
-`image_url` (`20261018100000`) is the picture from the store's answer when the
-product was chosen; choices made before it have none and show a placeholder.
+`item_selections` is unique on `(grocery_item_id, store, product_id)`. It has
+`for_order`, `quantity` (NULL for a lone product, added in `20261026100000`)
+and the store's details (name, brand, size, price, unit price, total, url,
+image_url).
+`trolley_handoff_lines` is keyed by `(handoff_id, position)` so one item can
+send several products.
 
 ## Code
-- Backend: `routes/selections.rs`; `services/selections/` — `mod.rs` (rules),
-  `offer.rs` (find the product in a search), `staleness.rs`, `repository.rs`
-  (all SQL for the table), `log.rs`; `models/schemas/selections.rs`.
-- Web app: `lib/api/selections.ts`; `components/products/product-choice.tsx`
-  (context scoped to one `<PriceComparison>`),
-  `choose-product-button.tsx`; `components/selections/chosen-product.tsx`;
-  `hooks/useProductChoices.ts`. The `/` loader reads the list and the choices
-  together.
-
-## Not built yet
-- Delivery windows and split-store totals on the order screen
-  (`FEATURE_ORDER_OPTIMISATION.md`). Re-pricing is built.
-- Nothing left from the spec's "Purchase History and Preferences":
-  past purchases (`FEATURE_PURCHASE_HISTORY.md`) and dislike warnings
-  (`FEATURE_DISLIKES.md`) are built.
-- Live update of choices between open tabs (the list does not sync live yet
-  either).
+- Backend: `routes/selections.rs`; `services/selections/` (`mod.rs` rules,
+  `room.rs`, `allocation.rs`, `grouping.rs`, `parts.rs`, `offer.rs`,
+  `staleness.rs`, `repository.rs`). Trolley lines: `trolley_handoffs/split.rs`.
+  Planner: `order_plan/combine.rs`.
+- Web app: `lib/api/selections.ts`, `components/selections/chosen-product.tsx`,
+  `count-select.tsx`, `components/products/product-choice.tsx`,
+  `hooks/useProductChoices.ts`, `routes/items.$itemId.select.tsx`.
 
 ## Tests
-- `backend/tests/item_selections.rs`, `item_selections_after_edits.rs`:
-  the routes over the fake stores. Unit tests in `offer.rs`, `staleness.rs`.
-- `backend/tests/cors.rs`: every method the API serves is allowed
-  cross-origin (`PUT` was missing and blocked the browser).
-- `frontend/src/components/**/__tests__`: button, chosen panel, sheet, card.
-- `frontend/e2e/product-choice.spec.ts`: desktop and phone.
+- Backend: `tests/item_selections*.rs`, `tests/item_selection_quantities.rs`,
+  unit tests in `allocation.rs`, `grouping.rs`, `parts.rs`, `split.rs`.
+- Frontend: `components/selections/__tests__`, `lib/__tests__/choice-undo.test.ts`.
+- e2e: `product-choice.spec.ts`, `several-products.spec.ts`.

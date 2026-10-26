@@ -1,6 +1,6 @@
 # Feature: Google Tasks intake
 
-Status: **implemented** (backend, `/settings/intake`, Triage "Restore to
+Status: **implemented** (backend, Settings › Help, Triage "Restore to
 source"). Tested against `wiremock` and an in-memory fake — **not yet against
 a real Google account**. Steps for people:
 `docs/human-setup.md` ("Optional: Google Tasks") and
@@ -31,7 +31,7 @@ The spec's brief guessed at Google; checked before building:
 | Delete after commit | Built that way, and tested (a failed delete is retried, no second card). |
 
 ## Polling rules
-- One list, chosen on `/settings/intake`; only open tasks
+- One list, chosen on Settings › Help; only open tasks
   (`showCompleted=false`, `showHidden=false`), every page up to 1000 tasks.
 - Polling runs only when **switched on, signed in, and a list is chosen**.
   Interval 30 s – 1 h (`poll_seconds`), re-read every round, so a change needs
@@ -51,7 +51,8 @@ The spec's brief guessed at Google; checked before building:
 
 ## Sign-in
 OAuth 2.0 web flow, `access_type=offline`, `prompt=consent`, scope `tasks`.
-The redirect URI is the **web app's** `/settings/intake` page, which posts
+The redirect URI is the **web app's** `/settings/intake` address (it forwards
+to `/settings/help` with Google's code), which posts
 `code` + `state` to the backend with the member's session — no
 unauthenticated callback exists. `state` is 244 random bits, stored only as
 SHA-256, valid 10 minutes, single use (`google_oauth_states`).
@@ -67,7 +68,7 @@ Google only accepts `http` redirect URIs on `localhost`, so with the default
 server. Another address needs HTTPS on a real domain.
 
 ## Restore to source
-`POST /api/triage/{id}/restore` (Triage → **Put back in Google Tasks**, only
+`POST /api/triage/{id}/restore` (Pending, triage section → **Put back in Google Tasks**, only
 on Tasks items). Holding the poll lock and the request row lock, it inserts a
 task with the original `raw_text`, records `intake_restores (tasks, new task
 id)`, and closes the request as `rejected`. The next poll that sees that id
@@ -106,7 +107,7 @@ travel to them; the backend refuses to start otherwise.
 | Recording a polled item | `services/voice/polled.rs` |
 | Routes | `backend/src/routes/{google_tasks,intake_settings,triage}.rs` |
 | Migration | `backend/migrations/20261002130000_google_tasks_intake.sql` |
-| Page | `frontend/src/routes/settings/intake.tsx`, `components/intake/`, `hooks/useGoogleTasks.ts`, `hooks/useGoogleSignInReturn.ts` |
+| Page | `frontend/src/routes/settings/help.tsx` (`intake.tsx` forwards, `lib/google-return.ts`), `components/intake/`, `hooks/useGoogleTasks.ts`, `hooks/useGoogleSignInReturn.ts` |
 | Restore button | `components/triage/triage-request-card.tsx`, `hooks/useTriageDecisions.ts` |
 
 ## Tests

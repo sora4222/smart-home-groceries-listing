@@ -11,7 +11,7 @@ How a person uses it: [`using-the-app.md` › Product dislikes](../using-the-app
 - **Per member.** Each household member has their own dislikes. A dislike
   is one store product (`store` + the store's `product_id`).
 - **Household view.** Everyone sees everyone's dislikes:
-  - in the price comparison, a disliked product shows *"Phu disliked this
+  - on the Select item page, a disliked product shows *"Phu disliked this
     item previously."* (*"You …"* for your own);
   - **Dislikes** (`/settings/dislikes`) lists every member's dislikes, yours
     first.
@@ -104,7 +104,7 @@ Migration `20261002140000_product_dislikes.sql`:
 - Web app: `lib/api/dislikes.ts`, `lib/dislikes.ts` (pure: who dislikes it,
   the warning sentence, grouping); `hooks/useItemDislikes.ts`;
   `components/dislikes/` — `product-dislikes.tsx` (context scoped to one
-  `<PriceComparison>`), `dislike-button.tsx`, `dislike-notice.tsx`,
+  `<ProductResults>`), `dislike-button.tsx`, `dislike-notice.tsx`,
   `household-dislikes.tsx`; `routes/settings/dislikes.tsx`.
 
 ## Logs

@@ -1,6 +1,6 @@
 # Feature: Spending Analysis
 
-Status: **implemented.** The **Spending** page (`/analysis`) shows where the
+Status: **implemented.** Order › History (`/order/history`) shows where the
 grocery money went, from saved purchases (`FEATURE_PURCHASE_HISTORY.md`).
 Steps for people: `docs/using-the-app.md` ("See your spending").
 
@@ -37,7 +37,8 @@ Steps for people: `docs/using-the-app.md` ("See your spending").
 - Backend: `services/spending/` (`mod.rs`, `period.rs`, `range.rs`,
   `breakdown.rs` + tests), `routes/spending.rs`,
   `models/schemas/spending.rs`, `routes/extract.rs` `ValidatedQuery`.
-- Frontend: `routes/analysis.tsx`, `components/analysis/`,
+- Frontend: `routes/order/history.tsx` (`/analysis` redirects), `components/analysis/`,
+  `hooks/useElementWidth.ts` (chart width),
   `lib/api/spending.ts`, `lib/date-range.ts`, `lib/analysis-search.ts`,
   `lib/period-label.ts`.
 

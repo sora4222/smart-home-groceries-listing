@@ -51,23 +51,18 @@ compound container, `ItemRuleCard` is display-or-editor like
 `GroceryItemCard`, and `ItemRuleForm` serves both the add form (no `initial`,
 clears itself after saving) and the in-place edit (`initial` + `onCancel`).
 
-`components/products/` shows the compound-with-context shape:
-`PriceComparison` takes the item and provides it to `PriceComparison.Trigger`
-and `PriceComparison.Content` through a context scoped to that one tree, so
-the card composes the parts without passing the item twice. The content is a
-Shadcn `Sheet`; its body mounts only while open, which is what makes
-`useItemProducts` search the stores on open and not before.
+`components/products/`: `SelectItemPage` is the page frame (slide-in);
+`ProductResults` runs `useItemProducts` and composes the sort, filter bar
+(`lib/product-filters.ts`), `StoreNotices` and `ProductList`.
 `ProductList` → `ProductRow` → `ProductPrice` / `UnitPriceLine` each render
-one thing; `ProductList` takes both stores' products already sorted
-(`lib/product-sort.ts`, picked with `ProductSortSelect`) and `StoreNotices`
-says why a store shows none. Choosing a product uses a second context scoped to the same tree:
-pass `onChoose` (and `chosen`) to `PriceComparison` and it provides
-`ProductChoiceProvider` (`product-choice.tsx`); `ChooseProductButton` reads it
-and renders nothing without it, so `ProductList` stays usable read-only.
-`ProductRow` takes the button as `children` (its actions slot) instead of a
-prop. The card shows the choice with `components/selections/ChosenProduct`;
-the page's handlers live in `hooks/useProductChoices.ts`. Prices arrive as decimal strings — format them with `lib/money.ts`,
-never parse them for arithmetic.
+one thing, and take the Display settings (`hooks/useDisplaySettings.ts`).
+Choosing uses a context: `ProductChoiceProvider` (`product-choice.tsx`) gives
+`onChoose` and `chosen`; `ChooseProductButton` reads it and renders nothing
+without it, so `ProductList` stays usable read-only. The card and the Select
+item page show choices with `components/selections/ChosenProduct` (counts via
+`CountSelect`); handlers live in `hooks/useProductChoices.ts`. Prices are
+decimal strings. Format them with `lib/money.ts` and never parse them for
+arithmetic.
 
 `components/order/` is the compound-with-optional-parts shape. `OrderReview`
 takes the whole review and provides it through a context scoped to its tree;

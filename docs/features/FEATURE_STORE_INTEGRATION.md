@@ -7,7 +7,7 @@ trolley (`FEATURE_TROLLEY_HANDOFF.md`). Delivery windows and checkout are not
 built; they belong to Order Optimisation and Checkout.
 
 ## What this feature does
-A household member opens **Compare prices** on any list item. The backend
+A household member opens **Select item** on any list item. The backend
 asks both stores for the item at once and shows both stores' products in
 one list, cheapest per unit first, so the household can see what the item
 really costs before anything is ordered. The list can be sorted another way
@@ -131,14 +131,18 @@ The fake catalogue covers milk, toilet paper and bananas. A query containing
 `outage` makes the fake Coles fail as unreachable.
 
 ## Web app
-`components/products/`: `PriceComparison` (compound: `.Trigger`,
-`.Content`, a Shadcn `Sheet`), `ProductList`, `StoreNotices`, `ProductRow`,
+`components/products/`: `SelectItemPage`, `ProductResults`,
+`ProductFilterBar` (store, grams/litres, max price), `ProductList`, `StoreNotices`, `ProductRow`,
 `ProductImage` (the picture, or a placeholder when there is none or it fails
 to load; also used by the chosen product and the order review),
 `ProductPrice`, `UnitPriceLine`, `ProductSortSelect`, `SpecialsOnlySwitch`.
-`hooks/useItemProducts.ts` searches only while the sheet is open, and again
+`hooks/useItemProducts.ts` searches when the Select item page opens, and again
 when the item's name, quantity or chips change. "Specials only" is a display
 filter (special or multibuy) — it never reorders.
+
+**Display settings** (Settings › Display, `lib/display-settings.ts`, saved
+in the browser's localStorage): picture size, hide the original price, show
+unavailable products. The "N for $X" line shows only when a multibuy applies.
 
 **Sorting** (`lib/product-sort.ts`, client side only): both stores' products
 are mixed in one list, each labelled with its store. "Sort by" offers unit

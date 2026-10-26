@@ -67,7 +67,7 @@ Nothing was bought. Your trolley was left as it was (one existing item).
   takes such a product back out and reports "Not available at your
   Woolworths store right now".
 - Search on the server runs as a guest at a default store, so a product can
-  look available in "Compare prices" and still be unavailable at your store.
+  look available in "Select item" and still be unavailable at your store.
 - A live run of the finished bookmark program on your account was **blocked
   by Claude's safety check** (it would add a real, priced product and could
   change your reservation). Each call it makes was checked live on its own

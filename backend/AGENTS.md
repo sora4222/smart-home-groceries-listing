@@ -41,7 +41,7 @@ src/
 │   ├── triage.rs        # /api/triage — held/rejected tabs, accept, reject, restore
 │   ├── google_tasks.rs  # /api/intake/google-tasks — sign-in, lists, choices, poll
 │   ├── intake_settings.rs # GET /api/intake/settings — every channel's status
-│   ├── access_logs.rs   # GET /api/access-logs — the /logs page's data
+│   ├── access_logs.rs   # GET /api/access-logs — Settings › Logs data
 │   ├── dislikes.rs      # /api/product-dislikes + per-item dislike overrides
 │   ├── purchases.rs     # /api/purchase-orders (list, Undo) + /api/purchase-history
 │   ├── spending.rs      # GET /api/spending (+ /item-prices) — the Spending page

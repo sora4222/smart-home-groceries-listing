@@ -9,7 +9,7 @@ console and Cloudflare Tunnel wiring is a manual setup step — see
 A household member says *"Alexa, add two oat milk to the shopping list."* The
 item lands as **pending** — never directly on the active grocery list. An LLM
 first checks it is something a supermarket sells (`FEATURE_TRIAGE.md`); items
-it rejects or is unsure about wait on the `/triage` page instead. A household
+it rejects or is unsure about wait in the triage half of `/pending` instead. A household
 member then reviews it in the web app's Pending Requests view and accepts or
 rejects it.
 
@@ -185,12 +185,12 @@ rolled back, so the request stays pending and the user still gets to choose.
 `merge` adds to the existing quantity, capped at 999 to stay inside the
 column's `CHECK` constraint. `separate` keeps both rows.
 
-The Pending Requests page (`frontend/src/routes/pending.tsx`) answers that 409
-with the same `DuplicatePrompt` the add form uses, shown under the card:
-"Update the quantity" retries with `merge`, "Add a separate entry" with
-`separate`, and Cancel leaves the request pending. Any other failed accept
-gets a toast from `lib/accept-failure.ts` that names the cause; a plain `409`
-(already accepted elsewhere) or `404` also drops the stale card.
+The Pending page (`frontend/src/routes/pending.tsx`) always accepts with
+`merge`, so a duplicate adds to the existing quantity. The toast has Undo, which
+calls `POST /api/voice-requests/{id}/undo-accept`. That takes the merged
+amount back off (`voice_requests.merged_quantity`) or deletes the new item,
+and puts the request back to pending. Any other failed accept gets a toast
+from `lib/accept-failure.ts`; a plain `409` or `404` also drops the stale card.
 
 ### Item rules
 An accepted request that becomes a new list entry gets the chips of every item

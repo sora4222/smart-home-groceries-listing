@@ -28,15 +28,15 @@ and API details are in [`features/`](features/).
 | [Voice intake: add](#voice-intake-add) | Echo, then the web app |
 | [Voice intake: remove, reduce, undo](#voice-intake-remove-reduce-undo) | Echo |
 | [Google Tasks intake](#google-tasks-intake) | Google Tasks, then the web app |
-| [Triage review](#triage-review) | Web app `/triage` |
+| [Triage review](#triage-review) | Web app `/pending`, lower half |
 | [Delivery fees and store choice](#delivery-fees-and-store-choice) | Web app `/settings/delivery`, `/order` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
 | [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
 | [Undo a recorded purchase](#undo-a-recorded-purchase) | Web app |
-| [Spending analysis](#spending-analysis) | Web app `/spending` |
-| [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
-| [Access log review](#access-log-review) | Web app `/logs` |
+| [Spending analysis](#spending-analysis) | Web app **Order › History** |
+| [Product dislikes](#product-dislikes) | Web app, **Select item** page and `/settings/dislikes` |
+| [Access log review](#access-log-review) | Web app **Settings › Logs** |
 | [Add a household member](#add-a-household-member) | Clerk dashboard |
 | [After an update](#after-an-update) | Varies |
 | [Troubleshooting](#troubleshooting) | — |
@@ -92,8 +92,9 @@ Desktop approvals and optional service-account provisioning are in
 request (`POST /api/intake/alexa`). Nothing reaches the list until someone
 accepts it.
 
-1. Open **Pending Requests**.
-2. Correct the parsed name or quantity if needed, then **Accept**.
+1. Open **Pending**.
+2. Correct the parsed name or quantity if needed, then **Accept**. If the
+   item is already on the list, its quantity goes up. The toast has **Undo**.
 
 If the card is missing, triage held or rejected it; see
 [Triage review](#triage-review).
@@ -142,10 +143,10 @@ each open task as a **pending** request and deletes it from Google. **Intake
 ## Triage review
 
 The intake classifier holds low-confidence items and rejects non-grocery
-items (`FEATURE_TRIAGE.md`). The **Triage** nav badge counts held items.
+items (`FEATURE_TRIAGE.md`). The **Pending** badge counts pending and held items.
 
-1. Open **Triage → Held for review** and read each card's reason.
-2. **Accept** moves the item to Pending Requests (it still needs a second
+1. Open **Pending**. Triage cards are in the lower half. Read each reason.
+2. **Accept** moves the item to the top half (it still needs a second
    **Accept** there). **Reject** discards it.
 3. Optionally scan **Rejected** for false negatives.
 4. Google Tasks items also get **Put back in Google Tasks**: the task is
@@ -164,8 +165,8 @@ when a store changes its fees.
    delivery from** and **Minimum order** (empty = not set). Pick **How to
    pick stores** and optionally **Most to spend on delivery**, then **Save**
    (toast has **Undo**).
-2. To let the app compare stores for an item, **Compare prices → Choose** a
-   product at **each** store. The newest choice is the one bought; the other
+2. To let the app compare stores for an item, **Select item → Choose** a
+   product at **each** store. The newest store is the one bought; the other
    shows as **Also at …** on the item card.
 3. On **Order**, **Ways to buy** ranks the options with delivery included.
    **Rank by** tries another mode for this visit. **Use this** moves items
@@ -183,9 +184,10 @@ Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION
 Use Chrome for both the web app and the store tab.
 
 **Web app**
-1. On **Grocery List**, pick a product for each item: **Compare prices →
+1. On **Grocery List**, pick a product for each item: **Select item →
    Choose**. Previously bought products are badged (**Bought once**,
-   **Bought 3 times**) with the prices paid.
+   **Bought 3 times**) with the prices paid. An item with quantity 3 can
+   have up to 3 products; set each one's count with its dropdown.
 2. **Ready to order** commits the list. **Order** shows live prices and the
    total.
 3. **Send to Woolworths**, choose **Delivery day** (default **Tomorrow**) and
@@ -256,7 +258,7 @@ to the status it had before. The Woolworths trolley is not touched.
 
 - Right after a fill: **Undo** in the **Send to Woolworths** (or **Send to
   Coles**) panel.
-- Later: **Spending → Saved shops → Undo** on the order.
+- Later: **Order › History → Undo** on the shop.
 
 **Verify:** the items are back on **Grocery List**.
 
@@ -264,7 +266,7 @@ to the status it had before. The Woolworths trolley is not touched.
 
 ## Spending analysis
 
-**Spending** filters by **Dates** (**This week**, **This month**, **This
+**Order › History** filters by **Dates** (**This week**, **This month**, **This
 quarter**, **All time**, **Choose days**), **Store**, **Category** and an
 item-name search (**Find**). Views:
 
@@ -284,7 +286,7 @@ category** to recompute them.
 Dislikes are per member and visible to the whole household
 (`FEATURE_DISLIKES.md`). They never block a manual choice.
 
-1. In **Compare prices**, press **Dislike** on a product. It now shows
+1. On the **Select item** page, press **Dislike** on a product. It now shows
    *"You disliked this item previously."*; other members see your name.
 2. **Buy it this time** sets the dislike aside for this list item only
    (`dislike_overrides`). **Undo** brings it back.
@@ -292,17 +294,17 @@ Dislikes are per member and visible to the whole household
    deletes your own dislike for good. Other members' dislikes can't be
    removed.
 
-**Verify:** **Dislikes** in the nav lists every member's dislikes, yours
+**Verify:** **Settings › Dislikes** lists every member's dislikes, yours
 first.
 
 ---
 
 ## Access log review
 
-**Logs** lists every request the backend answered, newest first: time,
+**Settings › Logs** lists every request the backend answered, newest first: time,
 user, source IP, method, path, status and duration (`FEATURE_ACCESS_LOGS.md`).
 
-1. Open **Logs**. **Load older** pages back; **Show health checks** adds the
+1. Open **Settings › Logs**. **Load older** pages back; **Show health checks** adds the
    container's `/api/health` probes, hidden by default.
 2. **Not signed in** is expected for intake (Alexa, webhook) and health
    checks. Bursts of 401/404 from an unknown address suggest probing.
@@ -348,7 +350,7 @@ up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
 | "Coles is still loading" | Coles page config not ready; reload and re-run. |
 | **Saved as bought** never appears | Backend unreachable when the report was posted; items stay on the list. |
 | A line shows **Not added** | Not deliverable from your store right now; choose another product. |
-| Triage says "The checker could not be reached" | Model server down: `make dev` (Ollama: also `make hm-compose args='exec ollama ollama pull llama3.2'`), then **Accept** in Triage. |
+| Triage says "The checker could not be reached" | Model server down: `make dev` (Ollama: also `make hm-compose args='exec ollama ollama pull llama3.2'`), then **Accept** in the triage section of **Pending**. |
 | Alexa: "I couldn't find … on the list" | No `active` item matched; check the exact name on **Grocery List**. |
 | Alexa: "The list is locked for purchase" | The list is committed; release it in the web app first. |
 | Google Tasks card: "connect Google Tasks again" | Access was revoked or expired: **Intake → Disconnect**, then connect again. |

@@ -12,12 +12,12 @@ Use this as the task list for finishing the project. Each task has an id, what t
 | Intake: webhook, Alexa (add, remove, reduce, undo) | Done. Needs a real Alexa device test |
 | Intake: Google Tasks | Done, tested only with fakes. Never run against a real Google account |
 | Intake: Google Keep | Paused on purpose (unofficial library, master token risk) |
-| AI triage and the Triage page | Done |
+| AI triage (inside Pending) | Done |
 | Item Rules | Done, with small gaps (section 6) |
 | Store search and price compare (Woolworths, Coles) | Done in tests. Never run from the home server |
 | Product choice, order review, delivery fees, order modes, split-store planner | Done |
 | Dislikes | Done for manual choice. The optimiser does not use them yet |
-| Purchase history and Spending page | Done for Woolworths shops only |
+| Purchase history and Order › History | Done for Woolworths shops only |
 | Fill trolley by bookmark (Woolworths and Coles) and confirm checkout | Done. Coles calls were checked live on 2026-10-06. Full run against the home backend is still to do |
 | Access logs, Clerk login | Done. Clerk checked against a real instance only by hand |
 | **Desktop app (Tauri)** | **Missing from `main`.** See section 3 |
@@ -44,7 +44,7 @@ Add `createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === 'serverFn' })` 
 Done when: the warning no longer prints on `pnpm dev`.
 
 **A4. Run the live store search from the home server.**
-The "Compare prices" call fails with the same error today because the backend is down. Once A1 is fixed, search for "milk" from the home server.
+The "Select item" product search fails with the same error today because the backend is down. Once A1 is fixed, search for "milk" from the home server.
 If a store answers `blocked`, record it in `FEATURE_STORE_INTEGRATION.md` and use the desktop app route (section 3) instead of cookie reuse on the server.
 Done when: both stores return products from the home server, or the `blocked` result is written down.
 
@@ -94,7 +94,7 @@ Done when: each rule has planner tests, and the recommended option never breaks 
 
 **B7. Import order history through the app.**
 Read past orders from Woolworths and Coles in the store window and save them as purchase history. This also fills the Coles gap, since Coles shops are not saved today.
-Done when: the Spending page shows a Coles order after an import.
+Done when: Order › History shows a Coles order after an import.
 
 **B8. One tap to buy.**
 The web app shows items, delivery time and total. The person taps **Place order** and the app places it with the card already saved on the store account. Rules:
@@ -147,7 +147,7 @@ Done when: the real run works, and `FEATURE_GOOGLE_TASKS.md` says so.
 Check add, remove, reduce and undo by voice, and the request signature check, through the Cloudflare Tunnel.
 Done when: each intent works on the Echo and results are written in `FEATURE_VOICE.md`.
 
-**D3. Store the OpenAI key encrypted and set it on `/settings/intake`.**
+**D3. Store the OpenAI key encrypted and set it on Settings › Help.**
 The spec asks for this. Today it is an environment variable.
 Done when: the key is saved encrypted, never returned to the browser, and triage uses it.
 
@@ -188,5 +188,5 @@ The spec still says store orders use chromiumoxide browser automation on the ser
 - A household member can say an item to Alexa or add it to Google Tasks, accept it in the web app, and pick products.
 - The desktop app shows real delivery windows and fees from both stores, and the planner recommends the cheapest valid order.
 - One tap places that order with the saved card.
-- The order appears in purchase history and on the Spending page.
+- The order appears in purchase history and on Order › History.
 - `make dev` and `make desktop` start everything, and the human setup steps work for a new person.

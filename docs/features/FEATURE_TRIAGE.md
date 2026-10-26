@@ -2,9 +2,9 @@
 
 Status: **implemented** — every intake item is checked by a classifier
 ("would a supermarket sell this?") before the household sees it, and the
-`/triage` page shows what it held or rejected. **Restore to source** is built
+lower half of `/pending` shows what it held or rejected (`/triage` redirects there). **Restore to source** is built
 for Google Tasks items (`FEATURE_GOOGLE_TASKS.md`). Steps for people: `docs/human-setup.md` §5 and §6 and `docs/using-the-app.md`
-("Check the Triage page") — keep those in step with this spec.
+("Check the triage section") — keep those in step with this spec.
 
 ## What this feature does
 Triage filters out what is clearly not a grocery item ("car service"). It
@@ -16,8 +16,8 @@ Alexa / webhook → recorded as unchecked → 201/200 to the channel at once
                      │ (background task)
                      ▼
             classifier answers ──▶ approved → Pending Requests
-                                ├▶ rejected → /triage, Rejected tab
-                                └▶ held     → /triage, Held for review tab (badge + toast)
+                                ├▶ rejected → /pending?tab=rejected
+                                └▶ held     → /pending, Held for review (badge + toast)
 ```
 
 | `triage_status` | Meaning | Shown in |
@@ -110,7 +110,7 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
   spec's `force_accept` flag is a row in `intake_restores` keyed by the new
   task's id, so a person cannot skip triage by typing a marker into a task.
 - The spec asks for the OpenAI key to be stored encrypted in PostgreSQL and set
-  on `/settings/intake`. It is an environment variable for now, like the other
+  on `/settings/help`. It is an environment variable for now, like the other
   secrets; there is no intake settings page yet.
 - The spec's `TriageResult` also has `normalised_name` and `quantity`. They are
   not asked for: the channel's own parse is kept, and the household corrects
@@ -130,7 +130,7 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
 | Badge counts push | `services/voice/counts.rs` |
 | Routes | `backend/src/routes/triage.rs` |
 | Migration | `backend/migrations/0007_intake_triage.sql` |
-| Page | `frontend/src/routes/triage.tsx`, `components/triage/`, `hooks/useTriageDecisions.ts` |
+| Page | `frontend/src/routes/pending.tsx`, `components/triage/triage-section.tsx`, `hooks/useTriageDecisions.ts` |
 | Badge + toast | `hooks/useHeldCount.ts`, `hooks/useTriageToasts.ts` (both on `useLiveCount` / `useCountRiseToast`) |
 
 ## Tests

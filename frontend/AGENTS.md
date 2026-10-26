@@ -56,19 +56,16 @@ File-based routing — one file per route:
 |---|---|
 | `routes/__root.tsx` | Root layout (nav, Sonner toaster) |
 | `routes/index.tsx` | `/` — Grocery list |
-| `routes/pending.tsx` | `/pending` — Confirmation queue |
-| `routes/sign-in.$.tsx` | `/sign-in` — Clerk's sign-in box (goes home with sign-in off) |
-| `routes/sign-up.$.tsx` | `/sign-up` — Clerk's sign-up box (goes home with sign-in off) |
-| `routes/triage.tsx` | `/triage` — Held for review / Rejected tabs (`?tab=rejected`) |
-| `routes/order.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
-| `routes/analysis.tsx` | `/analysis` — Spending analysis |
-| `routes/settings/index.tsx` | `/settings` |
-| `routes/settings/item-rules.tsx` | `/settings/item-rules` |
-| `routes/settings/dislikes.tsx` | `/settings/dislikes` — every member's dislikes |
-| `routes/settings/intake.tsx` | `/settings/intake` — Google Tasks connect + other channels; Google's sign-in returns here |
-| `routes/settings/stores.tsx` | `/settings/stores` |
-| `routes/settings/delivery.tsx` | `/settings/delivery` |
-| `routes/logs.tsx` | `/logs` |
+| `routes/items.$itemId.select.tsx` | `/items/$itemId/select` — Select item page (not in the nav) |
+| `routes/pending.tsx` | `/pending` — pending requests, then triage (`?tab=rejected`) |
+| `routes/order.tsx` | Order layout (left nav) |
+| `routes/order/index.tsx` | `/order` — In Progress: ways to buy (`?mode=`) + order review |
+| `routes/order/history.tsx` | `/order/history` — spending history |
+| `routes/settings.tsx` | Settings layout (left nav) |
+| `routes/settings/{item-rules,dislikes,delivery,display,logs,help}.tsx` | Settings sections |
+| `routes/settings/intake.tsx` | Google's OAuth return; forwards to `/settings/help` |
+| `routes/sign-in.$.tsx`, `sign-up.$.tsx` | Clerk boxes (go home with sign-in off) |
+| `routes/{triage,analysis,logs}.tsx`, `settings/index.tsx` | Redirects from old addresses |
 
 ```typescript
 // Navigation

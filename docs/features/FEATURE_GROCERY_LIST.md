@@ -1,6 +1,9 @@
 # Feature: Grocery List
 
 Status: **implemented** — read, add, review, annotate, remove and commit.
+Every change shows a toast with **Undo** (`hooks/useGroceryListActions.ts`).
+The card shows the quantity on the right, a red **Remove**, and **Select
+item**, which opens `/items/$itemId/select` (`FEATURE_PRODUCT_CHOICE.md`).
 Product search, pricing and the order itself are the Store Integration and
 Order Optimisation features.
 

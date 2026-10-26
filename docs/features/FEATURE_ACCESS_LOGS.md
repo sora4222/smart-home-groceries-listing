@@ -1,7 +1,7 @@
 # Feature: Network access logging
 
 Status: **implemented** — every request the backend answers is written to a
-daily log file and to the `access_logs` table, and the `/logs` page shows the
+daily log file and to the `access_logs` table, and Settings › Logs (`/settings/logs`) shows the
 table. Steps for people: `docs/using-the-app.md` ("Access log review") —
 keep it in step with this spec.
 
@@ -62,12 +62,11 @@ request ─▶ access-log middleware (outermost layer, lib.rs)
 
 There is no admin role in this POC: every signed-in member may read the log.
 
-## The `/logs` page
+## Settings › Logs
 Newest first. Each row: status badge (red for 5xx, outlined for 4xx), method,
 path, time, who ("Not signed in" for `unauthenticated`), source (with any
 forwarded claim in brackets) and duration. **Show health checks** reloads from
-the newest row; **Load older** appends the next page. Linked from the nav as
-**Logs**.
+the newest row; **Load older** appends the next page. `/logs` redirects here.
 
 ## Not built
 - **Retention for the table.** Rows are never deleted. At ~10,000 rows a day
@@ -84,5 +83,5 @@ the newest row; **Load older** appends the next page. Linked from the nav as
 | Record + page rules | `backend/src/services/access_log/` |
 | File set-up | `backend/src/logging.rs`, `backend/src/config/access_log.rs` |
 | Route | `backend/src/routes/access_logs.rs` |
-| Page | `frontend/src/routes/logs.tsx`, `components/access-logs/`, `hooks/useAccessLogPages.ts` |
+| Page | `frontend/src/routes/settings/logs.tsx`, `components/access-logs/`, `hooks/useAccessLogPages.ts` |
 | Tests | `backend/tests/access_logs.rs`, `frontend/e2e/access-logs.spec.ts` |

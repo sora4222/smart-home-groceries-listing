@@ -121,7 +121,7 @@ retain existing database credentials and the encryption key during migration.
 
 Service-owned `BIND_ADDRESS` and `ACCESS_LOG_DIR` cannot override the units'
 loopback listeners or `/var/log/grocery` logging. Compose settings such as
-`COMPOSE_PROFILES` and `POSTGRES_PORT` do not configure native services.
+`COMPOSE_PROFILES` do not configure native services.
 
 The installer rejects changed database targets and encryption keys. Move data
 and keys deliberately rather than pointing an update at a new empty database.

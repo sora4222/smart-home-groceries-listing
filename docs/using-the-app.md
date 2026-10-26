@@ -80,7 +80,7 @@ settings before startup. `cargo run` from `backend/` and the bridge's
 loader so the images receive resolved values.
 
 Concurrent worktrees need separate `.env` files, `COMPOSE_PROJECT_NAME`,
-`POSTGRES_PORT`, and frontend ports. `GROCERY_ENV_FILE` selects another file.
+and frontend ports. `GROCERY_ENV_FILE` selects another file.
 Desktop approvals and optional service-account provisioning are in
 [setup](human-setup.md#1password).
 

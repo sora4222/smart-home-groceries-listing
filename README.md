@@ -1,6 +1,13 @@
 # Home Grocery List
 
-A grocery list for one household.
+A grocery list for one household. It runs on your own home server.
+
+The app collects grocery items from voice and typed lists, and keeps one
+shared list. It then finds the cheapest way to buy that list from Woolworths
+and Coles, counting item prices, deals and delivery fees. It never suggests
+items to buy, and it never pays for you.
+
+How it works:
 
 1. You say an item to Alexa, or type it into Google Tasks.
 2. The item waits in the web app until a person accepts it.

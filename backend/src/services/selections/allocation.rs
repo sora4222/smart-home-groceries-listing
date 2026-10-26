@@ -27,6 +27,13 @@ pub fn allocate(stored: &[Option<i32>], total: i32) -> Vec<i32> {
     counts
 }
 
+/// Pairs each row with the count it buys ([`allocate`]), in the order given.
+/// `stored` reads a row's saved count.
+pub fn counted<T>(rows: Vec<T>, stored: impl Fn(&T) -> Option<i32>, total: i32) -> Vec<(T, i32)> {
+    let saved: Vec<_> = rows.iter().map(stored).collect();
+    rows.into_iter().zip(allocate(&saved, total)).collect()
+}
+
 /// The counts with one room made for a new product: one taken from the
 /// product buying the most (the oldest on a tie). `None` when every product
 /// already buys only one.

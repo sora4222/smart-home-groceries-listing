@@ -10,27 +10,34 @@ use uuid::Uuid;
 use super::line_repository::ChosenLine;
 use crate::services::selections::allocation;
 
-/// One chosen product as read for a handoff: `(grocery_item_id, product_id,
-/// product_name, item_quantity, stored_quantity)`, each item's products
-/// together and oldest first.
-pub type ChosenRow = (Uuid, String, String, i32, Option<i32>);
+/// One chosen product as read for a handoff, each item's products together
+/// and oldest first.
+#[derive(Debug, sqlx::FromRow)]
+pub struct ChosenRow {
+    pub grocery_item_id: Uuid,
+    pub product_id: String,
+    pub product_name: String,
+    pub item_quantity: i32,
+    pub stored_quantity: Option<i32>,
+}
 
 /// The handoff lines for `rows`, in the order given.
 pub fn into_lines(rows: Vec<ChosenRow>) -> Vec<ChosenLine> {
-    let mut lines = Vec::new();
-    let mut rest = rows.as_slice();
-    while let Some(first) = rest.first() {
-        let len = rest.iter().take_while(|row| row.0 == first.0).count();
-        let (item, after) = rest.split_at(len);
-        let stored: Vec<_> = item.iter().map(|row| row.4).collect();
-        for (row, count) in item.iter().zip(allocation::allocate(&stored, first.3)) {
-            if count > 0 {
-                lines.push((row.0, row.1.clone(), row.2.clone(), count));
-            }
-        }
-        rest = after;
-    }
-    lines
+    rows.chunk_by(|a, b| a.grocery_item_id == b.grocery_item_id)
+        .flat_map(|item| {
+            let total = item[0].item_quantity;
+            allocation::counted(item.iter().collect(), |row| row.stored_quantity, total)
+        })
+        .filter(|(_, count)| *count > 0)
+        .map(|(row, count)| {
+            (
+                row.grocery_item_id,
+                row.product_id.clone(),
+                row.product_name.clone(),
+                count,
+            )
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -38,7 +45,13 @@ mod tests {
     use super::*;
 
     fn row(item: Uuid, product: &str, total: i32, stored: Option<i32>) -> ChosenRow {
-        (item, product.into(), product.into(), total, stored)
+        ChosenRow {
+            grocery_item_id: item,
+            product_id: product.into(),
+            product_name: product.into(),
+            item_quantity: total,
+            stored_quantity: stored,
+        }
     }
 
     #[test]

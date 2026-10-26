@@ -28,7 +28,8 @@ where
     E: PgExecutor<'e>,
 {
     let rows = sqlx::query_as::<_, ChosenRow>(
-        "SELECT i.id, s.product_id, s.product_name, i.quantity, s.quantity
+        "SELECT i.id AS grocery_item_id, s.product_id, s.product_name,
+                i.quantity AS item_quantity, s.quantity AS stored_quantity
          FROM grocery_items i
          JOIN item_selections s ON s.grocery_item_id = i.id
          WHERE s.store = $1 AND s.for_order AND i.status IN ('active', 'committed')

@@ -1,7 +1,7 @@
 //! Product dislikes: per member, seen by the whole household.
 //!
 //! A member marks a store product as disliked. Everyone sees who disliked it
-//! when they compare prices, but the product stays choosable — a person may
+//! on the Select item page, but the product stays choosable — a person may
 //! buy it anyway. A dislike can be set aside two ways:
 //! - **for this order** — an override on one list item ([`DislikeService::override_for_item`]);
 //!   the dislike stays, and the next time the item is added it counts again;

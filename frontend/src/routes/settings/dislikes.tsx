@@ -38,7 +38,7 @@ function DislikesPage() {
 				<h1 className="text-lg font-semibold">Dislikes</h1>
 				<p className="text-sm text-muted-foreground">
 					Products someone in the household does not want again. You can still
-					choose them; they show a warning when you compare prices.
+					choose them; they show a warning on the Select item page.
 				</p>
 			</div>
 			<HouseholdDislikes dislikes={dislikes} onRemove={removeMine} />

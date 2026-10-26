@@ -81,9 +81,8 @@ fn counted(rows: Vec<ItemSelection>, total: Option<i32>) -> Vec<Counted> {
         return Vec::new();
     };
     let total = total.unwrap_or(first.priced_quantity);
-    let stored: Vec<_> = rows.iter().map(|row| row.quantity).collect();
-    rows.into_iter()
-        .zip(allocation::allocate(&stored, total))
+    allocation::counted(rows, |row| row.quantity, total)
+        .into_iter()
         .map(|(selection, quantity)| Counted {
             selection,
             quantity,

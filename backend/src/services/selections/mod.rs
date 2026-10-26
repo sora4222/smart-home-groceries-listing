@@ -90,7 +90,7 @@ impl<'a> SelectionService<'a> {
             tx.rollback().await?;
             log::item_changed_while_choosing(item_id);
             return Err(ApiError::Conflict(format!(
-                "{} changed while its product was being chosen — compare prices again.",
+                "{} changed while its product was being chosen. Open Select item again.",
                 item.name
             )));
         }
@@ -204,7 +204,7 @@ impl<'a> SelectionService<'a> {
             if !repository::buy_at_store(&mut tx, item_id, store).await? {
                 tx.rollback().await?;
                 return Err(ApiError::UnprocessableEntity(format!(
-                    "That item has no product chosen at {} — compare prices first.",
+                    "That item has no product chosen at {}. Choose one on Select item first.",
                     store.display_name()
                 )));
             }

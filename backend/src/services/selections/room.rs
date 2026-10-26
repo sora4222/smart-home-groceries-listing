@@ -23,12 +23,9 @@ pub async fn make_room(
     product_id: &str,
 ) -> Result<Option<i32>, ApiError> {
     let at_store = repository::lock_at_store(tx, item.id, store).await?;
-    if at_store.iter().any(|row| row.product_id == product_id) {
+    if let Some(chosen) = at_store.iter().find(|row| row.product_id == product_id) {
         // Chosen already: keep its count.
-        return Ok(at_store
-            .iter()
-            .find(|row| row.product_id == product_id)
-            .and_then(|row| row.quantity));
+        return Ok(chosen.quantity);
     }
     if at_store.is_empty() || item.quantity <= 1 {
         repository::delete_others_at_store(tx, item.id, store, product_id).await?;

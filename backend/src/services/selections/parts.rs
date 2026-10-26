@@ -10,9 +10,8 @@ use crate::models::db::{GroceryItem, ItemSelection};
 /// The parts of `item` for `rows`, its products at one store (oldest first).
 /// A product with nothing to buy is left out.
 pub fn parts(item: &GroceryItem, rows: Vec<ItemSelection>) -> Vec<(GroceryItem, ItemSelection)> {
-    let stored: Vec<_> = rows.iter().map(|row| row.quantity).collect();
-    rows.into_iter()
-        .zip(allocation::allocate(&stored, item.quantity))
+    allocation::counted(rows, |row| row.quantity, item.quantity)
+        .into_iter()
         .filter(|(_, count)| *count > 0)
         .map(|(row, count)| {
             let part = GroceryItem {

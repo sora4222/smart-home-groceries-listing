@@ -28,7 +28,7 @@ export interface GoogleTasksStatus {
 	last_poll_error: string | null;
 }
 
-/** Everything `/settings/intake` shows. */
+/** Everything `/settings/help` shows. */
 export interface IntakeSettings {
 	google_tasks: GoogleTasksStatus;
 	alexa: { configured: boolean };

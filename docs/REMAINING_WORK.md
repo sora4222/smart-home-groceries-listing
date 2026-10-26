@@ -147,7 +147,7 @@ Done when: the real run works, and `FEATURE_GOOGLE_TASKS.md` says so.
 Check add, remove, reduce and undo by voice, and the request signature check, through the Cloudflare Tunnel.
 Done when: each intent works on the Echo and results are written in `FEATURE_VOICE.md`.
 
-**D3. Store the OpenAI key encrypted and set it on `/settings/intake`.**
+**D3. Store the OpenAI key encrypted and set it on `/settings/help`.**
 The spec asks for this. Today it is an environment variable.
 Done when: the key is saved encrypted, never returned to the browser, and triage uses it.
 

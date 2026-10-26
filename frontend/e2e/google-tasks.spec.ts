@@ -6,7 +6,7 @@ import { API_BASE_URL, expect, gotoList, test } from "./fixtures";
  * Google Tasks intake against the real backend running the fake Tasks
  * account (`GOOGLE_TASKS_CLIENT=fake`, `GOOGLE_TASKS_NO_BACKGROUND_POLL=true`,
  * `INTAKE_LLM_PROVIDER=fake`). The fake's sign-in skips Google and comes
- * straight back to `/settings/intake` (forwarded to Help), so the whole round trip runs here.
+ * straight back to `/settings/help` (forwarded to Help), so the whole round trip runs here.
  * Tasks are added through the fake's development-only door, the way a person
  * would add them in the Tasks app.
  */
@@ -65,7 +65,7 @@ test.describe("Google Tasks intake", () => {
 		await page.getByRole("button", { name: "Connect Google Tasks" }).click();
 
 		// The fake "Google" sends the browser straight back with a code, to
-		// the old /settings/intake address, which forwards to Help.
+		// the old /settings/help address, which forwards to Help.
 		await expect(
 			page.getByText("Google Tasks connected. Now pick your grocery list."),
 		).toBeVisible();
@@ -108,7 +108,7 @@ test.describe("Google Tasks intake", () => {
 		await request.post(`${TASKS}/poll`);
 		await waitUntilRejected(request, "car service");
 
-		await gotoList(page, "/triage?tab=rejected");
+		await gotoList(page, "/pending?tab=rejected");
 		const card = page.locator('[data-request-name="car service"]');
 		await expect(card).toContainText("Google Tasks");
 		await page

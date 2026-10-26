@@ -1,4 +1,4 @@
-import { addItem, expect, gotoList, itemCard, test } from "./fixtures";
+import { addItem, expect, gotoList, itemCard, test, openSelectItem, backToList } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /**
@@ -9,21 +9,11 @@ import type { Page } from "@playwright/test";
  * catalogue (`backend/src/services/stores/fake.rs`), never a real store.
  */
 
-/** Opens the comparison for one item and returns its sheet. */
-async function openComparison(page: Page, name: string) {
-	await itemCard(page, name)
-		.getByRole("button", { name: `Compare prices for ${name}` })
-		.click();
-	const sheet = page.getByRole("dialog");
-	await expect(sheet).toBeVisible();
-	return sheet;
-}
-
-type Sheet = ReturnType<Page["getByRole"]>;
+type View = ReturnType<Page["getByRole"]>;
 
 /** The product names shown, top to bottom; only one store's when given. */
-async function productNames(sheet: Sheet, store?: "woolworths" | "coles") {
-	const list = sheet.getByRole("list", { name: "Products" });
+async function productNames(view: View, store?: "woolworths" | "coles") {
+	const list = view.getByRole("list", { name: "Products" });
 	await expect(list).toBeVisible();
 	const rows = store
 		? list.locator(`[data-testid="product-listing"][data-store="${store}"]`)
@@ -34,8 +24,8 @@ async function productNames(sheet: Sheet, store?: "woolworths" | "coles") {
 }
 
 /** Picks one way to sort the comparison. */
-async function sortBy(page: Page, sheet: Sheet, label: string) {
-	await sheet.getByRole("combobox", { name: "Sort by" }).click();
+async function sortBy(page: Page, view: View, label: string) {
+	await view.getByRole("combobox", { name: "Sort by" }).click();
 	await page.getByRole("option", { name: label, exact: true }).click();
 }
 
@@ -46,19 +36,19 @@ test.describe("price comparison", () => {
 		await gotoList(page);
 		await addItem(page, "milk");
 
-		const sheet = await openComparison(page, "milk");
+		const view = await openSelectItem(page, "milk");
 
 		await expect(
-			sheet.getByRole("heading", { name: "Prices for milk ×1" }),
+			view.getByRole("heading", { name: "Select milk ×1" }),
 		).toBeVisible();
 		// Per 100mL: 15.5c, 16.5c (Coles), 18c, 39c (Coles).
-		expect(await productNames(sheet)).toEqual([
+		expect(await productNames(view)).toEqual([
 			"Woolworths Full Cream Milk",
 			"Coles Full Cream Milk",
 			"Dairy Farmers Full Cream Milk",
 			"Minor Figures Barista Oat Milk",
 		]);
-		const cheapest = sheet.getByRole("article", {
+		const cheapest = view.getByRole("article", {
 			name: "Woolworths Full Cream Milk",
 		});
 		await expect(cheapest).toContainText("$3.10");
@@ -77,7 +67,7 @@ test.describe("price comparison", () => {
 	test("sorts by unit price, price and name, both ways", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
+		const view = await openSelectItem(page, "milk");
 		const byUnit = [
 			"Woolworths Full Cream Milk",
 			"Coles Full Cream Milk",
@@ -97,18 +87,18 @@ test.describe("price comparison", () => {
 			"Woolworths Full Cream Milk",
 		];
 
-		await sortBy(page, sheet, "Unit price: high to low");
-		expect(await productNames(sheet)).toEqual([...byUnit].reverse());
-		await sortBy(page, sheet, "Price: low to high");
-		expect(await productNames(sheet)).toEqual(byPrice);
-		await sortBy(page, sheet, "Price: high to low");
-		expect(await productNames(sheet)).toEqual([...byPrice].reverse());
-		await sortBy(page, sheet, "Name: A to Z");
-		expect(await productNames(sheet)).toEqual(byName);
-		await sortBy(page, sheet, "Name: Z to A");
-		expect(await productNames(sheet)).toEqual([...byName].reverse());
-		await sortBy(page, sheet, "Unit price: low to high");
-		expect(await productNames(sheet)).toEqual(byUnit);
+		await sortBy(page, view, "Unit price: high to low");
+		expect(await productNames(view)).toEqual([...byUnit].reverse());
+		await sortBy(page, view, "Price: low to high");
+		expect(await productNames(view)).toEqual(byPrice);
+		await sortBy(page, view, "Price: high to low");
+		expect(await productNames(view)).toEqual([...byPrice].reverse());
+		await sortBy(page, view, "Name: A to Z");
+		expect(await productNames(view)).toEqual(byName);
+		await sortBy(page, view, "Name: Z to A");
+		expect(await productNames(view)).toEqual([...byName].reverse());
+		await sortBy(page, view, "Unit price: low to high");
+		expect(await productNames(view)).toEqual(byUnit);
 	});
 
 	test("the item's filters narrow the products", async ({ page }) => {
@@ -121,12 +111,12 @@ test.describe("price comparison", () => {
 		await card.getByRole("button", { name: "Save" }).click();
 		await expect(card.getByLabel("Product filters")).toContainText("3 ply");
 
-		const sheet = await openComparison(page, "toilet paper");
+		const view = await openSelectItem(page, "toilet paper");
 
-		expect(await productNames(sheet, "woolworths")).toEqual([
+		expect(await productNames(view, "woolworths")).toEqual([
 			"Kleenex Complete Clean 3 Ply Toilet Paper",
 		]);
-		expect(await productNames(sheet, "coles")).toEqual([
+		expect(await productNames(view, "coles")).toEqual([
 			"Quilton 3 Ply Toilet Rolls",
 		]);
 	});
@@ -134,12 +124,12 @@ test.describe("price comparison", () => {
 	test("specials only hides products with no promotion", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
-		await expect(sheet.getByRole("list", { name: "Products" })).toBeVisible();
+		const view = await openSelectItem(page, "milk");
+		await expect(view.getByRole("list", { name: "Products" })).toBeVisible();
 
-		await sheet.getByRole("switch", { name: "Specials only" }).click();
+		await view.getByRole("switch", { name: "Specials only" }).click();
 
-		expect(await productNames(sheet)).toEqual([
+		expect(await productNames(view)).toEqual([
 			"Dairy Farmers Full Cream Milk",
 			"Minor Figures Barista Oat Milk",
 		]);
@@ -152,27 +142,61 @@ test.describe("price comparison", () => {
 		// The fake Coles fails any search containing "outage".
 		await addItem(page, "milk outage");
 
-		const sheet = await openComparison(page, "milk outage");
+		const view = await openSelectItem(page, "milk outage");
 
-		await expect(sheet.getByRole("status")).toHaveText(
+		await expect(view.getByRole("status")).toHaveText(
 			"Coles could not be reached. Try again later.",
 		);
-		expect((await productNames(sheet, "woolworths")).length).toBeGreaterThan(0);
-		expect(await productNames(sheet, "coles")).toEqual([]);
+		expect((await productNames(view, "woolworths")).length).toBeGreaterThan(0);
+		expect(await productNames(view, "coles")).toEqual([]);
 	});
 
-	test("closes with Escape and works on a committed list", async ({ page }) => {
+	test("works on a committed list, and goes back to it", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "bananas");
 		await page.getByRole("button", { name: "Ready to order" }).click();
 		await expect(itemCard(page, "bananas")).toContainText("Committed");
 
-		const sheet = await openComparison(page, "bananas");
+		const view = await openSelectItem(page, "bananas");
 		await expect(
-			sheet.getByRole("article", { name: "Woolworths Cavendish Bananas" }),
+			view.getByRole("article", { name: "Woolworths Cavendish Bananas" }),
 		).toContainText("unit price calculated from 1kg");
 
-		await page.keyboard.press("Escape");
-		await expect(sheet).toBeHidden();
+		await backToList(page);
+		await expect(itemCard(page, "bananas")).toBeVisible();
+	});
+
+	test("filters by store and size", async ({ page }) => {
+		await gotoList(page);
+		await addItem(page, "milk");
+		const view = await openSelectItem(page, "milk");
+
+		await view.getByRole("combobox", { name: "Store" }).click();
+		await page.getByRole("option", { name: "Coles" }).click();
+		expect(await productNames(view, "woolworths")).toEqual([]);
+		expect((await productNames(view, "coles")).length).toBeGreaterThan(0);
+
+		await view.getByRole("combobox", { name: "Size" }).click();
+		await page.getByRole("option", { name: "Grams" }).click();
+		await expect(view.getByRole("list", { name: "Products" })).toHaveCount(0);
+	});
+
+	test("Settings › Display changes the picture size and hides old prices", async ({
+		page,
+	}) => {
+		await gotoList(page, "/settings/display");
+		await page.getByRole("combobox", { name: "Picture size" }).click();
+		await page.getByRole("option", { name: "Large" }).click();
+		await page.getByRole("switch", { name: "Do not display original price" }).click();
+		await expect(page.getByText("Display saved").first()).toBeVisible();
+
+		await gotoList(page);
+		await addItem(page, "milk");
+		const view = await openSelectItem(page, "milk");
+		const picture = view
+			.getByRole("article", { name: "Woolworths Full Cream Milk" })
+			.getByRole("img", { name: "Woolworths Full Cream Milk" });
+		expect(await picture.evaluate((img) => (img as HTMLElement).offsetWidth)).toBe(96);
+		await expect(view.locator("s")).toHaveCount(0);
 	});
 });

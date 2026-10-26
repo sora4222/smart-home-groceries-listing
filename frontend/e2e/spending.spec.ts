@@ -1,5 +1,5 @@
 import type { APIRequestContext } from "@playwright/test";
-import { API_BASE_URL, expect, gotoList, test } from "./fixtures";
+import { API_BASE_URL, expect, gotoList, test, openSelectItem } from "./fixtures";
 
 /**
  * Purchase history and Order › History (`/order/history`), in a real browser
@@ -178,12 +178,12 @@ test.describe("spending", () => {
 		});
 
 		await gotoList(page);
-		await page.getByRole("button", { name: "Compare prices for milk" }).click();
+		await openSelectItem(page, "milk");
 		const bought = page
-			.getByRole("dialog")
+			.getByRole("main")
 			.getByRole("button", { name: /Bought Full Cream Milk once/ });
 		await expect(bought).toHaveCount(1);
 		await bought.click();
-		await expect(page.getByRole("dialog")).toContainText("$3.10 each × 2");
+		await expect(page.getByRole("main")).toContainText("$3.10 each × 2");
 	});
 });

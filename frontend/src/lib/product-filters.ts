@@ -1,15 +1,18 @@
 /**
- * Narrowing the Select item list by store, size measure and price. Display
- * filters only: they change what is shown, never what is bought.
+ * Narrowing the Select item list by store, specials, size measure and price.
+ * Display filters only: they change what is shown, never what is bought.
  */
 import type { StoreId, StoreProduct, StoreProducts } from "#/lib/api/products";
 import type { StoreListing } from "#/lib/product-sort";
+import { visibleProducts } from "#/lib/specials";
 
 /** What a product is sold by. */
 export type Measure = "grams" | "litres";
 
 export interface ProductFilters {
 	store: StoreId | "both";
+	/** Only products on special. */
+	specialsOnly: boolean;
 	measure: Measure | "any";
 	/** Highest shelf price to show, in dollars; `null` for no limit. */
 	maxPrice: number | null;
@@ -17,6 +20,7 @@ export interface ProductFilters {
 
 export const NO_FILTERS: ProductFilters = {
 	store: "both",
+	specialsOnly: false,
 	measure: "any",
 	maxPrice: null,
 };
@@ -45,6 +49,30 @@ export function storesShown(
 	return stores.filter(
 		(results) => filters.store === "both" || results.store === filters.store,
 	);
+}
+
+/**
+ * Every product to show, as one list: from the stores the store filter
+ * keeps that answered, on special when asked, in stock unless
+ * `showUnavailable`, and passing the size and price filters.
+ */
+export function shownListings(
+	stores: StoreProducts[],
+	filters: ProductFilters,
+	showUnavailable: boolean,
+): StoreListing[] {
+	const listings = storesShown(stores, filters)
+		.filter((results) => results.status === "ok")
+		.flatMap((results) =>
+			visibleProducts(results.products, filters.specialsOnly)
+				.filter((product) => showUnavailable || product.available)
+				.map((product) => ({
+					store: results.store,
+					storeName: results.store_name,
+					product,
+				})),
+		);
+	return filterListings(listings, filters);
 }
 
 /**

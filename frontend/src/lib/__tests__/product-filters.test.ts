@@ -6,6 +6,7 @@ import {
 	filterListings,
 	measureOf,
 	NO_FILTERS,
+	shownListings,
 	storesShown,
 } from "#/lib/product-filters";
 import type { StoreListing } from "#/lib/product-sort";
@@ -97,5 +98,47 @@ describe("filterListings", () => {
 		expect(ids(filterListings(all, { ...NO_FILTERS, maxPrice: 5 }))).toEqual([
 			"milk",
 		]);
+	});
+});
+
+describe("shownListings", () => {
+	const answer = (
+		store: StoreId,
+		products: StoreProduct[],
+		status: StoreProducts["status"] = "ok",
+	): StoreProducts => ({
+		store,
+		store_name: store,
+		status,
+		message: null,
+		products,
+	});
+	const stores = [
+		answer("woolworths", [
+			productFixture({ product_id: "plain" }),
+			productFixture({ product_id: "special", on_special: true }),
+			productFixture({ product_id: "sold-out", available: false }),
+		]),
+		answer("coles", [productFixture({ product_id: "failed" })], "blocked"),
+	];
+
+	it("lists the products of the stores that answered", () => {
+		expect(ids(shownListings(stores, NO_FILTERS, true))).toEqual([
+			"plain",
+			"special",
+			"sold-out",
+		]);
+	});
+
+	it("hides sold-out products unless they are shown", () => {
+		expect(ids(shownListings(stores, NO_FILTERS, false))).toEqual([
+			"plain",
+			"special",
+		]);
+	});
+
+	it("keeps only specials when asked", () => {
+		const filters = { ...NO_FILTERS, specialsOnly: true };
+		expect(ids(shownListings(stores, filters, true))).toEqual(["special"]);
 	});
 });

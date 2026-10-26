@@ -162,16 +162,13 @@ mod tests {
         let url = authorize_url(
             "https://accounts.google.com/o/oauth2/v2/auth",
             "client-1",
-            "http://localhost:3000/settings/intake",
+            "http://localhost:3000/settings/help",
             "abc",
         );
         let parsed = url::Url::parse(&url).unwrap();
         let pairs: std::collections::HashMap<_, _> = parsed.query_pairs().into_owned().collect();
         assert_eq!(pairs["client_id"], "client-1");
-        assert_eq!(
-            pairs["redirect_uri"],
-            "http://localhost:3000/settings/intake"
-        );
+        assert_eq!(pairs["redirect_uri"], "http://localhost:3000/settings/help");
         assert_eq!(pairs["scope"], TASKS_SCOPE);
         assert_eq!(pairs["access_type"], "offline");
         assert_eq!(pairs["prompt"], "consent");

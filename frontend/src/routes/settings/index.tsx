@@ -1,8 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
-/** `/settings` opens its first section. */
+/** `/settings` before a section is picked. */
 export const Route = createFileRoute("/settings/")({
-	beforeLoad: () => {
-		throw redirect({ to: "/settings/item-rules", replace: true });
-	},
+	component: () => (
+		<p className="text-sm text-muted-foreground">Pick a section.</p>
+	),
 });

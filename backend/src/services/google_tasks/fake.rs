@@ -175,11 +175,11 @@ mod tests {
 
     #[tokio::test]
     async fn signing_in_goes_straight_back_with_a_code_it_accepts() {
-        let fake = FakeTasksApi::new("http://localhost:3000/settings/intake");
+        let fake = FakeTasksApi::new("http://localhost:3000/settings/help");
         let url = fake.authorize_url("s1");
         assert_eq!(
             url,
-            "http://localhost:3000/settings/intake?code=fake-code&state=s1"
+            "http://localhost:3000/settings/help?code=fake-code&state=s1"
         );
         let token = fake.exchange_code(FAKE_CODE).await.unwrap();
         assert_eq!(fake.task_lists(&token).await.unwrap().len(), 2);

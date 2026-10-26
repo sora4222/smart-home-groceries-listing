@@ -1,7 +1,7 @@
 # Feature: Network access logging
 
 Status: **implemented** — every request the backend answers is written to a
-daily log file and to the `access_logs` table, and the `/logs` page shows the
+daily log file and to the `access_logs` table, and the `/settings/logs` page shows the
 table. Steps for people: `docs/using-the-app.md` ("Access log review") —
 keep it in step with this spec.
 
@@ -62,7 +62,7 @@ request ─▶ access-log middleware (outermost layer, lib.rs)
 
 There is no admin role in this POC: every signed-in member may read the log.
 
-## The `/logs` page
+## The `/settings/logs` page
 Newest first. Each row: status badge (red for 5xx, outlined for 4xx), method,
 path, time, who ("Not signed in" for `unauthenticated`), source (with any
 forwarded claim in brackets) and duration. **Show health checks** reloads from

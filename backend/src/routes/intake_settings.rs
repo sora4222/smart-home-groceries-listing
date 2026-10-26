@@ -1,4 +1,4 @@
-//! `GET /api/intake/settings` — what `/settings/intake` shows about every
+//! `GET /api/intake/settings` — what `/settings/help` shows about every
 //! intake channel and the triage checker. Never returns a secret: only
 //! whether each one is set.
 

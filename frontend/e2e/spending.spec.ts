@@ -134,7 +134,7 @@ test.describe("spending", () => {
 		await chosenAtWoolworths(request, "bananas", 1, "w-banana");
 		await fillTrolley(request, ["w-milk-2l", "w-banana"]);
 
-		await gotoList(page, "/analysis?view=item");
+		await gotoList(page, "/order/history?view=item");
 		await page.getByLabel("Category", { exact: true }).selectOption("Fruit & veg");
 
 		await expect(page).toHaveURL(/category=Fruit/);

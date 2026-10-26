@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import { api } from "#/lib/api";
 
-/** What Google adds to `/settings/intake` when it sends the browser back. */
+/** What Google adds to `/settings/help` when it sends the browser back. */
 export interface GoogleReturn {
 	code?: string;
 	state?: string;

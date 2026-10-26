@@ -110,6 +110,31 @@ impl<'a> GroceryService<'a> {
         Ok(item)
     }
 
+    /// Puts a removed item back as it was (Undo): its own chips only, no
+    /// item rules, and no duplicate check.
+    pub async fn restore(
+        &self,
+        payload: &GroceryItemCreate,
+        user_id: &str,
+    ) -> Result<GroceryItem, ApiError> {
+        let note = clean_note(payload.note.as_deref());
+        let filter_terms = filter_terms::clean(payload.filter_terms.as_deref().unwrap_or(&[]));
+        let mut tx = self.pool.begin().await?;
+        let item = repository::insert_item(
+            &mut tx,
+            payload.name.trim(),
+            payload.quantity,
+            GroceryItemSource::Manual,
+            note.as_deref(),
+            &filter_terms,
+            user_id,
+        )
+        .await?;
+        tx.commit().await?;
+        log::added(&item, log::Added::NewEntry, user_id);
+        Ok(item)
+    }
+
     /// Applies an edit to an item on the list.
     ///
     /// Absent fields are left as they were. Renaming the item or changing its
@@ -172,24 +197,26 @@ impl<'a> GroceryService<'a> {
     /// Locks in the whole list for purchase: every active item becomes
     /// committed. Returns the items it changed, which is empty when there was
     /// nothing under review — pressing the button twice is harmless.
-    pub async fn commit_list(&self) -> Result<Vec<GroceryItem>, ApiError> {
-        self.move_all(GroceryItemStatus::Active, GroceryItemStatus::Committed)
+    /// `ids` limits it to those items.
+    pub async fn commit_list(&self, ids: Option<&[Uuid]>) -> Result<Vec<GroceryItem>, ApiError> {
+        self.move_all(GroceryItemStatus::Active, GroceryItemStatus::Committed, ids)
             .await
     }
 
-    /// Reopens a committed list for editing.
-    pub async fn release_list(&self) -> Result<Vec<GroceryItem>, ApiError> {
-        self.move_all(GroceryItemStatus::Committed, GroceryItemStatus::Active)
+    /// Reopens a committed list for editing; `ids` limits it to those items.
+    pub async fn release_list(&self, ids: Option<&[Uuid]>) -> Result<Vec<GroceryItem>, ApiError> {
+        self.move_all(GroceryItemStatus::Committed, GroceryItemStatus::Active, ids)
             .await
     }
 
-    /// Moves every item in one status to another, and logs how many moved.
+    /// Moves the items in one status to another, and logs how many moved.
     async fn move_all(
         &self,
         from: GroceryItemStatus,
         to: GroceryItemStatus,
+        ids: Option<&[Uuid]>,
     ) -> Result<Vec<GroceryItem>, ApiError> {
-        let items = repository::move_all(self.pool, from, to).await?;
+        let items = repository::move_all(self.pool, from, to, ids).await?;
         log::list_moved(from, to, &items);
         Ok(items)
     }

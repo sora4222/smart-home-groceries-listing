@@ -111,15 +111,12 @@ export function useGroceryListActions(
 				label: "Undo",
 				onClick: () =>
 					undo(async () => {
-						const back = await api.grocery.add(
-							{
-								name: before.name,
-								quantity: before.quantity,
-								note: before.note ?? undefined,
-								filter_terms: before.filter_terms,
-							},
-							"separate",
-						);
+						const back = await api.grocery.restore({
+							name: before.name,
+							quantity: before.quantity,
+							note: before.note ?? undefined,
+							filter_terms: before.filter_terms,
+						});
 						await restoreChoices(back.id, selections.get(id));
 					}),
 			},
@@ -133,7 +130,10 @@ export function useGroceryListActions(
 			toast.success(
 				`${locked.length} ${locked.length === 1 ? "item" : "items"} ready to order`,
 				{
-					action: { label: "Undo", onClick: () => undo(api.grocery.release) },
+					action: {
+						label: "Undo",
+						onClick: () => undo(() => api.grocery.release(idsOf(locked))),
+					},
 				},
 			);
 		} catch {
@@ -144,9 +144,12 @@ export function useGroceryListActions(
 
 	async function release() {
 		try {
-			await api.grocery.release();
+			const reopened = await api.grocery.release();
 			toast.success("List reopened", {
-				action: { label: "Undo", onClick: () => undo(api.grocery.commit) },
+				action: {
+					label: "Undo",
+					onClick: () => undo(() => api.grocery.commit(idsOf(reopened))),
+				},
 			});
 		} catch {
 			toast.error("Could not reopen the list — try again.");
@@ -155,4 +158,9 @@ export function useGroceryListActions(
 	}
 
 	return { add, save, remove, commit, release };
+}
+
+/** Undo moves back only the items a commit or release moved. */
+function idsOf(items: GroceryItem[]): string[] {
+	return items.map((item) => item.id);
 }

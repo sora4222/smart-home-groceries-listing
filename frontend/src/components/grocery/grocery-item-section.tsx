@@ -4,7 +4,7 @@ import { SelectItemLink } from "#/components/grocery/select-item-link";
 import type {
 	GroceryItem,
 	GroceryItemEdit,
-	ItemSelection,
+	ItemChoices,
 	StoreId,
 } from "#/lib/api";
 
@@ -25,7 +25,7 @@ export function GroceryItemSection({
 }: {
 	items: GroceryItem[];
 	empty?: string;
-	selections: Map<string, ItemSelection>;
+	selections: Map<string, ItemChoices>;
 	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
 	onClearChoice: (

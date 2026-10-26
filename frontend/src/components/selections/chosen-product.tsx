@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ProductImage } from "#/components/products/product-image";
 import { CountSelect } from "#/components/selections/count-select";
 import { Button } from "#/components/ui/button";
-import type { ItemSelection, StoreId } from "#/lib/api";
+import type { ItemChoices, ItemSelection, StoreId } from "#/lib/api";
 import { formatMoney } from "#/lib/money";
 
 /** Clears one chosen product. */
@@ -30,7 +30,7 @@ export function ChosenProduct({
 	onSetCount,
 }: {
 	itemName: string;
-	selection: ItemSelection | null;
+	selection: ItemChoices | null;
 	onClear?: OnClear;
 	onSetCount?: OnSetCount;
 }) {
@@ -40,10 +40,10 @@ export function ChosenProduct({
 		);
 	}
 
-	const bought = [selection, ...(selection.bought_with ?? [])];
+	const bought = [selection, ...selection.bought_with];
 	const total = bought.reduce((sum, s) => sum + s.quantity, 0);
 	const several = bought.length > 1;
-	const others = selection.also_chosen ?? [];
+	const others = selection.also_chosen;
 	return (
 		<div className="flex flex-col gap-1">
 			{bought.map((row, index) => (

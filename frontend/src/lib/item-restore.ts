@@ -1,7 +1,7 @@
 /**
  * Putting a list item's products back after an undo.
  */
-import { ApiError, api, type ItemSelection, type StoreId } from "#/lib/api";
+import { ApiError, api, type ItemChoices, type StoreId } from "#/lib/api";
 import { type ChoiceUndo, productsAt } from "#/lib/choice-undo";
 
 /**
@@ -80,12 +80,12 @@ async function chooseMakingRoom(
  */
 export async function restoreChoices(
 	itemId: string,
-	selection: ItemSelection | undefined,
+	selection: ItemChoices | undefined,
 ): Promise<void> {
 	if (!selection) return;
 	const stores: StoreId[] = [
 		...new Set(
-			(selection.also_chosen ?? [])
+			selection.also_chosen
 				.map((s) => s.store)
 				.filter((store) => store !== selection.store),
 		),

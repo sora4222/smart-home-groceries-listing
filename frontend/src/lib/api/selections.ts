@@ -32,16 +32,25 @@ export interface ItemSelection {
 	selected_at: string;
 	/** How many of this product the order buys. */
 	quantity: number;
+}
+
+/** One item's choices, as `list()` returns them. */
+export interface ItemChoices extends ItemSelection {
 	/**
-	 * More products the order buys for the item, at the same store. Only in
-	 * `list()`; the counts of all of them add up to the item's quantity.
+	 * More products the order buys for the item, at the same store. The
+	 * counts of all of them add up to the item's quantity.
 	 */
-	bought_with?: ItemSelection[];
+	bought_with: ItemSelection[];
 	/**
 	 * The item's choices at the other stores, which the order does not buy
-	 * now. Only in `list()`; the order screen can switch the item to one.
+	 * now. The order screen can switch the item to one.
 	 */
-	also_chosen?: ItemSelection[];
+	also_chosen: ItemSelection[];
+}
+
+/** Every product chosen for the item: the ones the order buys, then the rest. */
+export function everyChoice(choices: ItemChoices): ItemSelection[] {
+	return [choices, ...choices.bought_with, ...choices.also_chosen];
 }
 
 /** What the household picked in an item's price comparison. */
@@ -58,7 +67,7 @@ export interface OrderStorePick {
 
 export const selectionsApi = {
 	/** Every item's product to buy, with its choices at the other stores. */
-	list: () => request<ItemSelection[]>("/api/item-selections"),
+	list: () => request<ItemChoices[]>("/api/item-selections"),
 	/**
 	 * Chooses a product for the item and makes its store the one the order
 	 * buys from. An item wanting one swaps its product; an item wanting more
@@ -106,7 +115,7 @@ export const selectionsApi = {
 
 /** The chosen products keyed by the item they were chosen for. */
 export function selectionsByItem(
-	selections: ItemSelection[],
-): Map<string, ItemSelection> {
+	selections: ItemChoices[],
+): Map<string, ItemChoices> {
 	return new Map(selections.map((s) => [s.grocery_item_id, s]));
 }

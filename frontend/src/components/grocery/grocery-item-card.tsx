@@ -15,7 +15,7 @@ import {
 import type {
 	GroceryItem,
 	GroceryItemEdit,
-	ItemSelection,
+	ItemChoices,
 	StoreId,
 } from "#/lib/api";
 
@@ -24,7 +24,7 @@ interface GroceryItemCardProps {
 	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
 	/** The product chosen for this item, if any. */
-	selection?: ItemSelection | null;
+	selection?: ItemChoices | null;
 	/** The "Select item" link to the item's product page. */
 	selectLink?: ReactNode;
 	/** Forgets the item's chosen product; leave out to hide "Clear". */

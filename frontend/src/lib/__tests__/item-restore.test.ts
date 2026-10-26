@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { selectionFixture } from "#/components/selections/__tests__/fixtures";
-import { api, type ItemSelection } from "#/lib/api";
+import { api, type ItemChoices } from "#/lib/api";
 import { applyUndo } from "#/lib/item-restore";
 
 const ITEM = "33333333-3333-3333-3333-333333333333";
 
 /** The item now buys `counts` at Woolworths, oldest first. */
-function now(...counts: Array<[string, number]>): ItemSelection[] {
+function now(...counts: Array<[string, number]>): ItemChoices[] {
 	const [first, ...rest] = counts.map(([product_id, quantity]) =>
 		selectionFixture({ store: "woolworths", product_id, quantity }),
 	);

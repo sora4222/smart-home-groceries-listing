@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import {
 	api,
-	type ItemSelection,
+	type ItemChoices,
 	type OrderOption,
 	type OrderStorePick,
 } from "#/lib/api";
@@ -14,7 +14,7 @@ import { toastWithUndo } from "#/lib/undo-toast";
  * store. The toast's Undo puts every moved item back at the store it was
  * bought from before (`selections` is what the page shows now).
  */
-export function useOrderStores(selections: Map<string, ItemSelection>) {
+export function useOrderStores(selections: Map<string, ItemChoices>) {
 	const router = useRouter();
 
 	async function use(option: OrderOption) {

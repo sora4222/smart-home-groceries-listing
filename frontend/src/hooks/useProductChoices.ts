@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
 	ApiError,
 	api,
-	type ItemSelection,
+	type ItemChoices,
 	type ProductChoice,
 	type StoreId,
 } from "#/lib/api";
@@ -25,7 +25,7 @@ import { toastWithUndo } from "#/lib/undo-toast";
  * `selections` is what the page shows now: each item's choices before the
  * change, which Undo restores.
  */
-export function useProductChoices(selections: Map<string, ItemSelection>) {
+export function useProductChoices(selections: Map<string, ItemChoices>) {
 	const router = useRouter();
 
 	/** The success toast, whose Undo puts the store back by `plan`. */

@@ -5,7 +5,7 @@ import {
 	api,
 	type GroceryItem,
 	type GroceryItemEdit,
-	type ItemSelection,
+	type ItemChoices,
 	type NewGroceryItem,
 	type OnDuplicate,
 } from "#/lib/api";
@@ -23,7 +23,7 @@ import { toastWithUndo } from "#/lib/undo-toast";
  */
 export function useGroceryListActions(
 	items: GroceryItem[],
-	selections: Map<string, ItemSelection>,
+	selections: Map<string, ItemChoices>,
 ) {
 	const router = useRouter();
 

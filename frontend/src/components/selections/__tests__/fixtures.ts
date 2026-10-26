@@ -1,9 +1,9 @@
-import type { ItemSelection } from "#/lib/api";
+import type { ItemChoices } from "#/lib/api";
 
 /** A saved choice for the shared milk item; tests override what they test. */
 export function selectionFixture(
-	overrides: Partial<ItemSelection> = {},
-): ItemSelection {
+	overrides: Partial<ItemChoices> = {},
+): ItemChoices {
 	return {
 		grocery_item_id: "33333333-3333-3333-3333-333333333333",
 		store: "coles",
@@ -21,6 +21,8 @@ export function selectionFixture(
 		image_url: "https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		selected_by: "user_dev",
 		selected_at: new Date("2026-10-01T00:00:00Z").toISOString(),
+		bought_with: [],
+		also_chosen: [],
 		...overrides,
 	};
 }

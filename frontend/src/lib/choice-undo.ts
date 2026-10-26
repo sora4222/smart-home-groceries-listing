@@ -6,7 +6,7 @@
  * products and counts, then the store bought from. Pure: `lib/item-restore`
  * carries the plan out.
  */
-import type { ItemSelection, StoreId } from "#/lib/api";
+import { everyChoice, type ItemChoices, type StoreId } from "#/lib/api";
 
 /** One product to choose again, and how many of it to buy. */
 export interface CountedProduct {
@@ -25,25 +25,17 @@ export interface ChoiceUndo {
 
 /** Every product the item has at `store`, oldest first. */
 export function productsAt(
-	before: ItemSelection | null,
+	before: ItemChoices | null,
 	store: StoreId,
 ): CountedProduct[] {
 	if (!before) return [];
-	const all = [
-		before,
-		...(before.bought_with ?? []),
-		...(before.also_chosen ?? []),
-	];
-	return all
+	return everyChoice(before)
 		.filter((s) => s.store === store)
 		.map((s) => ({ product_id: s.product_id, quantity: s.quantity }));
 }
 
 /** The plan that puts `store` back as it was in `before`. */
-export function undoAt(
-	before: ItemSelection | null,
-	store: StoreId,
-): ChoiceUndo {
+export function undoAt(before: ItemChoices | null, store: StoreId): ChoiceUndo {
 	const boughtAt = before?.store ?? null;
 	return {
 		store,

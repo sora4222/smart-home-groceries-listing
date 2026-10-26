@@ -24,6 +24,7 @@ import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-ru
 import { Route as SettingsLogsRouteImport } from './routes/settings/logs'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
+import { Route as ItemsItemIdSelectRouteImport } from './routes/items.$itemId.select'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +101,11 @@ const SignUpSplatRoute = SignUpSplatRouteImport.update({
   path: '/sign-up/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ItemsItemIdSelectRoute = ItemsItemIdSelectRouteImport.update({
+  id: '/items/$itemId/select',
+  path: '/items/$itemId/select',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/sign-up/$': typeof SignUpSplatRoute
   '/order/': typeof OrderIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/items/$itemId/select': typeof ItemsItemIdSelectRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/sign-up/$': typeof SignUpSplatRoute
   '/order': typeof OrderIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/items/$itemId/select': typeof ItemsItemIdSelectRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/sign-up/$': typeof SignUpSplatRoute
   '/order/': typeof OrderIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/items/$itemId/select': typeof ItemsItemIdSelectRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/sign-up/$'
     | '/order/'
     | '/settings/'
+    | '/items/$itemId/select'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/sign-up/$'
     | '/order'
     | '/settings'
+    | '/items/$itemId/select'
   id:
     | '__root__'
     | '/'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/sign-up/$'
     | '/order/'
     | '/settings/'
+    | '/items/$itemId/select'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
+  ItemsItemIdSelectRoute: typeof ItemsItemIdSelectRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignUpSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/items/$itemId/select': {
+      id: '/items/$itemId/select'
+      path: '/items/$itemId/select'
+      fullPath: '/items/$itemId/select'
+      preLoaderRoute: typeof ItemsItemIdSelectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -365,6 +385,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
+  ItemsItemIdSelectRoute: ItemsItemIdSelectRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

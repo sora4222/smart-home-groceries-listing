@@ -8,16 +8,15 @@ import {
 	searchFixture,
 	storeFixture,
 } from "#/components/products/__tests__/fixtures";
-import { PriceComparison } from "#/components/products/price-comparison";
-import { api } from "#/lib/api";
+import { ProductChoiceProvider } from "#/components/products/product-choice";
+import { ProductResults } from "#/components/products/product-results";
+import { api, type ItemProducts } from "#/lib/api";
+import { DEFAULT_DISPLAY, saveDisplay } from "#/lib/display-settings";
 
-function renderComparison() {
-	render(
-		<PriceComparison item={itemFixture({ filter_terms: ["full cream"] })}>
-			<PriceComparison.Trigger />
-			<PriceComparison.Content />
-		</PriceComparison>,
-	);
+function renderResults(search: ItemProducts) {
+	vi.spyOn(api.products, "forItem").mockResolvedValue(search);
+	render(<ProductResults item={itemFixture()} />);
+	return screen.findByRole("list", { name: "Products" });
 }
 
 /** The product names in a list, top to bottom. */
@@ -27,103 +26,95 @@ function articleNames(list: HTMLElement) {
 		.map((article) => article.getAttribute("aria-label"));
 }
 
-async function pickSort(dialog: HTMLElement, label: string) {
-	await userEvent.click(
-		within(dialog).getByRole("combobox", { name: "Sort by" }),
-	);
-	await userEvent.click(await screen.findByRole("option", { name: label }));
+async function pick(label: string, option: string) {
+	await userEvent.click(screen.getByRole("combobox", { name: label }));
+	await userEvent.click(await screen.findByRole("option", { name: option }));
 }
 
-async function open() {
-	await userEvent.click(
-		screen.getByRole("button", { name: "Compare prices for milk" }),
-	);
-	return screen.findByRole("dialog");
-}
+const bothStores = searchFixture([
+	storeFixture({
+		store: "woolworths",
+		store_name: "Woolworths",
+		products: [productFixture({ product_id: "w", brand: "B", price: "2.00" })],
+	}),
+	storeFixture({
+		products: [
+			productFixture({ product_id: "c1", brand: "C", price: "1.00" }),
+			productFixture({ product_id: "c2", brand: "A", price: "3.00" }),
+		],
+	}),
+]);
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	window.localStorage.clear();
 });
 
-describe("PriceComparison", () => {
-	it("does not search the stores until it is opened", () => {
-		const search = vi.spyOn(api.products, "forItem");
-		renderComparison();
+describe("ProductResults", () => {
+	it("searches for the item and shows both stores in one list", async () => {
+		const list = await renderResults(bothStores);
 
-		expect(search).not.toHaveBeenCalled();
-	});
-
-	it("shows both stores' products in one list once opened", async () => {
-		const search = vi.spyOn(api.products, "forItem").mockResolvedValue(
-			searchFixture([
-				storeFixture({
-					store: "woolworths",
-					store_name: "Woolworths",
-					products: [productFixture({ product_id: "w1", brand: "Woolworths" })],
-				}),
-				storeFixture(),
-			]),
-		);
-		renderComparison();
-
-		const dialog = await open();
-
-		expect(search).toHaveBeenCalledWith(
-			"33333333-3333-3333-3333-333333333333",
+		expect(api.products.forItem).toHaveBeenCalledWith(
+			itemFixture().id,
 			expect.anything(),
 		);
-		expect(
-			within(dialog).getByRole("heading", { name: "Prices for milk ×2" }),
-		).toBeInTheDocument();
-		expect(within(dialog).getByLabelText("Product filters")).toHaveTextContent(
-			"full cream",
-		);
-		const list = await within(dialog).findByRole("list", { name: "Products" });
+		expect(articleNames(list)).toHaveLength(3);
+	});
+
+	it("sorts both stores together", async () => {
+		const list = await renderResults(bothStores);
+
+		await pick("Sort by", "Price: low to high");
 		expect(articleNames(list)).toEqual([
-			"Woolworths Full Cream Milk",
-			"Coles Full Cream Milk",
+			"C Full Cream Milk",
+			"B Full Cream Milk",
+			"A Full Cream Milk",
+		]);
+
+		await pick("Sort by", "Name: A to Z");
+		expect(articleNames(list)).toEqual([
+			"A Full Cream Milk",
+			"B Full Cream Milk",
+			"C Full Cream Milk",
 		]);
 	});
 
-	it("sorts both stores together by what the household picks", async () => {
-		vi.spyOn(api.products, "forItem").mockResolvedValue(
+	it("filters by store and by price", async () => {
+		const list = await renderResults(bothStores);
+
+		await pick("Store", "Coles");
+		expect(articleNames(list).sort()).toEqual([
+			"A Full Cream Milk",
+			"C Full Cream Milk",
+		]);
+
+		await userEvent.type(screen.getByLabelText("Max price ($)"), "2");
+		expect(articleNames(list)).toEqual(["C Full Cream Milk"]);
+	});
+
+	it("filters by grams or litres", async () => {
+		await renderResults(
 			searchFixture([
 				storeFixture({
-					store: "woolworths",
-					store_name: "Woolworths",
 					products: [
-						productFixture({ product_id: "w", brand: "B", price: "2.00" }),
-					],
-				}),
-				storeFixture({
-					products: [
-						productFixture({ product_id: "c1", brand: "C", price: "1.00" }),
-						productFixture({ product_id: "c2", brand: "A", price: "3.00" }),
+						productFixture({ product_id: "milk", name: "Milk" }),
+						productFixture({
+							product_id: "rice",
+							name: "Rice",
+							unit_price: { amount: "0.5", per: "100g", converted_from: null },
+						}),
 					],
 				}),
 			]),
 		);
-		renderComparison();
-		const dialog = await open();
-		const list = await within(dialog).findByRole("list", { name: "Products" });
 
-		await pickSort(dialog, "Price: low to high");
-		expect(articleNames(list)).toEqual([
-			"C Full Cream Milk",
-			"B Full Cream Milk",
-			"A Full Cream Milk",
-		]);
-
-		await pickSort(dialog, "Name: A to Z");
-		expect(articleNames(list)).toEqual([
-			"A Full Cream Milk",
-			"B Full Cream Milk",
-			"C Full Cream Milk",
-		]);
+		await pick("Size", "Grams");
+		expect(screen.queryByRole("article", { name: "Coles Milk" })).toBeNull();
+		expect(screen.getByRole("article", { name: "Coles Rice" })).toBeVisible();
 	});
 
 	it("narrows to specials when asked", async () => {
-		vi.spyOn(api.products, "forItem").mockResolvedValue(
+		await renderResults(
 			searchFixture([
 				storeFixture({
 					products: [
@@ -137,20 +128,29 @@ describe("PriceComparison", () => {
 				}),
 			]),
 		);
-		renderComparison();
-		const dialog = await open();
-		await within(dialog).findByRole("list", { name: "Products" });
 
 		await userEvent.click(
-			within(dialog).getByRole("switch", { name: "Specials only" }),
+			screen.getByRole("switch", { name: "Specials only" }),
 		);
 
-		expect(
-			within(dialog).queryByRole("article", { name: "Coles Plain" }),
-		).toBeNull();
-		expect(
-			within(dialog).getByRole("article", { name: "Coles Cheap" }),
-		).toBeInTheDocument();
+		expect(screen.queryByRole("article", { name: "Coles Plain" })).toBeNull();
+		expect(screen.getByRole("article", { name: "Coles Cheap" })).toBeVisible();
+	});
+
+	it("hides unavailable products when the display setting says so", async () => {
+		saveDisplay({ ...DEFAULT_DISPLAY, showUnavailable: false });
+		const list = await renderResults(
+			searchFixture([
+				storeFixture({
+					products: [
+						productFixture({ product_id: "a", name: "Here" }),
+						productFixture({ product_id: "b", name: "Gone", available: false }),
+					],
+				}),
+			]),
+		);
+
+		expect(articleNames(list)).toEqual(["Coles Here"]);
 	});
 
 	it("offers to try again when the search fails", async () => {
@@ -158,18 +158,15 @@ describe("PriceComparison", () => {
 			.spyOn(api.products, "forItem")
 			.mockRejectedValueOnce(new Error("offline"))
 			.mockResolvedValue(searchFixture([storeFixture()]));
-		renderComparison();
-		const dialog = await open();
+		render(<ProductResults item={itemFixture()} />);
 
-		expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"The stores could not be searched.",
 		);
-		await userEvent.click(
-			within(dialog).getByRole("button", { name: "Try again" }),
-		);
+		await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
 		expect(
-			await within(dialog).findByRole("list", { name: "Products" }),
+			await screen.findByRole("list", { name: "Products" }),
 		).toBeInTheDocument();
 		expect(search).toHaveBeenCalledTimes(2);
 	});
@@ -187,42 +184,27 @@ describe("PriceComparison", () => {
 		);
 		const onChoose = vi.fn().mockResolvedValue(undefined);
 		render(
-			<PriceComparison
-				item={itemFixture()}
-				chosen={[{ store: "coles", product_id: "a" }]}
-				onChoose={onChoose}
+			<ProductChoiceProvider
+				value={{ chosen: [{ store: "coles", product_id: "a" }], onChoose }}
 			>
-				<PriceComparison.Trigger />
-				<PriceComparison.Content />
-			</PriceComparison>,
+				<ProductResults item={itemFixture()} />
+			</ProductChoiceProvider>,
 		);
-		const dialog = await open();
-		await within(dialog).findByRole("list", { name: "Products" });
+		await screen.findByRole("list", { name: "Products" });
 
 		expect(
-			within(dialog).getByRole("button", {
-				name: "Coles Plain at Coles is chosen",
-			}),
+			screen.getByRole("button", { name: "Coles Plain at Coles is chosen" }),
 		).toHaveAttribute("aria-pressed", "true");
 		await userEvent.click(
-			within(dialog).getByRole("button", {
-				name: "Choose Coles Cheap at Coles",
-			}),
+			screen.getByRole("button", { name: "Choose Coles Cheap at Coles" }),
 		);
 
 		expect(onChoose).toHaveBeenCalledWith({ store: "coles", product_id: "b" });
 	});
 
 	it("only compares when nothing can be chosen", async () => {
-		vi.spyOn(api.products, "forItem").mockResolvedValue(
-			searchFixture([storeFixture()]),
-		);
-		renderComparison();
-		const dialog = await open();
-		await within(dialog).findByRole("list", { name: "Products" });
+		await renderResults(searchFixture([storeFixture()]));
 
-		expect(
-			within(dialog).queryByRole("button", { name: /^Choose / }),
-		).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Choose / })).toBeNull();
 	});
 });

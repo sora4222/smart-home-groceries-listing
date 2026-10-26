@@ -203,18 +203,20 @@ pub async fn move_all<'e, E>(
     executor: E,
     from: GroceryItemStatus,
     to: GroceryItemStatus,
+    ids: Option<&[Uuid]>,
 ) -> Result<Vec<GroceryItem>, ApiError>
 where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "UPDATE grocery_items SET status = $2
-         WHERE status = $1
+         WHERE status = $1 AND ($3::uuid[] IS NULL OR id = ANY($3))
          RETURNING id, name, quantity, status, source, note, filter_terms,
                    added_by_user_id, created_at",
     )
     .bind(from)
     .bind(to)
+    .bind(ids)
     .fetch_all(executor)
     .await?)
 }

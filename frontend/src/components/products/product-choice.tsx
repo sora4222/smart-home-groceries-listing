@@ -6,7 +6,7 @@ import type { ProductChoice } from "#/lib/api";
  * What a price comparison knows about choosing: the products already chosen
  * for its item (one per store at most), and how to choose another.
  *
- * Scoped to one `<PriceComparison>` tree — never global. Outside one, the
+ * Scoped to one Select item page — never global. Outside one, the
  * value is `null` and the parts that choose render nothing, so product lists
  * can still be shown read-only.
  */

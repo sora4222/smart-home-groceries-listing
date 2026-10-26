@@ -49,11 +49,22 @@ export interface DuplicateItemDetail {
 	message: string;
 }
 
+/** The query limiting a commit or release to some items. */
+function onlyIds(ids?: string[]): string {
+	return ids ? `?ids=${ids.map(encodeURIComponent).join(",")}` : "";
+}
+
 export const groceryApi = {
 	/** Everything on the list: items under review and items committed. */
 	list: () => request<GroceryItem[]>("/api/grocery-items"),
 	add: (item: NewGroceryItem, onDuplicate: OnDuplicate = "ask") =>
 		request<GroceryItem>(`/api/grocery-items?on_duplicate=${onDuplicate}`, {
+			method: "POST",
+			body: JSON.stringify(item),
+		}),
+	/** Puts a removed item back as it was: no duplicate check, no item rules. */
+	restore: (item: NewGroceryItem) =>
+		request<GroceryItem>("/api/grocery-items?restore=true", {
 			method: "POST",
 			body: JSON.stringify(item),
 		}),
@@ -64,12 +75,16 @@ export const groceryApi = {
 		}),
 	remove: (id: string) =>
 		request<void>(`/api/grocery-items/${id}`, { method: "DELETE" }),
-	/** Locks the reviewed list in for purchase. */
-	commit: () =>
-		request<GroceryItem[]>("/api/grocery-items/commit", { method: "POST" }),
-	/** Reopens a committed list for editing. */
-	release: () =>
-		request<GroceryItem[]>("/api/grocery-items/release", { method: "POST" }),
+	/** Locks the reviewed list in for purchase; only `ids` when given. */
+	commit: (ids?: string[]) =>
+		request<GroceryItem[]>(`/api/grocery-items/commit${onlyIds(ids)}`, {
+			method: "POST",
+		}),
+	/** Reopens a committed list for editing; only `ids` when given. */
+	release: (ids?: string[]) =>
+		request<GroceryItem[]>(`/api/grocery-items/release${onlyIds(ids)}`, {
+			method: "POST",
+		}),
 };
 
 /** Narrows an {@link ApiError} to the duplicate-item 409 the add form handles. */

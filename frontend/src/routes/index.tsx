@@ -150,12 +150,11 @@ function GroceryListPage() {
 				selections={selections}
 				onSave={saveItem}
 				onRemove={removeItem}
-				onChoose={choices.choose}
 				onClearChoice={choices.clear}
 				empty={
 					committed.length > 0
 						? "Nothing new since the list was committed."
-						: 'Nothing on the list yet. Add an item above, or say "Hey Google, add milk to the shopping list" and accept it in Pending Requests.'
+						: "Nothing on the list yet."
 				}
 			/>
 
@@ -187,7 +186,6 @@ function GroceryListPage() {
 						selections={selections}
 						onSave={saveItem}
 						onRemove={removeItem}
-						onChoose={choices.choose}
 						onClearChoice={choices.clear}
 					/>
 				</>

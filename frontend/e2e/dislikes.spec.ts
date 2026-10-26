@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { addItem, expect, gotoList, itemCard, test } from "./fixtures";
+import { addItem, expect, gotoList, test, openSelectItem } from "./fixtures";
 
 /**
  * Disliking products, in a real browser against the real backend.
@@ -10,20 +10,10 @@ import { addItem, expect, gotoList, itemCard, test } from "./fixtures";
 
 const COLES_MILK = "Coles Full Cream Milk at Coles";
 
-/** Opens the price comparison for one item and returns its sheet. */
-async function openComparison(page: Page, name: string) {
-	await itemCard(page, name)
-		.getByRole("button", { name: `Compare prices for ${name}` })
-		.click();
-	const sheet = page.getByRole("dialog");
-	await expect(sheet.getByRole("list", { name: "Products" })).toBeVisible();
-	return sheet;
-}
-
-/** The Coles milk's row in the sheet. */
+/** The Coles milk's row on the Select item page. */
 function colesMilk(page: Page) {
 	return page
-		.getByRole("dialog")
+		.getByRole("main")
 		.locator('[data-testid="store-product"][data-product-id="c-milk-3l"]');
 }
 
@@ -33,27 +23,27 @@ test.describe("disliking a product", () => {
 	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
+		const view = await openSelectItem(page, "milk");
 
-		await sheet.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
+		await view.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
 
 		await expect(colesMilk(page).getByRole("status")).toHaveText(
 			"You disliked this item previously.",
 		);
-		await sheet.getByRole("button", { name: `Choose ${COLES_MILK}` }).click();
+		await view.getByRole("button", { name: `Choose ${COLES_MILK}` }).click();
 		await expect(
-			sheet.getByRole("button", { name: `${COLES_MILK} is chosen` }),
+			view.getByRole("button", { name: `${COLES_MILK} is chosen` }),
 		).toBeVisible();
 	});
 
 	test("removing my dislike takes the warning away", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
-		await sheet.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
+		const view = await openSelectItem(page, "milk");
+		await view.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
 		await expect(colesMilk(page).getByTestId("dislike-notice")).toBeVisible();
 
-		await sheet
+		await view
 			.getByRole("button", { name: `Remove my dislike of ${COLES_MILK}` })
 			.click();
 
@@ -65,8 +55,8 @@ test.describe("disliking a product", () => {
 	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
-		await sheet.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
+		const view = await openSelectItem(page, "milk");
+		await view.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
 
 		await colesMilk(page).getByRole("button", { name: "Buy it this time" }).click();
 		await expect(colesMilk(page)).toContainText("OK to buy it this time.");
@@ -83,8 +73,8 @@ test.describe("disliking a product", () => {
 	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
-		await sheet.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
+		const view = await openSelectItem(page, "milk");
+		await view.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
 		await expect(colesMilk(page).getByTestId("dislike-notice")).toBeVisible();
 
 		await gotoList(page, "/settings/dislikes");

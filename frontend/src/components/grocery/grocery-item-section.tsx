@@ -1,10 +1,10 @@
 import { GroceryItemCard } from "#/components/grocery/grocery-item-card";
 import { GroceryList } from "#/components/grocery/grocery-list";
+import { SelectItemLink } from "#/components/grocery/select-item-link";
 import type {
 	GroceryItem,
 	GroceryItemEdit,
 	ItemSelection,
-	ProductChoice,
 	StoreId,
 } from "#/lib/api";
 
@@ -20,7 +20,6 @@ export function GroceryItemSection({
 	selections,
 	onSave,
 	onRemove,
-	onChoose,
 	onClearChoice,
 }: {
 	items: GroceryItem[];
@@ -28,7 +27,6 @@ export function GroceryItemSection({
 	selections: Map<string, ItemSelection>;
 	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
-	onChoose: (id: string, choice: ProductChoice) => Promise<void>;
 	onClearChoice: (id: string, store: StoreId) => Promise<void>;
 }) {
 	if (items.length === 0) {
@@ -48,7 +46,9 @@ export function GroceryItemSection({
 						onSave={onSave}
 						onRemove={onRemove}
 						selection={selections.get(item.id) ?? null}
-						onChoose={onChoose}
+						selectLink={
+							<SelectItemLink itemId={item.id} itemName={item.name} />
+						}
 						onClearChoice={onClearChoice}
 					/>
 				</GroceryList.Item>

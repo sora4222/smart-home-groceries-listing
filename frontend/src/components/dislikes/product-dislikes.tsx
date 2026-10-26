@@ -11,7 +11,7 @@ import type {
  * What one price comparison knows about dislikes: everyone's dislikes, the
  * overrides, the item being compared, and how to change them.
  *
- * Scoped to one `<PriceComparison>` tree — never global. Outside one the
+ * Scoped to one Select item page — never global. Outside one the
  * value is `null` and the dislike parts render nothing.
  */
 export interface ProductDislikesValue {

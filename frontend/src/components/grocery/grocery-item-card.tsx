@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { GroceryItemEditor } from "#/components/grocery/grocery-item-editor";
-import { PriceComparison } from "#/components/products/price-comparison";
 import { ChosenProduct } from "#/components/selections/chosen-product";
 import { TermChips } from "#/components/terms/term-chips";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardHeader } from "#/components/ui/card";
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "#/components/ui/card";
 import type {
 	GroceryItem,
 	GroceryItemEdit,
 	ItemSelection,
-	ProductChoice,
 	StoreId,
 } from "#/lib/api";
 
@@ -21,8 +25,8 @@ interface GroceryItemCardProps {
 	onRemove: (id: string) => Promise<void>;
 	/** The product chosen for this item, if any. */
 	selection?: ItemSelection | null;
-	/** Chooses the item's product; leave out to only compare prices. */
-	onChoose?: (id: string, choice: ProductChoice) => Promise<void>;
+	/** The "Select item" link to the item's product page. */
+	selectLink?: ReactNode;
 	/** Forgets the item's chosen product; leave out to hide "Clear". */
 	onClearChoice?: (id: string, store: StoreId) => Promise<void>;
 }
@@ -37,16 +41,15 @@ interface GroceryItemCardProps {
  * Editing: the whole item at once, via [`GroceryItemEditor`].
  *
  * A committed item is shown but not editable: the household has locked the list
- * in for purchase and has to release it to change anything. Either way its
- * prices can be compared at both stores and its product chosen — choosing is
- * what the order screen needs, so it stays open on a committed list.
+ * in for purchase and has to release it to change anything. Its product can
+ * still be selected, since the order screen needs one.
  */
 export function GroceryItemCard({
 	item,
 	onSave,
 	onRemove,
 	selection = null,
-	onChoose,
+	selectLink,
 	onClearChoice,
 }: GroceryItemCardProps) {
 	const [editing, setEditing] = useState(false);
@@ -71,18 +74,22 @@ export function GroceryItemCard({
 	}
 
 	return (
-		<Card data-testid="grocery-item" data-item-name={item.name}>
-			<CardHeader className="flex-row items-start justify-between gap-3 p-4 pb-2">
-				<span className="font-medium">{item.name}</span>
-				<div className="flex shrink-0 items-center gap-2">
+		<Card
+			data-testid="grocery-item"
+			data-item-name={item.name}
+			className="gap-2 py-4"
+		>
+			<CardHeader className="px-4">
+				<CardTitle className="font-medium">{item.name}</CardTitle>
+				<CardAction className="flex items-center gap-2">
 					{locked && <Badge variant="outline">Committed</Badge>}
 					<Badge variant="secondary" aria-label={`Quantity ${item.quantity}`}>
 						×{item.quantity}
 					</Badge>
-				</div>
+				</CardAction>
 			</CardHeader>
 
-			<CardContent className="flex flex-col gap-2 p-4 pt-0">
+			<CardContent className="flex flex-col gap-2 px-4">
 				{item.note && <p className="text-sm">{item.note}</p>}
 
 				<TermChips
@@ -111,16 +118,7 @@ export function GroceryItemCard({
 					</span>
 
 					<div className="flex flex-wrap gap-2">
-						<PriceComparison
-							item={item}
-							chosen={
-								selection ? [selection, ...(selection.also_chosen ?? [])] : []
-							}
-							onChoose={onChoose && ((choice) => onChoose(item.id, choice))}
-						>
-							<PriceComparison.Trigger />
-							<PriceComparison.Content />
-						</PriceComparison>
+						{selectLink}
 						{!locked &&
 							(confirmingRemoval ? (
 								<>
@@ -152,7 +150,7 @@ export function GroceryItemCard({
 									</Button>
 									<Button
 										size="sm"
-										variant="ghost"
+										variant="destructive"
 										onClick={() => setConfirmingRemoval(true)}
 										aria-label={`Remove ${item.name}`}
 									>

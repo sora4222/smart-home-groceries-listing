@@ -224,3 +224,23 @@ export async function addItem(page: Page, name: string, quantity?: number) {
 export function ruleCard(page: Page, name: string) {
 	return page.locator(`[data-testid="item-rule"][data-rule-name="${name}"]`);
 }
+
+/**
+ * Opens one item's Select item page from its card and waits for the stores'
+ * products. Returns the page's main area.
+ */
+export async function openSelectItem(page: Page, name: string) {
+	await itemCard(page, name)
+		.getByRole("link", { name: `Select item for ${name}` })
+		.click();
+	const main = page.getByRole("main");
+	await expect(main.getByRole("heading", { name: new RegExp(`^Select ${name} ×`) })).toBeVisible();
+	await expect(main.getByRole("list", { name: "Products" })).toBeVisible();
+	return main;
+}
+
+/** Leaves the Select item page for the list. */
+export async function backToList(page: Page) {
+	await page.getByRole("link", { name: "Back to the list" }).click();
+	await expect(page.getByRole("heading", { name: "Grocery List" })).toBeVisible();
+}

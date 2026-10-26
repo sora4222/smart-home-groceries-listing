@@ -104,7 +104,6 @@ describe("GroceryItemCard", () => {
 				onSave={vi.fn()}
 				onRemove={vi.fn()}
 				selection={selectionFixture()}
-				onChoose={vi.fn()}
 				onClearChoice={onClearChoice}
 			/>,
 		);
@@ -117,6 +116,19 @@ describe("GroceryItemCard", () => {
 		);
 
 		expect(onClearChoice).toHaveBeenCalledWith(itemFixture().id, "coles");
+	});
+
+	it("shows the Select item link it is given", () => {
+		render(
+			<GroceryItemCard
+				item={itemFixture()}
+				onSave={vi.fn()}
+				onRemove={vi.fn()}
+				selectLink={<a href="/items/1/select">Select item</a>}
+			/>,
+		);
+
+		expect(screen.getByRole("link", { name: "Select item" })).toBeVisible();
 	});
 
 	it("says when no product has been chosen", () => {

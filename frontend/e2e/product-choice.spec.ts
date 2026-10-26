@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { addItem, expect, gotoList, itemCard, test } from "./fixtures";
+import { addItem, expect, gotoList, itemCard, test, openSelectItem, backToList } from "./fixtures";
 
 /**
  * Choosing one product for each list item, in a real browser against the
@@ -8,17 +8,6 @@ import { addItem, expect, gotoList, itemCard, test } from "./fixtures";
  * The backend must run with `STORE_CLIENTS=fake`: these tests read the fake
  * catalogue (`backend/src/services/stores/fake.rs`), never a real store.
  */
-
-/** Opens the price comparison for one item and returns its sheet. */
-async function openComparison(page: Page, name: string) {
-	await itemCard(page, name)
-		.getByRole("button", { name: `Compare prices for ${name}` })
-		.click();
-	const sheet = page.getByRole("dialog");
-	await expect(sheet).toBeVisible();
-	await expect(sheet.getByRole("list", { name: "Products" })).toBeVisible();
-	return sheet;
-}
 
 /** The chosen-product panel on an item's card. */
 function chosenOn(page: Page, name: string) {
@@ -33,22 +22,22 @@ test.describe("choosing a product", () => {
 		await expect(itemCard(page, "milk")).toContainText("No product chosen yet");
 	});
 
-	test("choosing a product shows it on the item and in the sheet", async ({
+	test("choosing a product shows it on the item and on the Select item page", async ({
 		page,
 	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
+		const view = await openSelectItem(page, "milk");
 
-		await sheet
+		await view
 			.getByRole("button", { name: "Choose Coles Full Cream Milk at Coles" })
 			.click();
 
-		const chosen = sheet.getByRole("button", {
+		const chosen = view.getByRole("button", {
 			name: "Coles Full Cream Milk at Coles is chosen",
 		});
 		await expect(chosen).toHaveAttribute("aria-pressed", "true");
-		await page.keyboard.press("Escape");
+		await backToList(page);
 		await expect(chosenOn(page, "milk")).toContainText("Coles Full Cream Milk");
 		await expect(chosenOn(page, "milk")).toContainText("3L · Coles · $4.95 each");
 	});
@@ -58,23 +47,23 @@ test.describe("choosing a product", () => {
 	}) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
-		await sheet
+		const view = await openSelectItem(page, "milk");
+		await view
 			.getByRole("button", { name: "Choose Coles Full Cream Milk at Coles" })
 			.click();
 		await expect(
-			sheet.getByRole("button", { name: /Coles Full Cream Milk at Coles is chosen/ }),
+			view.getByRole("button", { name: /Coles Full Cream Milk at Coles is chosen/ }),
 		).toBeVisible();
 
-		await sheet
+		await view
 			.getByRole("button", {
 				name: "Choose Woolworths Full Cream Milk at Woolworths",
 			})
 			.click();
 
 		// One product per store: both stay chosen.
-		await expect(sheet.getByRole("button", { name: /is chosen$/ })).toHaveCount(2);
-		await page.keyboard.press("Escape");
+		await expect(view.getByRole("button", { name: /is chosen$/ })).toHaveCount(2);
+		await backToList(page);
 		await expect(chosenOn(page, "milk")).toContainText("Woolworths");
 		await expect(chosenOn(page, "milk")).toContainText("$3.10 each");
 		await expect(
@@ -85,11 +74,11 @@ test.describe("choosing a product", () => {
 	test("the choice survives a reload and can be cleared", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "bananas");
-		const sheet = await openComparison(page, "bananas");
-		await sheet
+		const view = await openSelectItem(page, "bananas");
+		await view
 			.getByRole("button", { name: "Choose Coles Bananas at Coles" })
 			.click();
-		await page.keyboard.press("Escape");
+		await backToList(page);
 		await expect(chosenOn(page, "bananas")).toBeVisible();
 
 		await gotoList(page);
@@ -106,11 +95,11 @@ test.describe("choosing a product", () => {
 	test("renaming the item drops its choice", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "milk");
-		const sheet = await openComparison(page, "milk");
-		await sheet
+		const view = await openSelectItem(page, "milk");
+		await view
 			.getByRole("button", { name: "Choose Coles Full Cream Milk at Coles" })
 			.click();
-		await page.keyboard.press("Escape");
+		await backToList(page);
 		await expect(chosenOn(page, "milk")).toBeVisible();
 
 		const card = itemCard(page, "milk");
@@ -129,13 +118,13 @@ test.describe("choosing a product", () => {
 		await page.getByRole("button", { name: "Ready to order" }).click();
 		await expect(itemCard(page, "toilet paper")).toContainText("Committed");
 
-		const sheet = await openComparison(page, "toilet paper");
-		await sheet
+		const view = await openSelectItem(page, "toilet paper");
+		await view
 			.getByRole("button", {
 				name: "Choose Quilton 3 Ply Toilet Rolls at Coles",
 			})
 			.click();
-		await page.keyboard.press("Escape");
+		await backToList(page);
 
 		await expect(chosenOn(page, "toilet paper")).toContainText(
 			"Quilton 3 Ply Toilet Rolls",

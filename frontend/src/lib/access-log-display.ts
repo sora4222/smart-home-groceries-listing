@@ -1,5 +1,5 @@
 /**
- * How one access-log row reads on the `/logs` page: the time, who it was,
+ * How one access-log row reads on the `/settings/logs` page: the time, who it was,
  * and how the status code is coloured. Pure, so it is unit-tested.
  */
 import type { AccessLogEntry } from "#/lib/api/access-logs";

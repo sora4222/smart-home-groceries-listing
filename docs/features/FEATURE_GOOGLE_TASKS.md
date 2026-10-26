@@ -1,6 +1,6 @@
 # Feature: Google Tasks intake
 
-Status: **implemented** (backend, `/settings/intake`, Triage "Restore to
+Status: **implemented** (backend, `/settings/help`, Triage "Restore to
 source"). Tested against `wiremock` and an in-memory fake — **not yet against
 a real Google account**. Steps for people:
 `docs/human-setup.md` ("Optional: Google Tasks") and
@@ -31,7 +31,7 @@ The spec's brief guessed at Google; checked before building:
 | Delete after commit | Built that way, and tested (a failed delete is retried, no second card). |
 
 ## Polling rules
-- One list, chosen on `/settings/intake`; only open tasks
+- One list, chosen on `/settings/help`; only open tasks
   (`showCompleted=false`, `showHidden=false`), every page up to 1000 tasks.
 - Polling runs only when **switched on, signed in, and a list is chosen**.
   Interval 30 s – 1 h (`poll_seconds`), re-read every round, so a change needs
@@ -51,7 +51,7 @@ The spec's brief guessed at Google; checked before building:
 
 ## Sign-in
 OAuth 2.0 web flow, `access_type=offline`, `prompt=consent`, scope `tasks`.
-The redirect URI is the **web app's** `/settings/intake` page, which posts
+The redirect URI is the **web app's** `/settings/help` page, which posts
 `code` + `state` to the backend with the member's session — no
 unauthenticated callback exists. `state` is 244 random bits, stored only as
 SHA-256, valid 10 minutes, single use (`google_oauth_states`).
@@ -89,7 +89,7 @@ typed marker can never skip triage.
 
 ## Settings
 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
-(default `http://localhost:3000/settings/intake`), `GOOGLE_TASKS_CLIENT`
+(default `http://localhost:3000/settings/help`), `GOOGLE_TASKS_CLIENT`
 (`live` | `fake`), `GOOGLE_TIMEOUT_SECONDS` (15). Test-only overrides:
 `GOOGLE_OAUTH_AUTH_URL`, `GOOGLE_OAUTH_TOKEN_URL`, `GOOGLE_TASKS_API_BASE`,
 `GOOGLE_TASKS_NO_BACKGROUND_POLL`. The three addresses must be `https`
@@ -106,7 +106,7 @@ travel to them; the backend refuses to start otherwise.
 | Recording a polled item | `services/voice/polled.rs` |
 | Routes | `backend/src/routes/{google_tasks,intake_settings,triage}.rs` |
 | Migration | `backend/migrations/20261002130000_google_tasks_intake.sql` |
-| Page | `frontend/src/routes/settings/intake.tsx`, `components/intake/`, `hooks/useGoogleTasks.ts`, `hooks/useGoogleSignInReturn.ts` |
+| Page | `frontend/src/routes/settings/help.tsx`, `components/intake/`, `hooks/useGoogleTasks.ts`, `hooks/useGoogleSignInReturn.ts` |
 | Restore button | `components/triage/triage-request-card.tsx`, `hooks/useTriageDecisions.ts` |
 
 ## Tests

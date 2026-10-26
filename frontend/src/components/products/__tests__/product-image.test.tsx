@@ -46,4 +46,12 @@ describe("ProductImage", () => {
 			other,
 		);
 	});
+
+	it("shows the store's own picture size when asked, never wider than the row", () => {
+		render(<ProductImage src={MILK} name="Milk" size="full" />);
+
+		const image = screen.getByRole("img", { name: "Milk" });
+		expect(image).toHaveClass("max-w-full");
+		expect(image.className).not.toMatch(/\bsize-/);
+	});
 });

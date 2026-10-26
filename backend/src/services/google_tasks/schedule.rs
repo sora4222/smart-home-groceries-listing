@@ -1,5 +1,5 @@
 //! The background poll: every `poll_seconds` (read afresh each round, so a
-//! change on `/settings/intake` takes effect without a restart), poll once.
+//! change on `/settings/help` takes effect without a restart), poll once.
 //!
 //! A failed poll is logged and stored for the settings page; the loop never
 //! retries early, so a Google outage costs one call per interval.

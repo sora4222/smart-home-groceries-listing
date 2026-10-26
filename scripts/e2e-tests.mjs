@@ -60,7 +60,7 @@ try {
       BIND_ADDRESS: `127.0.0.1:${apiPort}`, CORS_ORIGINS: webUrl,
       DEV_AUTH_BYPASS: 'true', STORE_CLIENTS: 'fake', INTAKE_LLM_PROVIDER: 'fake',
       GOOGLE_TASKS_CLIENT: 'fake', GOOGLE_TASKS_NO_BACKGROUND_POLL: 'true',
-      GOOGLE_REDIRECT_URI: `${webUrl}/settings/intake`,
+      GOOGLE_REDIRECT_URI: `${webUrl}/settings/help`,
       VOICE_WEBHOOK_SECRET: 'e2e-webhook-secret', STORE_TAB_SECRET: 'e2e-store-tab-secret',
       CREDENTIAL_ENCRYPTION_KEY: Buffer.from(Array.from({ length: 32 }, (_, i) => i)).toString('base64'),
       ACCESS_LOG_DIR: join(dir, 'access-logs'),

@@ -2,7 +2,7 @@
 
 Status: **implemented** for shops filled by the Woolworths bookmark. Every
 product the bookmark added is saved as bought, with its price, so the
-product picker can show past purchases and `/analysis` can show spending
+product picker can show past purchases and `/order/history` can show spending
 (`FEATURE_SPENDING_ANALYSIS.md`). Steps for people: `docs/using-the-app.md`
 ("Do a Woolworths shop", "Undo a shop saved by mistake") — keep those in
 step with this spec. Dislikes are not built.

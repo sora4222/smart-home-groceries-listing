@@ -2,7 +2,7 @@
 
 Status: **implemented** — every intake item is checked by a classifier
 ("would a supermarket sell this?") before the household sees it, and the
-`/triage` page shows what it held or rejected. **Restore to source** is built
+Pending page shows what it held or rejected. **Restore to source** is built
 for Google Tasks items (`FEATURE_GOOGLE_TASKS.md`). Steps for people: `docs/human-setup.md` §5 and §6 and `docs/using-the-app.md`
 ("Check the Triage page") — keep those in step with this spec.
 
@@ -110,7 +110,7 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
   spec's `force_accept` flag is a row in `intake_restores` keyed by the new
   task's id, so a person cannot skip triage by typing a marker into a task.
 - The spec asks for the OpenAI key to be stored encrypted in PostgreSQL and set
-  on `/settings/intake`. It is an environment variable for now, like the other
+  on `/settings/help`. It is an environment variable for now, like the other
   secrets; there is no intake settings page yet.
 - The spec's `TriageResult` also has `normalised_name` and `quantity`. They are
   not asked for: the channel's own parse is kept, and the household corrects

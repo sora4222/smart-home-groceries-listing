@@ -5,7 +5,7 @@ import { productFixture } from "#/components/products/__tests__/fixtures";
 import { ProductPrice } from "#/components/products/product-price";
 
 describe("ProductPrice", () => {
-	it("leaves out the plain total for several when no deal applies", () => {
+	it('does not show a multiple of the price as "2 for" when no deal applies', () => {
 		render(
 			<ProductPrice
 				product={productFixture({ price: "4.95", total_price: "9.90" })}

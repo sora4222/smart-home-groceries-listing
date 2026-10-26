@@ -3,7 +3,8 @@
  * (Settings › Display). Nothing here reaches the server.
  */
 
-export type ImageSize = "sm" | "md" | "lg";
+/** `full` is the picture at the store's own size. */
+export type ImageSize = "sm" | "md" | "lg" | "full";
 
 export interface DisplaySettings {
 	imageSize: ImageSize;
@@ -22,7 +23,7 @@ export const DEFAULT_DISPLAY: DisplaySettings = {
 const KEY = "grocery.display-settings";
 const CHANGED = "grocery:display-settings";
 
-const SIZES: ImageSize[] = ["sm", "md", "lg"];
+const SIZES: ImageSize[] = ["sm", "md", "lg", "full"];
 
 /** Stored settings, with defaults for anything missing or unreadable. */
 export function parseDisplay(raw: string | null): DisplaySettings {

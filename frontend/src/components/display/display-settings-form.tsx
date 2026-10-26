@@ -14,6 +14,7 @@ const IMAGE_SIZES: ReadonlyArray<{ value: ImageSize; label: string }> = [
 	{ value: "sm", label: "Small" },
 	{ value: "md", label: "Medium" },
 	{ value: "lg", label: "Large" },
+	{ value: "full", label: "Store's size" },
 ];
 
 /** The Select item list's look: picture size and what prices to show. */

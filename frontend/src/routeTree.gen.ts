@@ -10,12 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnalysisRouteImport } from './routes/analysis'
-import { Route as LogsRouteImport } from './routes/logs'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as TriageRouteImport } from './routes/triage'
 import { Route as OrderIndexRouteImport } from './routes/order/index'
 import { Route as OrderHistoryRouteImport } from './routes/order/history'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -23,7 +20,6 @@ import { Route as SettingsDeliveryRouteImport } from './routes/settings/delivery
 import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
 import { Route as SettingsDisplayRouteImport } from './routes/settings/display'
 import { Route as SettingsHelpRouteImport } from './routes/settings/help'
-import { Route as SettingsIntakeRouteImport } from './routes/settings/intake'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 import { Route as SettingsLogsRouteImport } from './routes/settings/logs'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
@@ -33,16 +29,6 @@ import { Route as ItemsItemIdSelectRouteImport } from './routes/items.$itemId.se
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalysisRoute = AnalysisRouteImport.update({
-  id: '/analysis',
-  path: '/analysis',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogsRoute = LogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderRoute = OrderRouteImport.update({
@@ -58,11 +44,6 @@ const PendingRoute = PendingRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TriageRoute = TriageRouteImport.update({
-  id: '/triage',
-  path: '/triage',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderIndexRoute = OrderIndexRouteImport.update({
@@ -100,11 +81,6 @@ const SettingsHelpRoute = SettingsHelpRouteImport.update({
   path: '/help',
   getParentRoute: () => SettingsRoute,
 } as any)
-const SettingsIntakeRoute = SettingsIntakeRouteImport.update({
-  id: '/intake',
-  path: '/intake',
-  getParentRoute: () => SettingsRoute,
-} as any)
 const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
   id: '/item-rules',
   path: '/item-rules',
@@ -133,18 +109,14 @@ const ItemsItemIdSelectRoute = ItemsItemIdSelectRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/logs': typeof LogsRoute
   '/order': typeof OrderRouteWithChildren
   '/pending': typeof PendingRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/triage': typeof TriageRoute
   '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/display': typeof SettingsDisplayRoute
   '/settings/help': typeof SettingsHelpRoute
-  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
@@ -155,16 +127,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/logs': typeof LogsRoute
   '/pending': typeof PendingRoute
-  '/triage': typeof TriageRoute
   '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/display': typeof SettingsDisplayRoute
   '/settings/help': typeof SettingsHelpRoute
-  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
@@ -176,18 +144,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/logs': typeof LogsRoute
   '/order': typeof OrderRouteWithChildren
   '/pending': typeof PendingRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/triage': typeof TriageRoute
   '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
   '/settings/display': typeof SettingsDisplayRoute
   '/settings/help': typeof SettingsHelpRoute
-  '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
@@ -200,18 +164,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/analysis'
-    | '/logs'
     | '/order'
     | '/pending'
     | '/settings'
-    | '/triage'
     | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
     | '/settings/display'
     | '/settings/help'
-    | '/settings/intake'
     | '/settings/item-rules'
     | '/settings/logs'
     | '/sign-in/$'
@@ -222,16 +182,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/analysis'
-    | '/logs'
     | '/pending'
-    | '/triage'
     | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
     | '/settings/display'
     | '/settings/help'
-    | '/settings/intake'
     | '/settings/item-rules'
     | '/settings/logs'
     | '/sign-in/$'
@@ -242,18 +198,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/analysis'
-    | '/logs'
     | '/order'
     | '/pending'
     | '/settings'
-    | '/triage'
     | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
     | '/settings/display'
     | '/settings/help'
-    | '/settings/intake'
     | '/settings/item-rules'
     | '/settings/logs'
     | '/sign-in/$'
@@ -265,12 +217,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AnalysisRoute: typeof AnalysisRoute
-  LogsRoute: typeof LogsRoute
   OrderRoute: typeof OrderRouteWithChildren
   PendingRoute: typeof PendingRoute
   SettingsRoute: typeof SettingsRouteWithChildren
-  TriageRoute: typeof TriageRoute
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
   ItemsItemIdSelectRoute: typeof ItemsItemIdSelectRoute
@@ -283,20 +232,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analysis': {
-      id: '/analysis'
-      path: '/analysis'
-      fullPath: '/analysis'
-      preLoaderRoute: typeof AnalysisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logs': {
-      id: '/logs'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof LogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order': {
@@ -318,13 +253,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/triage': {
-      id: '/triage'
-      path: '/triage'
-      fullPath: '/triage'
-      preLoaderRoute: typeof TriageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order/': {
@@ -374,13 +302,6 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/settings/help'
       preLoaderRoute: typeof SettingsHelpRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/intake': {
-      id: '/settings/intake'
-      path: '/intake'
-      fullPath: '/settings/intake'
-      preLoaderRoute: typeof SettingsIntakeRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/item-rules': {
@@ -438,7 +359,6 @@ interface SettingsRouteChildren {
   SettingsDislikesRoute: typeof SettingsDislikesRoute
   SettingsDisplayRoute: typeof SettingsDisplayRoute
   SettingsHelpRoute: typeof SettingsHelpRoute
-  SettingsIntakeRoute: typeof SettingsIntakeRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
   SettingsLogsRoute: typeof SettingsLogsRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -449,7 +369,6 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsDislikesRoute: SettingsDislikesRoute,
   SettingsDisplayRoute: SettingsDisplayRoute,
   SettingsHelpRoute: SettingsHelpRoute,
-  SettingsIntakeRoute: SettingsIntakeRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
   SettingsLogsRoute: SettingsLogsRoute,
   SettingsIndexRoute: SettingsIndexRoute,
@@ -461,12 +380,9 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AnalysisRoute: AnalysisRoute,
-  LogsRoute: LogsRoute,
   OrderRoute: OrderRouteWithChildren,
   PendingRoute: PendingRoute,
   SettingsRoute: SettingsRouteWithChildren,
-  TriageRoute: TriageRoute,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
   ItemsItemIdSelectRoute: ItemsItemIdSelectRoute,

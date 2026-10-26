@@ -1,11 +1,17 @@
 # Home Grocery List
 
-A grocery list for one household. It runs on your own home server.
+A self-hosted grocery list for one household. It is a monorepo with four
+parts: a Rust and Axum backend with PostgreSQL (sqlx migrations), a React 19
+and TanStack Start web app with Shadcn and Tailwind, a small Python Flask
+sidecar that uses Amazon's `ask-sdk` for Alexa, and an optional Tauri
+desktop app. Development runs everything in Docker Compose with live reload
+(`make dev`). Production builds a bundle (`make build`) and installs it on a
+Unix home server as systemd services, without Docker (`make install-server`).
 
 The app collects grocery items from voice and typed lists, and keeps one
-shared list. It then finds the cheapest way to buy that list from Woolworths
-and Coles, counting item prices, deals and delivery fees. It never suggests
-items to buy, and it never pays for you.
+shared list. It finds the cheapest way to buy that list from Woolworths and
+Coles, counting item prices, deals and delivery fees. It never suggests items
+to buy.
 
 How it works:
 
@@ -36,6 +42,7 @@ not built.
 | Do a shop, undo a mistake, or fix a problem | [`docs/using-the-app.md`](docs/using-the-app.md) |
 | Know how one feature works | [`docs/features/`](docs/features/) |
 | Follow the code rules | [`AGENTS.md`](AGENTS.md) |
+| Know the steps from setup to release | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 
 ## Run everything on your own computer
 
@@ -50,6 +57,24 @@ make dev         # starts the whole app
 Fill in the rest of `.env` with [`docs/human-setup.md`](docs/human-setup.md).
 `make dev` prints the web app address. Press Ctrl-C or run `make dev-stop` to
 stop it. Your database is kept.
+
+### Environment variables required
+
+`make setup-env` makes `.env` from [`.env.example`](.env.example) and fills in
+the random secrets. Values can be plain text or 1Password `op://` references.
+
+| Part | Variables |
+|---|---|
+| Database | `DATABASE_URL`, and `POSTGRES_PASSWORD` for the Docker database |
+| Sign-in | `CLERK_JWKS_URL`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| Stored secrets | `CREDENTIAL_ENCRYPTION_KEY` |
+| Intake and bookmarks | `VOICE_WEBHOOK_SECRET`, `ALEXA_BRIDGE_SECRET`, `STORE_TAB_SECRET` |
+| Alexa | `ALEXA_SKILL_ID` |
+| Tunnel | `CLOUDFLARE_TUNNEL_TOKEN` |
+| Web app address | `VITE_API_BASE_URL` (only when the web app runs apart from the backend) |
+
+LLM triage and Google Tasks settings are optional. Only `VITE_*` values reach
+the browser, so never put secrets in them.
 
 Two `.env` settings help while you develop:
 

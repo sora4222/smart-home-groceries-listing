@@ -74,8 +74,8 @@ the rest, and the `Makefile` is the source of truth.
 1. **File length.** Rust ≤ 500 lines · Python ≤ 500 lines · TypeScript ≤ 500 lines
 2. **Single responsibility.** One purpose per function/module/file. Check at task end.
 3. **TDD.** Tests alongside or before code
-4. **Commits** — `feat: <name>` per feature. Multi-feature task → commit after each, staging only that feature's files.
-5. **Axum routes** — `backend/src/routes/`, one module per domain, merged in `routes/mod.rs`. Feature clusters → subdirectory.
+4. **Commits.** `feat: <name>` per feature. Multi-feature task → commit after each, staging only that feature's files.
+5. **Axum routes.** `backend/src/routes/`, one module per domain, merged in `routes/mod.rs`. Feature clusters → subdirectory.
 6. **Tailwind.** Existing theme classes only. No custom additions.
 7. **React.** No global context unless required. Compound components. Limit prop drilling.
 8. **Docs.** Document all public functions, modules and files in short concise code comments

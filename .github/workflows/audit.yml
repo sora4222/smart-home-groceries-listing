@@ -1,0 +1,61 @@
+# Dependency audits: cargo audit for the backend and pnpm audit for the web
+# app. On a pull request each runs only when its lock file changes, so a new
+# advisory does not fail unrelated PRs. The daily run on main catches new
+# advisories against the lock files already there.
+name: Audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
+  cargo:
+    name: cargo audit
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'cargo-audit')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
+
+  pnpm:
+    name: pnpm audit
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'pnpm-audit')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: pnpm audit

@@ -1,5 +1,7 @@
 # GitHub's code scanning for security bugs in every language in the repo.
-# Results show in the repository's Security tab.
+# Results show in the repository's Security tab. On a pull request each
+# language is scanned only when its files change; the matrix legs always
+# report, so their check names stay the same when a scan is skipped.
 name: CodeQL
 
 on:
@@ -23,16 +25,21 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: read
     strategy:
       fail-fast: false
       matrix:
         language: [actions, javascript-typescript, python, rust]
     steps:
       - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v4
+      - id: changes
+        uses: ./.github/actions/changes
+      - if: contains(fromJSON(steps.changes.outputs.changes), format('codeql-{0}', matrix.language))
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-      - uses: github/codeql-action/analyze@v4
+      - if: contains(fromJSON(steps.changes.outputs.changes), format('codeql-{0}', matrix.language))
+        uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}

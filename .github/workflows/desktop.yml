@@ -1,3 +1,5 @@
+# Tauri desktop client: rustfmt, clippy, cargo check and tests on macOS.
+# macOS runners cost the most, so this runs only when desktop files change.
 name: Desktop
 
 on:
@@ -13,8 +15,16 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   native:
     name: native macOS checks
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'desktop')
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7

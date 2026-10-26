@@ -1,5 +1,6 @@
 # Playwright end-to-end tests against the real backend and a real database.
 # Fake store clients and the keyword triage checker keep it off the internet.
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: E2E
 
 on:
@@ -15,8 +16,16 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   playwright:
     name: playwright
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'e2e')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -32,15 +41,36 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            frontend/pnpm-lock.yaml
 
       - name: Install test tooling
         run: pnpm install --frozen-lockfile
       - name: Install frontend
         working-directory: frontend
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install --with-deps chromium
+        run: pnpm install --frozen-lockfile
+
+      # The browser download is keyed on the installed Playwright version.
+      # The system libraries still come from apt on every run.
+      - name: Playwright version
+        id: playwright
+        working-directory: frontend
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: pnpm exec playwright install-deps chromium
 
       - name: Playwright
         run: make test-frontend-playwright

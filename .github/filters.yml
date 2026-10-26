@@ -25,9 +25,11 @@ backend:
   - backend/**
   - .github/workflows/backend.yml
 
+# vite.config.ts imports the environment loaders from scripts/.
 frontend:
   - *ci
   - frontend/**
+  - scripts/**
   - .github/workflows/frontend.yml
 
 desktop:

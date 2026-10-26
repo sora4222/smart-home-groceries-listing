@@ -67,7 +67,7 @@ test.describe("accepting a pending request", () => {
 		await gotoList(page);
 		await page
 			.getByRole("navigation", { name: "Main navigation" })
-			.getByRole("link", { name: "Pending" })
+			.getByRole("link", { name: "Pending", exact: true })
 			.click();
 		await expect(page.getByRole("heading", { name: "Pending" })).toBeVisible();
 		await expect(page.getByText("No items pending")).toBeVisible();

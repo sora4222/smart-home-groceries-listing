@@ -7,6 +7,7 @@ import {
 	type OrderOption,
 	type OrderStorePick,
 } from "#/lib/api";
+import { toastWithUndo } from "#/lib/undo-toast";
 
 /**
  * Using one of the order's options: each item is bought at that option's
@@ -29,21 +30,15 @@ export function useOrderStores(selections: Map<string, ItemSelection>) {
 			toast.error("Could not switch stores — check prices again.");
 			return;
 		}
-		toast.success(`The order now uses “${option.label}”`, {
-			action:
-				previous.length > 0
-					? { label: "Undo", onClick: () => undo(previous) }
-					: undefined,
-		});
-		await router.invalidate();
-	}
-
-	async function undo(previous: OrderStorePick[]) {
-		try {
-			await api.selections.buyAt(previous);
-			toast.success("Undone");
-		} catch {
-			toast.error("Could not undo — check the order.");
+		const message = `The order now uses "${option.label}"`;
+		if (previous.length > 0) {
+			toastWithUndo(message, {
+				undo: () => api.selections.buyAt(previous),
+				failure: "Could not undo. Check the order.",
+				after: () => router.invalidate(),
+			});
+		} else {
+			toast.success(message);
 		}
 		await router.invalidate();
 	}

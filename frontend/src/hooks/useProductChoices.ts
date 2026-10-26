@@ -10,6 +10,7 @@ import {
 } from "#/lib/api";
 import { type ChoiceUndo, undoAt } from "#/lib/choice-undo";
 import { applyUndo } from "#/lib/item-restore";
+import { toastWithUndo } from "#/lib/undo-toast";
 
 /**
  * Choosing, counting and clearing list items' products.
@@ -27,14 +28,13 @@ import { applyUndo } from "#/lib/item-restore";
 export function useProductChoices(selections: Map<string, ItemSelection>) {
 	const router = useRouter();
 
-	async function undo(itemId: string, plan: ChoiceUndo) {
-		try {
-			await applyUndo(itemId, plan);
-			toast.success("Undone");
-		} catch {
-			toast.error("Could not undo that — check the item's products.");
-		}
-		await router.invalidate();
+	/** The success toast, whose Undo puts the store back by `plan`. */
+	function done(message: string, itemId: string, plan: ChoiceUndo) {
+		toastWithUndo(message, {
+			undo: () => applyUndo(itemId, plan),
+			failure: "Could not undo that. Check the item's products.",
+			after: () => router.invalidate(),
+		});
 	}
 
 	async function choose(itemId: string, choice: ProductChoice) {
@@ -42,9 +42,7 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 		try {
 			const saved = await api.selections.choose(itemId, choice);
 			const title = [saved.brand, saved.name].filter(Boolean).join(" ");
-			toast.success(`${title} chosen at ${saved.store_name}`, {
-				action: { label: "Undo", onClick: () => undo(itemId, plan) },
-			});
+			done(`${title} chosen at ${saved.store_name}`, itemId, plan);
 			await router.invalidate();
 		} catch (error) {
 			toast.error(
@@ -58,9 +56,7 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 		const plan = undoAt(selections.get(itemId) ?? null, store);
 		try {
 			await api.selections.clear(itemId, store, productId);
-			toast.success("Chosen product cleared", {
-				action: { label: "Undo", onClick: () => undo(itemId, plan) },
-			});
+			done("Chosen product cleared", itemId, plan);
 			await router.invalidate();
 		} catch {
 			toast.error("Could not clear the chosen product — try again.");
@@ -76,9 +72,7 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 		const plan = undoAt(selections.get(itemId) ?? null, store);
 		try {
 			await api.selections.setQuantity(itemId, store, productId, count);
-			toast.success("Count changed", {
-				action: { label: "Undo", onClick: () => undo(itemId, plan) },
-			});
+			done("Count changed", itemId, plan);
 			await router.invalidate();
 		} catch (error) {
 			toast.error(refusal(error) ?? "Could not change the count — try again.");

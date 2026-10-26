@@ -6,16 +6,7 @@ import { useHeldCount } from "#/hooks/useHeldCount";
 import { usePendingCount } from "#/hooks/usePendingCount";
 
 const links: ReadonlyArray<{
-	to:
-		| "/"
-		| "/pending"
-		| "/order"
-		| "/analysis"
-		| "/settings/item-rules"
-		| "/settings/intake"
-		| "/settings/dislikes"
-		| "/settings/delivery"
-		| "/logs";
+	to: "/" | "/pending" | "/order" | "/settings";
 	label: string;
 	/** Shows how many requests wait on the Pending page. */
 	waiting?: boolean;
@@ -23,12 +14,7 @@ const links: ReadonlyArray<{
 	{ to: "/", label: "Grocery List" },
 	{ to: "/pending", label: "Pending", waiting: true },
 	{ to: "/order", label: "Order" },
-	{ to: "/analysis", label: "Spending" },
-	{ to: "/settings/item-rules", label: "Item Rules" },
-	{ to: "/settings/intake", label: "Intake" },
-	{ to: "/settings/dislikes", label: "Dislikes" },
-	{ to: "/settings/delivery", label: "Delivery" },
-	{ to: "/logs", label: "Logs" },
+	{ to: "/settings", label: "Settings" },
 ];
 
 /**

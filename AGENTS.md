@@ -116,7 +116,7 @@ the rest, and the `Makefile` is the source of truth.
 - **Nothing reaches the list unasked:** every intake item lands as `pending`
   and needs a household member to accept it, however confident the channel
   was. LLM triage (`INTAKE_LLM_PROVIDER`, `FEATURE_TRIAGE.md`) only decides
-  whether a person sees it in Pending Requests or on `/triage`. Reducing marketing-driven buying is a project goal: no part of this
+  whether a person sees it as a Pending request or on the Pending page's Held tab. Reducing marketing-driven buying is a project goal: no part of this
   system suggests, recommends or upsells an item.
 - **Store integration priority:** official API → internal XHR/JSON endpoints →
   headless-browser HTML scrape. Both stores are behind bot protection.

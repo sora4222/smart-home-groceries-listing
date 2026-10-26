@@ -9,7 +9,7 @@ and API details are in [`features/`](features/).
 | [Voice intake: add](#voice-intake-add) | Echo, then the web app |
 | [Voice intake: remove, reduce, undo](#voice-intake-remove-reduce-undo) | Echo |
 | [Google Tasks intake](#google-tasks-intake) | Google Tasks, then the web app |
-| [Triage review](#triage-review) | Web app `/triage` |
+| [Triage review](#triage-review) | Web app `/pending` |
 | [Delivery fees and store choice](#delivery-fees-and-store-choice) | Web app `/settings/delivery`, `/order` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
@@ -17,7 +17,7 @@ and API details are in [`features/`](features/).
 | [Undo a recorded purchase](#undo-a-recorded-purchase) | Web app |
 | [Spending analysis](#spending-analysis) | Web app `/spending` |
 | [Product dislikes](#product-dislikes) | Web app, price comparison and `/settings/dislikes` |
-| [Access log review](#access-log-review) | Web app `/logs` |
+| [Access log review](#access-log-review) | Web app `/settings/logs` |
 | [Add a household member](#add-a-household-member) | Clerk dashboard |
 | [After an update](#after-an-update) | Varies |
 | [Desktop connection and shopping](#desktop-connection-and-shopping) | Desktop app |

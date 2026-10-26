@@ -1,16 +1,16 @@
 import { useState } from "react";
 
+import { useElementWidth } from "#/hooks/useElementWidth";
 import type { PeriodSpend, SpendingPeriod } from "#/lib/api";
 import { formatMoney } from "#/lib/money";
 import { periodLabel, periodTick } from "#/lib/period-label";
 
-const WIDTH = 600;
 const HEIGHT = 220;
 const PAD = { top: 16, right: 16, bottom: 28, left: 56 };
 
 /**
  * "Over time": total spend (delivery included) per week, month or quarter,
- * as a line. Hover or focus a point to read it; the same numbers are in a
+ * as a line, drawn at the width it is shown at so its text stays readable. Hover or focus a point to read it; the same numbers are in a
  * table under the chart.
  */
 export function OverTimeChart({
@@ -21,6 +21,7 @@ export function OverTimeChart({
 	period: SpendingPeriod;
 }) {
 	const [active, setActive] = useState<number | null>(null);
+	const [figureRef, width] = useElementWidth<HTMLElement>(600);
 	if (points.length === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
@@ -31,7 +32,7 @@ export function OverTimeChart({
 
 	const values = points.map((p) => Number(p.total));
 	const max = Math.max(...values, 0) || 1;
-	const plotW = WIDTH - PAD.left - PAD.right;
+	const plotW = width - PAD.left - PAD.right;
 	const plotH = HEIGHT - PAD.top - PAD.bottom;
 	const x = (i: number) =>
 		PAD.left +
@@ -44,7 +45,7 @@ export function OverTimeChart({
 	const ticks = tickIndexes(points.length);
 
 	return (
-		<figure className="flex flex-col gap-2">
+		<figure ref={figureRef} className="flex flex-col gap-2">
 			<output className="text-sm" aria-live="polite">
 				{periodLabel(period, points[shown].start)}:{" "}
 				<span className="font-semibold">
@@ -52,8 +53,9 @@ export function OverTimeChart({
 				</span>
 			</output>
 			<svg
-				viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-				className="h-auto w-full"
+				viewBox={`0 0 ${width} ${HEIGHT}`}
+				width="100%"
+				height={HEIGHT}
 				role="img"
 				aria-label={`Spend per ${period}, ${points.length} points, highest ${formatMoney(String(max))}`}
 			>
@@ -61,7 +63,7 @@ export function OverTimeChart({
 					<g key={v}>
 						<line
 							x1={PAD.left}
-							x2={WIDTH - PAD.right}
+							x2={width - PAD.right}
 							y1={y(v)}
 							y2={y(v)}
 							className="stroke-border"

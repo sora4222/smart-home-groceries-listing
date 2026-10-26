@@ -1,6 +1,6 @@
 # Feature: Spending Analysis
 
-Status: **implemented.** The **Spending** page (`/analysis`) shows where the
+Status: **implemented.** The **Spending** page (`/order/history`) shows where the
 grocery money went, from saved purchases (`FEATURE_PURCHASE_HISTORY.md`).
 Steps for people: `docs/using-the-app.md` ("See your spending").
 

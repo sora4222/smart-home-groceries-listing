@@ -1,6 +1,6 @@
 /**
  * The access log: `/api/access-logs`. Every request the backend answered,
- * newest first, for the `/logs` page (`docs/features/FEATURE_ACCESS_LOGS.md`).
+ * newest first, for the `/settings/logs` page (`docs/features/FEATURE_ACCESS_LOGS.md`).
  */
 import { request } from "#/lib/api/client";
 

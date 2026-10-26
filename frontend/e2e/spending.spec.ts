@@ -2,7 +2,7 @@ import type { APIRequestContext } from "@playwright/test";
 import { API_BASE_URL, expect, gotoList, test } from "./fixtures";
 
 /**
- * Purchase history and the Spending page (`/analysis`), in a real browser
+ * Purchase history and Order › History (`/order/history`), in a real browser
  * against the real backend with `STORE_CLIENTS=fake`.
  *
  * A shop is saved as bought when the "Fill Woolworths trolley" bookmark
@@ -76,14 +76,14 @@ test.describe("spending", () => {
 	test("with nothing bought the page says how a shop gets there", async ({
 		page,
 	}) => {
-		await gotoList(page, "/analysis");
+		await gotoList(page, "/order/history");
 
 		const latest = page.getByRole("region", { name: "Latest shop" });
 		await expect(latest).toContainText("Nothing yet");
 		await expect(page.getByText("Nothing bought in this range.")).toBeVisible();
 	});
 
-	test("a filled trolley shows on the Spending page, by every view", async ({
+	test("a filled trolley shows in Order › History, by every view", async ({
 		page,
 		request,
 	}) => {
@@ -94,7 +94,11 @@ test.describe("spending", () => {
 		await gotoList(page);
 		await page
 			.getByRole("navigation", { name: "Main navigation" })
-			.getByRole("link", { name: "Spending" })
+			.getByRole("link", { name: "Order" })
+			.click();
+		await page
+			.getByRole("navigation", { name: "Order sections" })
+			.getByRole("link", { name: "History" })
 			.click();
 
 		const latest = page.getByRole("region", { name: "Latest shop" });
@@ -130,7 +134,7 @@ test.describe("spending", () => {
 		await chosenAtWoolworths(request, "bananas", 1, "w-banana");
 		await fillTrolley(request, ["w-milk-2l", "w-banana"]);
 
-		await gotoList(page, "/analysis?view=item");
+		await gotoList(page, "/order/history?view=item");
 		await page.getByLabel("Category", { exact: true }).selectOption("Fruit & veg");
 
 		await expect(page).toHaveURL(/category=Fruit/);
@@ -152,7 +156,7 @@ test.describe("spending", () => {
 		await gotoList(page);
 		await expect(page.locator('[data-item-name="milk"]')).toHaveCount(0);
 
-		await gotoList(page, "/analysis");
+		await gotoList(page, "/order/history");
 		await page.getByRole("button", { name: /Undo the Woolworths shop/ }).click();
 		await expect(page.getByText(/Undone: the Woolworths shop/)).toBeVisible();
 		await expect(

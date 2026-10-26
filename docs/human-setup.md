@@ -286,7 +286,7 @@ development is only enabled on that account's devices.
 
 **File:** `.env`. Every intake item is classified by an LLM ("would a
 supermarket sell this?") before it reaches Pending Requests; low-confidence
-or non-grocery items are held on `/triage`. Spec:
+or non-grocery items are held on the Pending page's Held tab. Spec:
 [`features/FEATURE_TRIAGE.md`](features/FEATURE_TRIAGE.md). The local
 providers run as Compose profiles, so item names never leave the server.
 
@@ -594,7 +594,7 @@ the list, records each open task, then deletes it. Spec:
   Google keeps that list to itself, with no API. This channel is for typed
   items only.
 - Use a list for groceries only: **every** open task on it is consumed.
-- The OAuth redirect is `http://localhost:3000/settings/intake`, so connect
+- The OAuth redirect is `http://localhost:3000/settings/help`, so connect
   from a browser on the home server.
 
 1. **Google Tasks** (phone app or [tasks.google.com](https://tasks.google.com)):
@@ -608,7 +608,7 @@ the list, records each open task, then deletes it. Spec:
       Publish app** (in *Testing*, refresh tokens expire after 7 days; the
       unverified-app warning is fine for a household).
    4. **Clients → Create client:** type **Web application**, authorized
-      redirect URI `http://localhost:3000/settings/intake`.
+      redirect URI `http://localhost:3000/settings/help`.
 3. **`.env`:** copy the new client's values:
 
 | Console field | `.env` key |
@@ -629,7 +629,7 @@ the list, records each open task, then deletes it. Spec:
 | Symptom | Fix |
 |---|---|
 | Card says **Not set up yet** | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` missing in `.env`; then `make dev`. |
-| Google says `redirect_uri_mismatch` | The client's redirect URI must be exactly `http://localhost:3000/settings/intake`. |
+| Google says `redirect_uri_mismatch` | The client's redirect URI must be exactly `http://localhost:3000/settings/help`. |
 | Card says "connect Google Tasks again" | **Disconnect**, then repeat step 5. |
 
 ---

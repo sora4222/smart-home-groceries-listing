@@ -17,7 +17,7 @@ import {
 } from "#/lib/analysis-search";
 import { api } from "#/lib/api";
 
-export const Route = createFileRoute("/analysis")({
+export const Route = createFileRoute("/order/history")({
 	validateSearch: validateAnalysisSearch,
 	loaderDeps: ({ search }) => search,
 	loader: async ({ deps }) => {
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/analysis")({
 });
 
 /**
- * `/analysis` — Spending Analysis (spec "Spending Analysis").
+ * `/order/history` — past shops and what they cost (spec "Spending Analysis").
  *
  * The newest shop on top, then the filters, then four views of the same
  * spending: over time, by item (with each item's price history), by store
@@ -68,7 +68,7 @@ function AnalysisPage() {
 	// Bottom padding keeps the last Undo button clear of floating controls.
 	return (
 		<div className="flex flex-col gap-4 pb-16">
-			<h1 className="text-lg font-semibold">Spending</h1>
+			<h1 className="text-lg font-semibold">History</h1>
 			<LatestOrderCard order={report.latest_order} />
 			<SpendingFilters
 				search={search}

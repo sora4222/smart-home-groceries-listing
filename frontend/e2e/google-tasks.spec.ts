@@ -6,7 +6,7 @@ import { API_BASE_URL, expect, gotoList, test } from "./fixtures";
  * Google Tasks intake against the real backend running the fake Tasks
  * account (`GOOGLE_TASKS_CLIENT=fake`, `GOOGLE_TASKS_NO_BACKGROUND_POLL=true`,
  * `INTAKE_LLM_PROVIDER=fake`). The fake's sign-in skips Google and comes
- * straight back to `/settings/intake`, so the whole round trip runs here.
+ * straight back to `/settings/help` (forwarded to Help), so the whole round trip runs here.
  * Tasks are added through the fake's development-only door, the way a person
  * would add them in the Tasks app.
  */
@@ -61,14 +61,15 @@ test.describe("Google Tasks intake", () => {
 	}) => {
 		await disconnect(request);
 
-		await gotoList(page, "/settings/intake");
+		await gotoList(page, "/settings/help");
 		await page.getByRole("button", { name: "Connect Google Tasks" }).click();
 
-		// The fake "Google" sends the browser straight back with a code.
+		// The fake "Google" sends the browser straight back with a code, to
+		// the old /settings/help address, which forwards to Help.
 		await expect(
 			page.getByText("Google Tasks connected. Now pick your grocery list."),
 		).toBeVisible();
-		await expect(page).toHaveURL(/\/settings\/intake$/);
+		await expect(page).toHaveURL(/\/settings\/help$/);
 
 		await page.getByRole("combobox", { name: "Grocery list" }).click();
 		await page.getByRole("option", { name: "Groceries" }).click();
@@ -88,7 +89,7 @@ test.describe("Google Tasks intake", () => {
 		await watchGroceries(request);
 		await addTask(request, "2 oat milk");
 
-		await gotoList(page, "/settings/intake");
+		await gotoList(page, "/settings/help");
 		await page.getByRole("button", { name: "Check now" }).click();
 		await expect(page.getByText("1 new item found.")).toBeVisible();
 
@@ -107,7 +108,7 @@ test.describe("Google Tasks intake", () => {
 		await request.post(`${TASKS}/poll`);
 		await waitUntilRejected(request, "car service");
 
-		await gotoList(page, "/triage?tab=rejected");
+		await gotoList(page, "/pending?tab=rejected");
 		const card = page.locator('[data-request-name="car service"]');
 		await expect(card).toContainText("Google Tasks");
 		await page
@@ -124,10 +125,13 @@ test.describe("Google Tasks intake", () => {
 		).toBeVisible();
 	});
 
-	test("the nav has an Intake link to the settings page", async ({ page }) => {
-		await gotoList(page);
-		await page.getByRole("link", { name: "Intake" }).click();
-		await expect(page.getByRole("heading", { name: "Intake" })).toBeVisible();
+	test("Settings has a Help page with the intake channels", async ({ page }) => {
+		await gotoList(page, "/settings");
+		await page
+			.getByRole("navigation", { name: "Settings sections" })
+			.getByRole("link", { name: "Help" })
+			.click();
+		await expect(page.getByRole("heading", { name: "Help" })).toBeVisible();
 		await expect(page.getByText("Google Keep")).toBeVisible();
 	});
 });

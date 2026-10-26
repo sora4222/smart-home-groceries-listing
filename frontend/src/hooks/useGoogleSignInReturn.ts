@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import { api } from "#/lib/api";
 
-/** What Google adds to `/settings/intake` when it sends the browser back. */
+/** What Google adds to `/settings/help` when it sends the browser back. */
 export interface GoogleReturn {
 	code?: string;
 	state?: string;
@@ -36,7 +36,7 @@ export function useGoogleSignInReturn({ code, state, error }: GoogleReturn) {
 					toast.error("Could not connect Google Tasks — try again.");
 				}
 			}
-			await navigate({ to: "/settings/intake", search: {}, replace: true });
+			await navigate({ to: "/settings/help", search: {}, replace: true });
 			await router.invalidate();
 		}
 		void finish();

@@ -67,9 +67,4 @@ test.describe("the triage step", () => {
 		await expect(page.getByText("Nothing rejected.")).toBeVisible();
 	});
 
-	test("the old Triage address opens Pending", async ({ page }) => {
-		await gotoList(page, "/triage");
-		await expect(page.getByRole("heading", { name: "Pending" })).toBeVisible();
-		await expect(page.getByRole("heading", { name: "Triage" })).toBeVisible();
-	});
 });

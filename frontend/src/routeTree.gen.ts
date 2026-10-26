@@ -10,31 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnalysisRouteImport } from './routes/analysis'
-import { Route as LogsRouteImport } from './routes/logs'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as PendingRouteImport } from './routes/pending'
-import { Route as TriageRouteImport } from './routes/triage'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as OrderIndexRouteImport } from './routes/order/index'
+import { Route as OrderHistoryRouteImport } from './routes/order/history'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsDeliveryRouteImport } from './routes/settings/delivery'
 import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
-import { Route as SettingsIntakeRouteImport } from './routes/settings/intake'
+import { Route as SettingsHelpRouteImport } from './routes/settings/help'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
+import { Route as SettingsLogsRouteImport } from './routes/settings/logs'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalysisRoute = AnalysisRouteImport.update({
-  id: '/analysis',
-  path: '/analysis',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogsRoute = LogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderRoute = OrderRouteImport.update({
@@ -47,30 +39,50 @@ const PendingRoute = PendingRouteImport.update({
   path: '/pending',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TriageRoute = TriageRouteImport.update({
-  id: '/triage',
-  path: '/triage',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OrderIndexRoute = OrderIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrderRoute,
+} as any)
+const OrderHistoryRoute = OrderHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => OrderRoute,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsDeliveryRoute = SettingsDeliveryRouteImport.update({
-  id: '/settings/delivery',
-  path: '/settings/delivery',
-  getParentRoute: () => rootRouteImport,
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsDislikesRoute = SettingsDislikesRouteImport.update({
-  id: '/settings/dislikes',
-  path: '/settings/dislikes',
-  getParentRoute: () => rootRouteImport,
+  id: '/dislikes',
+  path: '/dislikes',
+  getParentRoute: () => SettingsRoute,
 } as any)
-const SettingsIntakeRoute = SettingsIntakeRouteImport.update({
-  id: '/settings/intake',
-  path: '/settings/intake',
-  getParentRoute: () => rootRouteImport,
+const SettingsHelpRoute = SettingsHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsItemRulesRoute = SettingsItemRulesRouteImport.update({
-  id: '/settings/item-rules',
-  path: '/settings/item-rules',
-  getParentRoute: () => rootRouteImport,
+  id: '/item-rules',
+  path: '/item-rules',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsLogsRoute = SettingsLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SignInSplatRoute = SignInSplatRouteImport.update({
   id: '/sign-in/$',
@@ -85,103 +97,105 @@ const SignUpSplatRoute = SignUpSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/logs': typeof LogsRoute
-  '/order': typeof OrderRoute
+  '/order': typeof OrderRouteWithChildren
   '/pending': typeof PendingRoute
-  '/triage': typeof TriageRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
-  '/settings/intake': typeof SettingsIntakeRoute
+  '/settings/help': typeof SettingsHelpRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/order/': typeof OrderIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/logs': typeof LogsRoute
-  '/order': typeof OrderRoute
   '/pending': typeof PendingRoute
-  '/triage': typeof TriageRoute
+  '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
-  '/settings/intake': typeof SettingsIntakeRoute
+  '/settings/help': typeof SettingsHelpRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/order': typeof OrderIndexRoute
+  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/logs': typeof LogsRoute
-  '/order': typeof OrderRoute
+  '/order': typeof OrderRouteWithChildren
   '/pending': typeof PendingRoute
-  '/triage': typeof TriageRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
-  '/settings/intake': typeof SettingsIntakeRoute
+  '/settings/help': typeof SettingsHelpRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
+  '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/order/': typeof OrderIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/analysis'
-    | '/logs'
     | '/order'
     | '/pending'
-    | '/triage'
+    | '/settings'
+    | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
-    | '/settings/intake'
+    | '/settings/help'
     | '/settings/item-rules'
+    | '/settings/logs'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/order/'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/analysis'
-    | '/logs'
-    | '/order'
     | '/pending'
-    | '/triage'
+    | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
-    | '/settings/intake'
+    | '/settings/help'
     | '/settings/item-rules'
+    | '/settings/logs'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/order'
+    | '/settings'
   id:
     | '__root__'
     | '/'
-    | '/analysis'
-    | '/logs'
     | '/order'
     | '/pending'
-    | '/triage'
+    | '/settings'
+    | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
-    | '/settings/intake'
+    | '/settings/help'
     | '/settings/item-rules'
+    | '/settings/logs'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/order/'
+    | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AnalysisRoute: typeof AnalysisRoute
-  LogsRoute: typeof LogsRoute
-  OrderRoute: typeof OrderRoute
+  OrderRoute: typeof OrderRouteWithChildren
   PendingRoute: typeof PendingRoute
-  TriageRoute: typeof TriageRoute
-  SettingsDeliveryRoute: typeof SettingsDeliveryRoute
-  SettingsDislikesRoute: typeof SettingsDislikesRoute
-  SettingsIntakeRoute: typeof SettingsIntakeRoute
-  SettingsItemRulesRoute: typeof SettingsItemRulesRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
 }
@@ -193,20 +207,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analysis': {
-      id: '/analysis'
-      path: '/analysis'
-      fullPath: '/analysis'
-      preLoaderRoute: typeof AnalysisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logs': {
-      id: '/logs'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof LogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order': {
@@ -223,40 +223,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/triage': {
-      id: '/triage'
-      path: '/triage'
-      fullPath: '/triage'
-      preLoaderRoute: typeof TriageRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/order/': {
+      id: '/order/'
+      path: '/'
+      fullPath: '/order/'
+      preLoaderRoute: typeof OrderIndexRouteImport
+      parentRoute: typeof OrderRoute
+    }
+    '/order/history': {
+      id: '/order/history'
+      path: '/history'
+      fullPath: '/order/history'
+      preLoaderRoute: typeof OrderHistoryRouteImport
+      parentRoute: typeof OrderRoute
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/delivery': {
       id: '/settings/delivery'
-      path: '/settings/delivery'
+      path: '/delivery'
       fullPath: '/settings/delivery'
       preLoaderRoute: typeof SettingsDeliveryRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/dislikes': {
       id: '/settings/dislikes'
-      path: '/settings/dislikes'
+      path: '/dislikes'
       fullPath: '/settings/dislikes'
       preLoaderRoute: typeof SettingsDislikesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
-    '/settings/intake': {
-      id: '/settings/intake'
-      path: '/settings/intake'
-      fullPath: '/settings/intake'
-      preLoaderRoute: typeof SettingsIntakeRouteImport
-      parentRoute: typeof rootRouteImport
+    '/settings/help': {
+      id: '/settings/help'
+      path: '/help'
+      fullPath: '/settings/help'
+      preLoaderRoute: typeof SettingsHelpRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/item-rules': {
       id: '/settings/item-rules'
-      path: '/settings/item-rules'
+      path: '/item-rules'
       fullPath: '/settings/item-rules'
       preLoaderRoute: typeof SettingsItemRulesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/logs': {
+      id: '/settings/logs'
+      path: '/logs'
+      fullPath: '/settings/logs'
+      preLoaderRoute: typeof SettingsLogsRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/sign-in/$': {
       id: '/sign-in/$'
@@ -275,17 +303,45 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AnalysisRoute: AnalysisRoute,
-  LogsRoute: LogsRoute,
-  OrderRoute: OrderRoute,
-  PendingRoute: PendingRoute,
-  TriageRoute: TriageRoute,
+interface OrderRouteChildren {
+  OrderHistoryRoute: typeof OrderHistoryRoute
+  OrderIndexRoute: typeof OrderIndexRoute
+}
+
+const OrderRouteChildren: OrderRouteChildren = {
+  OrderHistoryRoute: OrderHistoryRoute,
+  OrderIndexRoute: OrderIndexRoute,
+}
+
+const OrderRouteWithChildren = OrderRoute._addFileChildren(OrderRouteChildren)
+
+interface SettingsRouteChildren {
+  SettingsDeliveryRoute: typeof SettingsDeliveryRoute
+  SettingsDislikesRoute: typeof SettingsDislikesRoute
+  SettingsHelpRoute: typeof SettingsHelpRoute
+  SettingsItemRulesRoute: typeof SettingsItemRulesRoute
+  SettingsLogsRoute: typeof SettingsLogsRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsDeliveryRoute: SettingsDeliveryRoute,
   SettingsDislikesRoute: SettingsDislikesRoute,
-  SettingsIntakeRoute: SettingsIntakeRoute,
+  SettingsHelpRoute: SettingsHelpRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
+  SettingsLogsRoute: SettingsLogsRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  OrderRoute: OrderRouteWithChildren,
+  PendingRoute: PendingRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
 }

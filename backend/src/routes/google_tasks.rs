@@ -1,7 +1,7 @@
 //! Google Tasks intake: connecting the account, choosing the list, and
 //! polling it now. Every route needs a signed-in household member.
 //!
-//! The sign-in round trip comes back to the web app's `/settings/intake`
+//! The sign-in round trip comes back to the web app's `/settings/help`
 //! page (the OAuth redirect), which posts the code and state here with the
 //! member's own session — so no route here is open to the internet.
 

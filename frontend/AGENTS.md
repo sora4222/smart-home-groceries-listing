@@ -56,19 +56,20 @@ File-based routing — one file per route:
 |---|---|
 | `routes/__root.tsx` | Root layout (nav, Sonner toaster) |
 | `routes/index.tsx` | `/` — Grocery list |
-| `routes/pending.tsx` | `/pending` — Confirmation queue |
+| `routes/pending.tsx` | `/pending` — Confirmation queue, then Held / Rejected (`?tab=rejected`) |
 | `routes/sign-in.$.tsx` | `/sign-in` — Clerk's sign-in box (goes home with sign-in off) |
 | `routes/sign-up.$.tsx` | `/sign-up` — Clerk's sign-up box (goes home with sign-in off) |
-| `routes/triage.tsx` | `/triage` — Held for review / Rejected tabs (`?tab=rejected`) |
-| `routes/order.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
-| `routes/analysis.tsx` | `/analysis` — Spending analysis |
-| `routes/settings/index.tsx` | `/settings` |
+| `routes/order.tsx` | `/order` — In Progress / History layout |
+| `routes/order/index.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
+| `routes/order/history.tsx` | `/order/history` — Spending |
+| `routes/settings.tsx` | `/settings` layout with section nav |
+| `routes/settings/index.tsx` | `/settings` — "Pick a section" |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |
 | `routes/settings/dislikes.tsx` | `/settings/dislikes` — every member's dislikes |
-| `routes/settings/intake.tsx` | `/settings/intake` — Google Tasks connect + other channels; Google's sign-in returns here |
+| `routes/settings/help.tsx` | `/settings/help` — Google Tasks connect + other channels; Google's sign-in returns here |
 | `routes/settings/stores.tsx` | `/settings/stores` |
 | `routes/settings/delivery.tsx` | `/settings/delivery` |
-| `routes/logs.tsx` | `/logs` |
+| `routes/settings/logs.tsx` | `/settings/logs` |
 
 ```typescript
 // Navigation

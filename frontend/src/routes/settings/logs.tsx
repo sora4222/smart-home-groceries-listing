@@ -6,13 +6,13 @@ import { Button } from "#/components/ui/button";
 import { useAccessLogPages } from "#/hooks/useAccessLogPages";
 import { api } from "#/lib/api";
 
-export const Route = createFileRoute("/logs")({
+export const Route = createFileRoute("/settings/logs")({
 	loader: () => api.accessLogs.list({ hideHealthChecks: true }),
 	component: LogsPage,
 });
 
 /**
- * `/logs` — every request the backend answered, newest first (spec: "Network
+ * Settings › Logs — every request the backend answered, newest first (spec: "Network
  * access logging"). Any signed-in household member may read it.
  */
 function LogsPage() {
@@ -27,10 +27,9 @@ function LogsPage() {
 
 	return (
 		<div className="flex flex-col gap-3">
-			<h1 className="text-lg font-semibold">Access log</h1>
+			<h1 className="text-lg font-semibold">Logs</h1>
 			<p className="text-sm text-muted-foreground">
-				Every request to the app: when, who, from where, and what it asked for.
-				Newest first.
+				Every request to the app, newest first.
 			</p>
 			<HealthChecksSwitch
 				checked={showHealthChecks}

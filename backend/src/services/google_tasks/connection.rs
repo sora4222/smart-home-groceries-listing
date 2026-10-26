@@ -1,5 +1,5 @@
 //! Connecting Google Tasks and choosing what to watch — the rules behind
-//! `/settings/intake`.
+//! `/settings/help`.
 //!
 //! Signing in is a round trip through Google: [`TasksConnection::start_sign_in`]
 //! issues a one-use `state` and Google's URL; Google sends the browser back to

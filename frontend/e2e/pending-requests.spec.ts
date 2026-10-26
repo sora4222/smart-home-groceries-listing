@@ -8,73 +8,68 @@ import {
 } from "./fixtures";
 
 /**
- * Accepting a voice item whose name is already on the list. The backend
- * answers 409 with the existing item; the Pending Requests screen must ask
- * "update the quantity or add a separate entry?" rather than show an error.
+ * Accepting from Pending. An item already on the list gets the quantity added
+ * to it, with no question; Undo takes it back and returns the card.
  */
-test.describe("accepting a voice item already on the list", () => {
-	test("updates the existing quantity when asked to", async ({ page, request }) => {
+test.describe("accepting a pending request", () => {
+	test("adds to the quantity of an item already on the list", async ({
+		page,
+		request,
+	}) => {
 		await gotoList(page);
 		await addItem(page, "milk", 1);
 		expect(await deliverVoiceItem(request, "milk", 2)).toBe("pending");
 
 		await gotoList(page, "/pending");
 		await page.getByRole("button", { name: "Accept milk" }).click();
-
-		const prompt = page.getByRole("alertdialog", { name: "Already on the list" });
-		await expect(prompt).toContainText("milk is already on the list");
-		await prompt.getByRole("button", { name: "Update the quantity" }).click();
-		await expect(page.getByRole("button", { name: "Accept milk" })).toHaveCount(0);
+		await expect(page.getByText("milk: now 3")).toBeVisible();
+		await expect(page.getByText("No items pending")).toBeVisible();
 
 		await gotoList(page);
 		await expect(itemCard(page, "milk")).toHaveCount(1);
 		await expect(itemCard(page, "milk").getByLabel("Quantity 3")).toBeVisible();
 	});
 
-	test("adds a separate entry when asked to", async ({ page, request }) => {
-		await gotoList(page);
-		await addItem(page, "bread", 1);
-		expect(await deliverVoiceItem(request, "bread", 1)).toBe("pending");
-
-		await gotoList(page, "/pending");
-		await page.getByRole("button", { name: "Accept bread" }).click();
-		await page.getByRole("button", { name: "Add a separate entry" }).click();
-		await expect(page.getByRole("button", { name: "Accept bread" })).toHaveCount(0);
-
-		await gotoList(page);
-		await expect(itemCard(page, "bread")).toHaveCount(2);
-	});
-
-	test("cancel keeps the request waiting", async ({ page, request }) => {
-		await gotoList(page);
-		await addItem(page, "eggs", 1);
-		expect(await deliverVoiceItem(request, "eggs", 1)).toBe("pending");
-
-		await gotoList(page, "/pending");
-		await page.getByRole("button", { name: "Accept eggs" }).click();
-		await page.getByRole("button", { name: "Cancel" }).click();
-
-		await expect(page.getByRole("alertdialog")).toHaveCount(0);
-		await expect(page.getByRole("button", { name: "Accept eggs" })).toBeVisible();
-	});
-
-	test("editing the card closes the question about the old name", async ({
+	test("Undo takes the added quantity back and returns the card", async ({
 		page,
 		request,
 	}) => {
 		await gotoList(page);
-		await addItem(page, "jam", 1);
+		await addItem(page, "eggs", 1);
+		expect(await deliverVoiceItem(request, "eggs", 2)).toBe("pending");
+
+		await gotoList(page, "/pending");
+		await page.getByRole("button", { name: "Accept eggs" }).click();
+		await page.getByRole("button", { name: "Undo" }).click();
+		await expect(page.getByRole("button", { name: "Accept eggs" })).toBeVisible();
+
+		await gotoList(page);
+		await expect(itemCard(page, "eggs").getByLabel("Quantity 1")).toBeVisible();
+	});
+
+	test("a new item is added, and Undo removes it", async ({
+		page,
+		request,
+	}) => {
 		expect(await deliverVoiceItem(request, "jam", 1)).toBe("pending");
 
 		await gotoList(page, "/pending");
 		await page.getByRole("button", { name: "Accept jam" }).click();
-		await expect(page.getByRole("alertdialog")).toBeVisible();
-		await page.getByLabel("Item name").fill("strawberry jam");
+		await expect(page.getByText("jam added")).toBeVisible();
+		await page.getByRole("button", { name: "Undo" }).click();
+		await expect(page.getByRole("button", { name: "Accept jam" })).toBeVisible();
 
-		await expect(page.getByRole("alertdialog")).toHaveCount(0);
-		await page.getByRole("button", { name: "Accept strawberry jam" }).click();
-		await expect(
-			page.getByRole("button", { name: "Accept strawberry jam" }),
-		).toHaveCount(0);
+		await gotoList(page);
+		await expect(itemCard(page, "jam")).toHaveCount(0);
+	});
+
+	test("the nav's Pending link opens the page", async ({ page }) => {
+		await gotoList(page);
+		await page
+			.getByRole("navigation", { name: "Main navigation" })
+			.getByRole("link", { name: "Pending" })
+			.click();
+		await expect(page.getByRole("heading", { name: "Pending" })).toBeVisible();
+		await expect(page.getByText("No items pending")).toBeVisible();
 	});
 });

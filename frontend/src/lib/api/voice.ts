@@ -33,6 +33,13 @@ export interface VoiceRequest {
 	triage_confidence: number | null;
 }
 
+/** What an accept did: the list item, and whether it added to one already there. */
+export interface VoiceAcceptResult {
+	voice_request: VoiceRequest;
+	grocery_item: GroceryItem;
+	merged: boolean;
+}
+
 export const voiceApi = {
 	pending: () => request<VoiceRequest[]>("/api/voice-requests"),
 	/**
@@ -44,10 +51,15 @@ export const voiceApi = {
 		body?: { name?: string; quantity?: number },
 		onDuplicate: OnDuplicate = "ask",
 	) =>
-		request<{ voice_request: VoiceRequest; grocery_item: GroceryItem }>(
+		request<VoiceAcceptResult>(
 			`/api/voice-requests/${id}/accept?on_duplicate=${onDuplicate}`,
 			{ method: "POST", body: JSON.stringify(body ?? {}) },
 		),
+	/** Takes an accepted item back off the list and returns it to the queue. */
+	undoAccept: (id: string) =>
+		request<VoiceRequest>(`/api/voice-requests/${id}/undo-accept`, {
+			method: "POST",
+		}),
 	reject: (id: string) =>
 		request<VoiceRequest>(`/api/voice-requests/${id}/reject`, {
 			method: "POST",

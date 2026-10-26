@@ -10,8 +10,8 @@ import { useCountRiseToast } from "#/hooks/useCountRiseToast";
 export function useTriageToasts(): void {
 	const navigate = useNavigate();
 	useCountRiseToast("triage_held", () =>
-		toast("Item held for review — tap to triage", {
-			action: { label: "Triage", onClick: () => navigate({ to: "/triage" }) },
+		toast("Item held for review", {
+			action: { label: "Review", onClick: () => navigate({ to: "/pending" }) },
 		}),
 	);
 }

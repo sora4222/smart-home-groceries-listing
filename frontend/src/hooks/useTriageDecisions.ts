@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,13 +11,13 @@ export interface TriageLists {
 }
 
 /**
- * The Triage view's two lists and its actions: accept, reject, and put a
- * Google Tasks item back on its list. A decided card leaves its
- * list as soon as the backend agrees; a failure leaves it in place with a
- * toast, so nothing disappears that was not decided.
+ * The triage lists on the Pending page and their actions: accept (up into
+ * the pending list), reject, and put a Google Tasks item back on its list.
+ * A decided card leaves its list as soon as the backend agrees; a failure
+ * leaves it in place with a toast.
  */
 export function useTriageDecisions(initial: TriageLists) {
-	const navigate = useNavigate();
+	const router = useRouter();
 	const [lists, setLists] = useState<TriageLists>(initial);
 	const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -50,13 +50,11 @@ export function useTriageDecisions(initial: TriageLists) {
 		decide(
 			request,
 			api.triage.accept,
-			() =>
-				toast.success(`${request.parsed_name} moved to Pending Requests`, {
-					action: {
-						label: "Review",
-						onClick: () => navigate({ to: "/pending" }),
-					},
-				}),
+			() => {
+				toast.success(`${request.parsed_name} moved to pending`);
+				// Reload so it shows in the pending list above.
+				router.invalidate().catch(() => {});
+			},
 			"Could not move that request — try again.",
 		);
 
@@ -74,7 +72,7 @@ export function useTriageDecisions(initial: TriageLists) {
 			api.triage.restore,
 			() =>
 				toast.success(
-					`${request.parsed_name} put back in Google Tasks. It comes to Pending Requests on the next check.`,
+					`${request.parsed_name} put back in Google Tasks. It comes back on the next check.`,
 				),
 			"Could not put that back in Google Tasks — try again.",
 		);

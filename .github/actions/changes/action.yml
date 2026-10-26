@@ -1,0 +1,27 @@
+# Which path groups in .github/filters.yml this run should check. Needs the
+# repository checked out (.github is enough) and `pull-requests: read`.
+name: Changed areas
+description: >-
+  On a pull request, names the groups whose files the PR touches. On any
+  other event (push to main, schedule, manual run), names every group so
+  main always gets the full set of checks.
+
+outputs:
+  changes:
+    description: JSON array of group names, for example ["backend","e2e"].
+    value: ${{ steps.pr.outputs.changes || steps.all.outputs.changes }}
+
+runs:
+  using: composite
+  steps:
+    - id: pr
+      if: github.event_name == 'pull_request'
+      uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      with:
+        filters: .github/filters.yml
+    - id: all
+      if: github.event_name != 'pull_request'
+      shell: bash
+      run: |
+        names=$(sed -n 's/^\([A-Za-z0-9_-]*\):.*/\1/p' "$GITHUB_WORKSPACE/.github/filters.yml" | jq -Rsc 'split("\n") | map(select(length > 0))')
+        echo "changes=$names" >> "$GITHUB_OUTPUT"

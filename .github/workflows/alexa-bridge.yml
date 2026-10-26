@@ -1,5 +1,6 @@
 # Alexa bridge sidecar (the only Python in the repo): ruff, pytest and
 # a dependency audit.
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: Alexa bridge
 
 on:
@@ -19,8 +20,16 @@ defaults:
     working-directory: sidecars/alexa-bridge
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   check:
     name: ruff, pytest, audit
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'alexa-bridge')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

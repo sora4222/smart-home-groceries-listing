@@ -1,5 +1,6 @@
 # Web app: Biome (format + lint + import order), TypeScript, unit tests,
 # a production build and a dependency audit.
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: Frontend
 
 on:
@@ -19,8 +20,16 @@ defaults:
     working-directory: frontend
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   check:
     name: biome, typecheck, test, build
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'frontend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -44,6 +53,8 @@ jobs:
 
   audit:
     name: pnpm audit
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'frontend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

@@ -2,6 +2,7 @@
 # (`make test-tooling`), shellcheck on those scripts, actionlint on these
 # workflows. The script tests include the docker-compose.yml parse
 # (scripts/compose-config.test.sh).
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: Tooling
 
 on:
@@ -17,8 +18,16 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   scripts:
     name: script tests
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'tooling-scripts')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,6 +45,8 @@ jobs:
 
   shellcheck:
     name: shellcheck
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'shellcheck')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -43,6 +54,8 @@ jobs:
 
   actionlint:
     name: actionlint
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'actionlint')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

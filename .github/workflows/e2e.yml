@@ -1,5 +1,6 @@
 # Playwright end-to-end tests against the real backend and a real database.
 # Fake store clients and the keyword triage checker keep it off the internet.
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: E2E
 
 on:
@@ -15,8 +16,16 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   playwright:
     name: playwright
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'e2e')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

@@ -1,0 +1,28 @@
+# Shared first job for the gated workflows: which path groups in
+# .github/filters.yml this run should check. See .github/actions/changes.
+name: Changed files
+
+on:
+  workflow_call:
+    outputs:
+      changes:
+        description: JSON array of path group names to check.
+        value: ${{ jobs.detect.outputs.changes }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect:
+    name: changed files
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.changes.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github
+          persist-credentials: false
+      - id: changes
+        uses: ./.github/actions/changes

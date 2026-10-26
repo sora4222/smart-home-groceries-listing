@@ -1,5 +1,6 @@
 # Rust backend: format, lint, tests and a dependency audit.
 # The same checks a contributor runs with `make lint` and `make test-backend`.
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: Backend
 
 on:
@@ -22,8 +23,16 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   fmt:
     name: rustfmt
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'backend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -34,6 +43,8 @@ jobs:
 
   clippy:
     name: clippy
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'backend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -47,6 +58,8 @@ jobs:
 
   test:
     name: cargo test
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'backend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -65,6 +78,8 @@ jobs:
 
   audit:
     name: cargo audit
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'backend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

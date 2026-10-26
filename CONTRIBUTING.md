@@ -17,4 +17,7 @@
    `make hm-update-server` for a verified release. See
    [`docs/production.md`](docs/production.md).
 
+CI on a pull request runs only the checks whose files changed. Add new paths
+to [`.github/filters.yml`](.github/filters.yml).
+
 Use one commit per feature, with a `feat:` or `fix:` prefix. Never commit secrets.

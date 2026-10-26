@@ -1,179 +1,119 @@
-# Google Home Grocery List
+# Home Grocery List
 
-A self-hosted household grocery manager with a React 19 and TanStack Start web
-app, a Rust and Axum API, PostgreSQL, a Flask/ask-sdk Python Alexa verification
-sidecar, and an optional Tauri desktop client.
-Review incoming items, compare Woolworths and Coles products, choose how to split
-a shop, and fill the stores' trolleys through bookmarks in your own browser.
-Production runs as systemd services on a Unix home server. Development uses
-Docker Compose.
+A grocery list for one household.
 
-## What works
+1. You say an item to Alexa, or type it into Google Tasks.
+2. The item waits in the web app until a person accepts it.
+3. The web app shows the price of each item at Woolworths and Coles.
+4. The web app puts the products you chose into your Woolworths or Coles
+   trolley. You pay on the store's website. This app never pays.
 
-- Alexa custom intents, a shared-secret webhook, and Google Tasks intake feed
-  the confirmation queue. Every added item needs a household member's acceptance.
-- Local LLM triage separates ordinary requests from items that need closer review.
-- The list supports quantities, notes, item rules, product choices and dislikes.
-- Product search and the order planner compare chosen products and configured
-  delivery fees across Woolworths and Coles.
-- Store bookmarks fill trolleys and offer to open checkout. Payment stays on the
-  store website. A successful trolley fill records an undoable purchase, which
-  feeds purchase history and spending analysis. It does not prove payment.
+| Part | What it does | Where it runs |
+|---|---|---|
+| Backend | Rust and Axum. Stores the list and gets store prices | The home server |
+| Database | PostgreSQL | The home server |
+| Web app | React and TanStack Start. The pages you use | The home server, or your own computer |
+| Alexa bridge | A small Python program that passes Alexa requests to the backend | The home server |
+| Desktop app | Tauri. Opens the web app and fills the Woolworths trolley | Your own computer (optional) |
 
-Google Home's own shopping list has no integration here. Google Tasks is built
-for typed tasks, with fake and mock coverage; its real-account flow remains
-unverified. Google Keep is paused. Live delivery windows, order tracking and
-server-side checkout are not built. See the [feature specs](docs/features/)
-for each feature's status and validation limits.
+Google Home is not connected. Google does not allow it. Google Keep is paused.
+See [`docs/features/`](docs/features/) for what each feature does and what is
+not built.
 
-## Setup and development
+## Which guide to read
 
-Install Node.js 22 or newer, pnpm, Rust, uv, and Docker with Compose Watch support.
-Rust's native build dependencies are listed in [production setup](docs/production.md).
-`all` runs checks, tests and the production build when those prerequisites are ready.
-Use the [provisioning guide](docs/human-setup.md) for Clerk, Alexa, Cloudflare and
-store bookmarks, then:
+| You want to | Read |
+|---|---|
+| Set up Clerk, Cloudflare, Alexa and the store bookmarks | [`docs/human-setup.md`](docs/human-setup.md) |
+| Install the app on the home server | [`docs/production.md`](docs/production.md) |
+| Do a shop, undo a mistake, or fix a problem | [`docs/using-the-app.md`](docs/using-the-app.md) |
+| Know how one feature works | [`docs/features/`](docs/features/) |
+| Follow the code rules | [`AGENTS.md`](AGENTS.md) |
+
+## Run everything on your own computer
+
+You need Node 22 or newer, pnpm, Rust, uv, and Docker with Compose.
 
 ```sh
-make setup
-make setup-env
-# Complete the required configuration described below.
-make dev
+make setup       # installs the dependencies and Chromium
+make setup-env   # makes .env and fills in the random secrets
+make dev         # starts the whole app
 ```
 
-`dev` builds and starts the complete stack, waits for backend and frontend health,
-and prints its local URLs. Frontend source changes reload through Vite. Backend
-and Alexa changes rebuild their containers. Ctrl-C removes this worktree's
-containers and network. `make dev-stop` repeats that cleanup safely and retains
-all database and model volumes. `make dev human=1` streams full Compose output.
-The existing `stop-all` and `hm-dev` names remain aliases.
-Compact mode saves logs in a private temporary directory and prints its location.
+Fill in the rest of `.env` with [`docs/human-setup.md`](docs/human-setup.md).
+`make dev` prints the web app address. Press Ctrl-C or run `make dev-stop` to
+stop it. Your database is kept.
 
-Development uses `docker-compose.dev.yml` over the base Compose file. API and web
-ports bind to loopback; PostgreSQL has no published development port. Each
-worktree gets a default Compose project name and ports derived from its path.
-Override `COMPOSE_PROJECT_NAME`, `WEB_PORT`, or `BACKEND_PORT` when needed; explicit
-project names must be unique across concurrent worktrees. A port collision fails
-startup. Use separate tunnel tokens/routes across worktrees when remote intake
-must stay isolated. The new default development project uses its own volumes; existing
-Compose volumes remain available under their original project name.
+Two `.env` settings help while you develop:
 
-For a frontend on this computer against the home server, use
-`make hm-dev-frontend`. It retains the separate frontend workflow and its
-`WEB_PORT` default of 3000. See [remote backend setup](docs/human-setup.md#optional-web-app-on-your-own-computer).
-
-## Environment variables required
-
-[`make setup-env`](Makefile) creates the ignored root `.env` from
-[`.env.example`](.env.example) and fills empty generated secrets without replacing
-existing values. Exported values override the file. `GROCERY_ENV_FILE` selects
-another file, which must exist. Literal values and `op://` references work for
-both launchers and direct application startup. References require the host's
-1Password CLI access; application containers never receive the loader's `OP_*`
-credentials. See [configuration sources](docs/features/FEATURE_CONFIGURATION.md).
-
-| Component | Configuration |
+| Setting | What it does |
 |---|---|
-| Database | `DATABASE_URL`; `POSTGRES_PASSWORD` when using the Compose database. The URL's credentials must match the database. |
-| API authentication | `CLERK_JWKS_URL`. `DEV_AUTH_BYPASS=true` is only for isolated local development. |
-| Encryption | `CREDENTIAL_ENCRYPTION_KEY`, a base64-encoded 32-byte key. |
-| Intake and store bookmarks | `VOICE_WEBHOOK_SECRET`, `ALEXA_BRIDGE_SECRET`, `STORE_TAB_SECRET`. |
-| Alexa bridge | `ALEXA_SKILL_ID` and the matching `ALEXA_BRIDGE_SECRET`. |
-| Web sign-in | `VITE_CLERK_PUBLISHABLE_KEY`; server Clerk settings as described in the provisioning guide. |
-| Cloudflare | `CLOUDFLARE_TUNNEL_TOKEN`; development starts the tunnel by default. |
-| Optional integrations | LLM provider and Google OAuth settings in `.env.example`. `STORE_CLIENTS=fake` uses the built-in catalogue. |
+| `STORE_CLIENTS=fake` | Uses a small fake shop. The backend does not call Woolworths or Coles |
+| `DEV_AUTH_BYPASS=true` | Turns sign-in off. Never use it on a server that the internet can reach |
 
-Full-stack development supplies its local API/WebSocket URLs and CORS origin.
-The separate frontend workflow uses `VITE_API_BASE_URL` and optional `VITE_WS_URL`.
-Only `VITE_*` values are public browser configuration; never put secrets in them.
+Each Git worktree gets its own ports and containers, so you can run several at
+once.
 
-## Commands and validation
+## Use only the web app, with the home server's backend
 
-| Target | Purpose |
+```sh
+make hm-dev-frontend
+```
+
+Set `VITE_API_BASE_URL` in `.env` first. See
+[web app on your own computer](docs/human-setup.md#optional-web-app-on-your-own-computer).
+
+## Use the desktop app
+
+```sh
+make hm-dev-desktop   # run it
+make build-desktop    # make an installer in build/desktop
+```
+
+The app asks for the web app address the first time. See
+[desktop setup](docs/human-setup.md#desktop-client-through-tailscale-or-cloudflare).
+
+## Run the checks and tests
+
+You need Docker running. The tests start their own database and never touch
+yours.
+
+```sh
+make check   # formats, lints, checks types and file lengths, runs all tests
+make test    # runs all tests
+```
+
+Add `human=1` to see the full output. Focused suites are `test-backend`,
+`test-frontend`, `test-alexa`, `test-desktop`, `test-tooling` and
+`test-frontend-playwright`.
+
+## Database changes
+
+```sh
+make migration-new name="description"   # new migration file
+make update-db                          # apply migrations, keep data
+make reset-db confirm=reset             # delete this worktree's local data
+```
+
+## Install on the home server
+
+```sh
+make build
+sudo make install-server args='--config /protected/application.env'
+```
+
+Production uses systemd, not Docker. See [`docs/production.md`](docs/production.md).
+
+## Folders
+
+| Folder | What is in it |
 |---|---|
-| `setup` | Install locked JavaScript/Python dependencies, fetch Rust crates, install Chromium. |
-| `setup-env` | Create the ignored `.env` and fill empty generated secrets. |
-| `dev` / `dev-stop` | Start or stop the complete local development stack; retain volumes. |
-| `check` | Apply format/lint fixes, check types and file lengths, and run all tests. |
-| `format` / `lint` | Apply rustfmt/Biome/Ruff formatting or supported lint fixes. Component targets use `format-<component>` and `lint-<component>`. |
-| `test` | Backend, frontend unit, Alexa, desktop, tooling, and Playwright suites. |
-| `test-backend`, `test-frontend`, `test-alexa`, `test-desktop`, `test-tooling`, `test-frontend-playwright` | Focused suites. |
-| `test human=1` | Full test output. `hm-test` and existing component aliases do the same. |
-| `update-db` / `migration-new name="description"` | Apply embedded migrations without serving HTTP, or create a migration. Startup also applies migrations. |
-| `reset-db confirm=reset` | Delete and migrate only this worktree's running Compose database; stop its backend first. |
-| `hm-compose args='logs backend'` | Service commands using this worktree's Compose context. |
-| `build-backend`, `build-frontend`, `build-alexa` | Build individual server components into `build/<component>`. |
-| `build` | Build those components and assemble the installable bundle in `build/production`. |
-| `build-desktop` / `create-application-desktop` | Package the native client for this OS into `build/desktop`. |
-| `install-server` / `uninstall-server` | Install or remove systemd services; existing `hm-` aliases remain available. |
-| `all` | Run `check`, `test` and `build`; Make runs each test target once. |
+| [`backend/`](backend/README.md) | The backend, in Rust |
+| [`frontend/`](frontend/README.md) | The web app, in React |
+| [`sidecars/alexa-bridge/`](sidecars/alexa-bridge/README.md) | The Alexa bridge, in Python |
+| [`desktop/`](desktop/README.md) | The desktop app, in Tauri |
+| `deploy/` | Files that install the app on the home server |
+| `scripts/` | Scripts that `make` runs |
+| `docs/` | Setup, use, and feature docs |
 
-`check`, `format`, and `lint` can change source files. `check-format` remains a
-read-only formatting check. Component names are `backend`, `frontend`, `alexa` and
-`desktop`; type checks are `type-backend`, `type-frontend` and `type-desktop`.
-Commands default to compact output; use `human=1` to pass `--human` to the runners.
-Compact-mode failures retain private logs and print the log location.
-
-`reset-db` refuses to run without `confirm=reset`. It never follows `DATABASE_URL`
-to a remote database. It requires the local Compose `db` service to be running,
-stops the backend, deletes its public schema and reapplies embedded SQLx migrations.
-Run `make dev` afterwards. For updates that retain records, use `update-db`.
-Worktree project names and ports already derive from the checkout path, so no
-`setup-env-worktree` copy step is needed.
-
-Tests require Docker. Backend and browser runners own disposable PostgreSQL 16
-containers on random ports. Unit and integration runners ignore household
-configuration and 1Password credentials. They never use a household database.
-Missing results, failures, unexpected
-skips and empty suites fail the gates. See the [testing guidance](.claude/skills/testing/SKILL.md).
-
-## Production and repository layout
-
-On the server, use `make build` and `sudo make install-server`.
-The build also creates a configuration-free runtime bundle; installation consumes
-that bundle. Supply startup settings with `args='--config /protected/application.env'`
-on a fresh host. Optional 1Password inputs use protected files or exports.
-`make hm-update-server` calls the server repository's verifier for the latest
-completed `release-N.N.N` release; it does not deploy the checked-out branch.
-See [production operations](docs/production.md) for prerequisites, GitHub rules,
-backups, status and recovery. Install optional Ollama/cloudflared dependencies
-separately. Updates preserve configuration and database identity; production uses
-systemd, without Docker. Removal retains configuration, databases and shared packages.
-
-| Directory | Responsibility |
-|---|---|
-| [frontend](frontend/README.md) | Web interface, SSR, Vitest and browser tests. |
-| [backend](backend/README.md) | Authenticated REST/WebSocket API, grocery rules, integrations and migrations. |
-| [sidecars/alexa-bridge](sidecars/alexa-bridge/README.md) | Verify Amazon requests and forward intents to the API. |
-| [desktop](desktop/README.md) | Tauri client that loads the server web app and packages native installers. |
-| [scripts](scripts/) | Configuration, lifecycle, test and validation runners. |
-| [deploy](deploy/) | Production build, installation and systemd units. |
-| [docs](docs/README.md) | Feature contracts, provisioning and everyday workflows. |
-
-Project conventions are in [AGENTS.md](AGENTS.md), with layer-specific guidance
-in each application directory. Agent reference skills live in `.claude/skills/`
-and the component `skills/` directories. See [CONTRIBUTING.md](CONTRIBUTING.md)
-for the software lifecycle and focused commands.
-
-## Desktop client
-
-The Tauri client loads the web app from one saved server URL. Use the frontend's
-Tailscale address or Cloudflare HTTPS hostname. The server hosts the screens,
-API and database; the desktop client needs no local database or Docker stack.
-Woolworths can fill its trolley in a native store window. Coles retains the
-browser bookmark workflow.
-
-After `make setup`, use `make hm-dev-desktop` or `make build-desktop`.
-`GROCERY_DESKTOP_SERVER_URL` optionally supplies a default at launch or build.
-Leave it blank to choose in the app. A saved address takes priority. Build
-artifacts contain this public URL, so never include credentials in it.
-Development instances use separate application identities for each worktree.
-`make test-desktop` runs native unit tests; `make check` includes native lint,
-type checks and tests. Installers are copied to `build/desktop` after a successful
-build. The server build leaves desktop packaging to `build-desktop`.
-
-The server's browser API and WebSocket URLs must be reachable from the desktop
-computer. `SERVER_API_BASE_URL` can keep SSR requests on server loopback while
-`VITE_API_BASE_URL` points to a reachable API hostname. See
-[desktop setup](docs/human-setup.md#desktop-client-through-tailscale-or-cloudflare)
-and [the desktop contract](docs/features/FEATURE_DESKTOP_APP.md).
+Never commit secret values. Keep them in `.env` or 1Password.

@@ -8,11 +8,14 @@ import type { VoiceRequest } from "#/lib/api";
 export function PendingSection({
 	requests,
 	rejectedIds,
+	busyIds,
 	onAccept,
 	onReject,
 }: {
 	requests: VoiceRequest[];
 	rejectedIds: ReadonlySet<string>;
+	/** Requests with an accept being saved. */
+	busyIds: ReadonlySet<string>;
 	onAccept: (id: string, name: string, quantity: number) => void;
 	onReject: (id: string) => void;
 }) {
@@ -28,6 +31,7 @@ export function PendingSection({
 						key={request.id}
 						request={request}
 						dulled={rejectedIds.has(request.id)}
+						busy={busyIds.has(request.id)}
 						onAccept={onAccept}
 						onReject={onReject}
 					/>

@@ -39,9 +39,6 @@ const config = defineConfig(() => {
 		// An explicit file is already loaded above; Vite must not merge another .env.
 		envDir,
 		resolve: { tsconfigPaths: true },
-		server: {
-			port: 3000,
-		},
 		plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact(), nitro()],
 	};
 });

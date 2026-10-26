@@ -13,8 +13,7 @@ between servers.
 | Backend in Compose, PostgreSQL on the host | `host.docker.internal:<port>`; startup removes the `db` profile |
 | Backend directly on the host | `localhost:<port>`, a socket URL, or the configured database host |
 
-`POSTGRES_PORT` controls the development container's published port, not the
-backend's internal Docker address. A host-installed server must allow the
+The Docker database publishes no host port. A host-installed server must allow the
 Docker network when the backend runs in Compose. See
 [bare-metal setup](../human-setup.md#optional-postgresql-installed-on-the-server).
 Other Compose profiles and the original URL are preserved. The selected mode

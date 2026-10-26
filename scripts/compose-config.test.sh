@@ -17,6 +17,9 @@ compose() {
 
 compose db config --quiet
 compose db config --services | grep -qx db
+compose db config --format json | node -e '
+  const { services } = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+  if (services.db.ports?.length) throw new Error("db must not publish a host port");'
 compose ollama config --quiet
 compose db -f "$root/docker-compose.dev.yml" config --format json > "$fixture"
 node --input-type=module - "$fixture" <<'JS'

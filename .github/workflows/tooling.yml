@@ -1,6 +1,8 @@
 # The repo's own tooling: tests for the scripts the Makefile and CI rely on
 # (`make test-tooling`), shellcheck on those scripts, actionlint on these
-# workflows, and a parse of docker-compose.yml.
+# workflows. The script tests include the docker-compose.yml parse
+# (scripts/compose-config.test.sh).
+# On a pull request each job runs only when its files change (.github/filters.yml).
 name: Tooling
 
 on:
@@ -16,17 +18,28 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   scripts:
     name: script tests
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'tooling-scripts')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      # The runner's bundled Compose can reject watch.initial_sync.
       - uses: docker/setup-compose-action@v2
         with:
           version: v5.6.1
@@ -35,6 +48,8 @@ jobs:
 
   shellcheck:
     name: shellcheck
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'shellcheck')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -42,22 +57,10 @@ jobs:
 
   actionlint:
     name: actionlint
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changes), 'actionlint')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - run: uvx --from actionlint-py actionlint
-
-  compose:
-    name: docker compose config
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      # The runner's bundled Compose can reject watch.initial_sync.
-      - uses: docker/setup-compose-action@v2
-        with:
-          version: v5.6.1
-      - run: sh scripts/compose-config.test.sh

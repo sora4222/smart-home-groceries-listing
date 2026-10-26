@@ -1,0 +1,133 @@
+# Path groups for .github/actions/changes. On a pull request a job runs only
+# when the PR touches a file in its group; every other event runs them all.
+# A group name is what a workflow's `if:` looks for in `changes`.
+
+# Editing the change detection itself re-runs every gated check.
+ci: &ci
+  - .github/filters.yml
+  - .github/actions/changes/**
+
+# Make targets reach into scripts/ and the root test tooling.
+make: &make
+  - Makefile
+  - package.json
+  - pnpm-lock.yaml
+  - scripts/**
+
+alexa-bridge:
+  - *ci
+  - sidecars/alexa-bridge/**
+  - .github/workflows/alexa-bridge.yml
+
+backend:
+  - *ci
+  - *make
+  - backend/**
+  - .github/workflows/backend.yml
+
+# vite.config.ts imports the environment loaders from scripts/.
+frontend:
+  - *ci
+  - frontend/**
+  - scripts/**
+  - .github/workflows/frontend.yml
+
+desktop:
+  - *ci
+  - *make
+  - desktop/**
+  - .github/workflows/desktop.yml
+
+e2e:
+  - *ci
+  - *make
+  - backend/**
+  - frontend/**
+  - docker-compose*.yml
+  - .env.example
+  - .github/workflows/e2e.yml
+
+# Audits check the lock files, so they only need to run when those change.
+# New advisories are caught by the daily scheduled run on main.
+cargo-audit:
+  - *ci
+  - backend/Cargo.toml
+  - backend/Cargo.lock
+  - backend/.cargo/audit.toml
+  - .github/workflows/audit.yml
+
+pnpm-audit:
+  - *ci
+  - frontend/package.json
+  - frontend/pnpm-lock.yaml
+  - frontend/pnpm-workspace.yaml
+  - .github/workflows/audit.yml
+
+docker-backend:
+  - *ci
+  - backend/**
+  - .github/workflows/docker.yml
+
+docker-alexa-bridge:
+  - *ci
+  - sidecars/alexa-bridge/**
+  - .github/workflows/docker.yml
+
+codeql-actions:
+  - *ci
+  - .github/**
+
+codeql-javascript-typescript:
+  - *ci
+  - "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"
+  - "**/package.json"
+  - "**/pnpm-lock.yaml"
+  - .github/workflows/codeql.yml
+
+codeql-python:
+  - *ci
+  - "**/*.py"
+  - "**/pyproject.toml"
+  - "**/uv.lock"
+  - .github/workflows/codeql.yml
+
+codeql-rust:
+  - *ci
+  - "**/*.rs"
+  - "**/Cargo.toml"
+  - "**/Cargo.lock"
+  - .github/workflows/codeql.yml
+
+# The tooling tests also read migrations, the backend environment module,
+# the desktop crate and the Compose files.
+tooling-scripts:
+  - *ci
+  - *make
+  - deploy/**
+  - desktop/**
+  - backend/migrations/**
+  - backend/src/environment/**
+  - docker-compose*.yml
+  - .env.example
+  - .github/workflows/tooling.yml
+
+shellcheck:
+  - *ci
+  - "**/*.sh"
+  - deploy/bin/**
+  - .github/workflows/tooling.yml
+
+actionlint:
+  - *ci
+  - .github/**
+
+# The native bundle builds the backend, web app and Alexa bridge.
+service-release:
+  - *ci
+  - *make
+  - backend/**
+  - frontend/**
+  - sidecars/**
+  - deploy/**
+  - .env.example
+  - .github/workflows/service-release.yml

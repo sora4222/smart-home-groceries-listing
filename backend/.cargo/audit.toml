@@ -1,0 +1,13 @@
+# Advisories cargo audit should skip, each with the reason it does not apply.
+[advisories]
+ignore = [
+    # zstd 0.13 / zstd-safe 7 come in through boring2 4.x (wreq 0.15) and
+    # wreq-util. Every published boring2 4.x and wreq-util still pins
+    # zstd ^0.13, so no fixed version can be reached. boring2 only calls
+    # `zstd::decode_all` / `encode_all` for TLS certificate compression:
+    # a fresh context per call (0391), no seekable API (0398), and a failed
+    # decode is dropped as an error (0403). Remove once wreq moves to zstd 0.14.
+    "RUSTSEC-2026-0391",
+    "RUSTSEC-2026-0398",
+    "RUSTSEC-2026-0403",
+]

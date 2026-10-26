@@ -115,7 +115,11 @@ describe("GroceryItemCard", () => {
 			screen.getByRole("button", { name: "Clear the chosen product for milk" }),
 		);
 
-		expect(onClearChoice).toHaveBeenCalledWith(itemFixture().id, "coles");
+		expect(onClearChoice).toHaveBeenCalledWith(
+			itemFixture().id,
+			"coles",
+			"c-milk-3l",
+		);
 	});
 
 	it("shows the Select item link it is given", () => {

@@ -16,6 +16,7 @@ export function selectionFixture(
 		unit_price: { amount: "0.165", per: "100mL" },
 		total_price: "9.9",
 		priced_quantity: 2,
+		quantity: 2,
 		url: "https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288",
 		image_url: "https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		selected_by: "user_dev",

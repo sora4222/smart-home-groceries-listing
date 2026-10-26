@@ -8,14 +8,15 @@ import {
 	type ProductChoice,
 	type StoreId,
 } from "#/lib/api";
-import { type ChoiceUndo, undoChoose, undoClear } from "#/lib/choice-undo";
+import { type ChoiceUndo, undoAt } from "#/lib/choice-undo";
+import { applyUndo } from "#/lib/item-restore";
 
 /**
- * Choosing and clearing list items' products from the grocery list page.
+ * Choosing, counting and clearing list items' products.
  *
  * Each change goes through `lib/api` and then `router.invalidate()`, so the
  * page's loader stays the single source of truth. Every change's toast has
- * an Undo that puts the item's choices back as they were (`lib/choice-undo`).
+ * an Undo that puts the changed store back as it was (`lib/choice-undo`).
  * A refused choice (the store no longer offers the product, or could not be
  * searched) is explained with the backend's own sentence, and the promise
  * rejects so the button that asked can recover.
@@ -28,13 +29,7 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 
 	async function undo(itemId: string, plan: ChoiceUndo) {
 		try {
-			if (plan.choose) await api.selections.choose(itemId, plan.choose);
-			if (plan.clear) await api.selections.clear(itemId, plan.clear);
-			if (plan.buyAt) {
-				await api.selections.buyAt([
-					{ grocery_item_id: itemId, store: plan.buyAt },
-				]);
-			}
+			await applyUndo(itemId, plan);
 			toast.success("Undone");
 		} catch {
 			toast.error("Could not undo that — check the item's products.");
@@ -43,7 +38,7 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 	}
 
 	async function choose(itemId: string, choice: ProductChoice) {
-		const plan = undoChoose(selections.get(itemId) ?? null, choice.store);
+		const plan = undoAt(selections.get(itemId) ?? null, choice.store);
 		try {
 			const saved = await api.selections.choose(itemId, choice);
 			const title = [saved.brand, saved.name].filter(Boolean).join(" ");
@@ -59,10 +54,10 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 		}
 	}
 
-	async function clear(itemId: string, store: StoreId) {
-		const plan = undoClear(selections.get(itemId) ?? null, store);
+	async function clear(itemId: string, store: StoreId, productId?: string) {
+		const plan = undoAt(selections.get(itemId) ?? null, store);
 		try {
-			await api.selections.clear(itemId, store);
+			await api.selections.clear(itemId, store, productId);
 			toast.success("Chosen product cleared", {
 				action: { label: "Undo", onClick: () => undo(itemId, plan) },
 			});
@@ -72,7 +67,25 @@ export function useProductChoices(selections: Map<string, ItemSelection>) {
 		}
 	}
 
-	return { choose, clear };
+	async function setCount(
+		itemId: string,
+		store: StoreId,
+		productId: string,
+		count: number,
+	) {
+		const plan = undoAt(selections.get(itemId) ?? null, store);
+		try {
+			await api.selections.setQuantity(itemId, store, productId, count);
+			toast.success("Count changed", {
+				action: { label: "Undo", onClick: () => undo(itemId, plan) },
+			});
+			await router.invalidate();
+		} catch (error) {
+			toast.error(refusal(error) ?? "Could not change the count — try again.");
+		}
+	}
+
+	return { choose, clear, setCount };
 }
 
 /** The backend's explanation for a refused choice, when it gave one. */

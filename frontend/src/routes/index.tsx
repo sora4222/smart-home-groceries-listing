@@ -99,6 +99,7 @@ function GroceryListPage() {
 				onSave={actions.save}
 				onRemove={actions.remove}
 				onClearChoice={choices.clear}
+				onSetCount={choices.setCount}
 				empty={
 					committed.length > 0
 						? "Nothing new since the list was committed."
@@ -135,6 +136,7 @@ function GroceryListPage() {
 						onSave={actions.save}
 						onRemove={actions.remove}
 						onClearChoice={choices.clear}
+						onSetCount={choices.setCount}
 					/>
 				</>
 			)}

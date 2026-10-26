@@ -1,64 +1,53 @@
 /**
  * How to undo a change to an item's chosen products.
  *
- * An item keeps one chosen product per store, and one of them is the product
- * the order buys. Choosing or clearing changes both, so Undo has to put back
- * the product at the store that changed *and* which store the order bought
- * from. Pure: the hook in `hooks/useProductChoices.ts` carries the plan out.
+ * An item can have several products at a store, each with a count, and one
+ * store is the one the order buys from. Undo puts back the changed store's
+ * products and counts, then the store bought from. Pure: `lib/item-restore`
+ * carries the plan out.
  */
-import type { ItemSelection, ProductChoice, StoreId } from "#/lib/api";
+import type { ItemSelection, StoreId } from "#/lib/api";
 
-/** The steps that put an item's choices back, in this order. */
+/** One product to choose again, and how many of it to buy. */
+export interface CountedProduct {
+	product_id: string;
+	quantity: number;
+}
+
+/** What `store` held before the change, oldest choice first. */
 export interface ChoiceUndo {
-	/** Choose this product again (it becomes the one to buy). */
-	choose: ProductChoice | null;
-	/** Clear the product at this store (there was none before). */
-	clear: StoreId | null;
+	store: StoreId;
+	/** Empty when the store had no products. */
+	products: CountedProduct[];
 	/** Then make the order buy at this store again. */
 	buyAt: StoreId | null;
 }
 
-/** The product chosen at `store` before the change, if any. */
-function previousAt(
+/** Every product the item has at `store`, oldest first. */
+export function productsAt(
 	before: ItemSelection | null,
 	store: StoreId,
-): ProductChoice | null {
-	if (!before) return null;
-	const all = [before, ...(before.also_chosen ?? [])];
-	const found = all.find((s) => s.store === store);
-	return found ? { store: found.store, product_id: found.product_id } : null;
+): CountedProduct[] {
+	if (!before) return [];
+	const all = [
+		before,
+		...(before.bought_with ?? []),
+		...(before.also_chosen ?? []),
+	];
+	return all
+		.filter((s) => s.store === store)
+		.map((s) => ({ product_id: s.product_id, quantity: s.quantity }));
 }
 
-/**
- * Undoing a new choice at `store`: the store's earlier product comes back (or
- * the store is cleared), then the order buys where it did before.
- */
-export function undoChoose(
+/** The plan that puts `store` back as it was in `before`. */
+export function undoAt(
 	before: ItemSelection | null,
 	store: StoreId,
 ): ChoiceUndo {
-	const earlier = previousAt(before, store);
 	const boughtAt = before?.store ?? null;
 	return {
-		choose: earlier,
-		clear: earlier ? null : store,
-		buyAt: boughtAt && boughtAt !== store ? boughtAt : null,
-	};
-}
-
-/**
- * Undoing clearing the product at `store`: choose it again, then the order
- * buys where it did before.
- */
-export function undoClear(
-	before: ItemSelection | null,
-	store: StoreId,
-): ChoiceUndo {
-	const cleared = previousAt(before, store);
-	const boughtAt = before?.store ?? null;
-	return {
-		choose: cleared,
-		clear: null,
+		store,
+		products: productsAt(before, store),
 		buyAt: boughtAt && boughtAt !== store ? boughtAt : null,
 	};
 }

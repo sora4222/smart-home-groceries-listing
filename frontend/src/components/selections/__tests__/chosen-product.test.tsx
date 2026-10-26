@@ -42,7 +42,7 @@ describe("ChosenProduct", () => {
 			screen.getByRole("button", { name: "Clear the chosen product for milk" }),
 		);
 
-		expect(onClear).toHaveBeenCalledWith("coles");
+		expect(onClear).toHaveBeenCalledWith("coles", "c-milk-3l");
 	});
 
 	it("shows the item's product at the other store beside the one to buy", async () => {
@@ -73,7 +73,7 @@ describe("ChosenProduct", () => {
 				name: "Clear the Woolworths product for milk",
 			}),
 		);
-		expect(onClear).toHaveBeenCalledWith("woolworths");
+		expect(onClear).toHaveBeenCalledWith("woolworths", "w-milk-2l");
 	});
 
 	it("offers no clear button when clearing is not allowed", () => {
@@ -94,5 +94,45 @@ describe("ChosenProduct", () => {
 			"src",
 			"https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		);
+	});
+
+	it("shows the count of a lone product", () => {
+		render(<ChosenProduct itemName="milk" selection={selectionFixture()} />);
+
+		expect(screen.getByLabelText("Chosen product for milk")).toHaveTextContent(
+			"×2",
+		);
+	});
+
+	it("gives each of several products a count to change", async () => {
+		const onSetCount = vi.fn().mockResolvedValue(undefined);
+		const second = selectionFixture({
+			product_id: "c-milk-2l",
+			package_size: "2L",
+			quantity: 1,
+		});
+		render(
+			<ChosenProduct
+				itemName="milk"
+				selection={selectionFixture({ bought_with: [second] })}
+				onSetCount={onSetCount}
+			/>,
+		);
+
+		expect(
+			screen.getByLabelText("Also buying Coles Full Cream Milk 2L for milk"),
+		).toBeInTheDocument();
+		await userEvent.click(
+			screen.getByRole("combobox", {
+				name: "How many Coles Full Cream Milk 3L",
+			}),
+		);
+		// Three in all, so either product can buy at most two.
+		expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+			"×1",
+			"×2",
+		]);
+		await userEvent.click(screen.getByRole("option", { name: "×1" }));
+		expect(onSetCount).toHaveBeenCalledWith("coles", "c-milk-3l", 1);
 	});
 });

@@ -1,5 +1,5 @@
 /**
- * The products chosen for each list item, one per store at most:
+ * The products chosen for each list item:
  * `/api/item-selections`, `/api/grocery-items/{id}/selection` and
  * `/api/order-stores`.
  *
@@ -30,6 +30,13 @@ export interface ItemSelection {
 	image_url: string | null;
 	selected_by: string;
 	selected_at: string;
+	/** How many of this product the order buys. */
+	quantity: number;
+	/**
+	 * More products the order buys for the item, at the same store. Only in
+	 * `list()`; the counts of all of them add up to the item's quantity.
+	 */
+	bought_with?: ItemSelection[];
 	/**
 	 * The item's choices at the other stores, which the order does not buy
 	 * now. Only in `list()`; the order screen can switch the item to one.
@@ -53,8 +60,9 @@ export const selectionsApi = {
 	/** Every item's product to buy, with its choices at the other stores. */
 	list: () => request<ItemSelection[]>("/api/item-selections"),
 	/**
-	 * Chooses the item's product at the choice's store, replacing any earlier
-	 * choice there, and makes it the one the order buys.
+	 * Chooses a product for the item and makes its store the one the order
+	 * buys from. An item wanting one swaps its product; an item wanting more
+	 * adds it with a count of 1 (409 when it has as many as it wants).
 	 */
 	choose: (itemId: string, choice: ProductChoice) =>
 		request<ItemSelection>(`/api/grocery-items/${itemId}/selection`, {
@@ -62,14 +70,32 @@ export const selectionsApi = {
 			body: JSON.stringify(choice),
 		}),
 	/**
-	 * Forgets the item's product at `store`, or at every store. Clearing the
-	 * one to buy hands that role to the item's other choice.
+	 * Forgets one product (`productId`), every product at `store`, or every
+	 * choice. Clearing the ones to buy hands that role to the other store.
 	 */
-	clear: (itemId: string, store?: StoreId) =>
-		request<void>(
-			`/api/grocery-items/${itemId}/selection${store ? `?store=${store}` : ""}`,
-			{ method: "DELETE" },
-		),
+	clear: (itemId: string, store?: StoreId, productId?: string) => {
+		const query = new URLSearchParams();
+		if (store) query.set("store", store);
+		if (store && productId) query.set("product_id", productId);
+		const search = query.size > 0 ? `?${query}` : "";
+		return request<void>(`/api/grocery-items/${itemId}/selection${search}`, {
+			method: "DELETE",
+		});
+	},
+	/**
+	 * How many of one chosen product to buy; the item's other products at
+	 * the store share the rest. 422 when that leaves one of them none.
+	 */
+	setQuantity: (
+		itemId: string,
+		store: StoreId,
+		productId: string,
+		quantity: number,
+	) =>
+		request<void>(`/api/grocery-items/${itemId}/selection/quantity`, {
+			method: "PUT",
+			body: JSON.stringify({ store, product_id: productId, quantity }),
+		}),
 	/** Makes each item's choice at the paired store the one the order buys. */
 	buyAt: (picks: OrderStorePick[]) =>
 		request<void>("/api/order-stores", {

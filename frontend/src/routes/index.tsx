@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -7,18 +7,17 @@ import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { GroceryItemSection } from "#/components/grocery/grocery-item-section";
 import { SendToStore } from "#/components/trolley/send-to-store";
+import { useGroceryListActions } from "#/hooks/useGroceryListActions";
 import { useProductChoices } from "#/hooks/useProductChoices";
 import {
 	api,
 	type DuplicateItemDetail,
 	duplicateDetail,
-	type GroceryItemEdit,
 	type NewGroceryItem,
 	type OnDuplicate,
 	selectionsByItem,
 } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
-import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
 
 export const Route = createFileRoute("/")({
 	// The list and every item's chosen product, read together so a card never
@@ -46,13 +45,13 @@ interface HeldAddition {
  * reviewing, annotating, choosing each item's product and finally committing
  * the list for purchase are what the rest of it is about.
  *
- * Mutations go through `lib/api` and then `router.invalidate()`, so the loader
- * stays the single source of truth and two open tabs cannot drift apart.
+ * Changes live in `useGroceryListActions` (each with Undo); the loader stays
+ * the single source of truth.
  */
 function GroceryListPage() {
 	const { items, selections } = Route.useLoaderData();
-	const router = useRouter();
 	const choices = useProductChoices(selections);
+	const actions = useGroceryListActions(items, selections);
 	const [held, setHeld] = useState<HeldAddition | null>(null);
 
 	const underReview = items.filter((item) => item.status === "active");
@@ -65,17 +64,8 @@ function GroceryListPage() {
 		onDuplicate: OnDuplicate = "ask",
 	) {
 		try {
-			const created = await api.grocery.add(item, onDuplicate);
+			await actions.add(item, onDuplicate);
 			setHeld(null);
-			// A merge returns the existing item, whose chips no rule just added.
-			const fromRules =
-				onDuplicate === "merge"
-					? []
-					: termsAddedByRules(item.filter_terms, created.filter_terms);
-			toast.success(`${created.name} is on the list`, {
-				description: ruleTermsDescription(fromRules),
-			});
-			await router.invalidate();
 		} catch (error) {
 			const detail = duplicateDetail(error);
 			if (detail) {
@@ -85,48 +75,6 @@ function GroceryListPage() {
 			}
 			toast.error("Could not add that item — try again.");
 			throw error;
-		}
-	}
-
-	async function saveItem(id: string, edit: GroceryItemEdit) {
-		try {
-			await api.grocery.update(id, edit);
-			await router.invalidate();
-		} catch {
-			toast.error("Could not save that change — try again.");
-			throw new Error("save failed");
-		}
-	}
-
-	async function removeItem(id: string) {
-		try {
-			await api.grocery.remove(id);
-			toast.success("Item removed from the list");
-			await router.invalidate();
-		} catch {
-			toast.error("Could not remove that item — try again.");
-		}
-	}
-
-	async function commitList() {
-		try {
-			const locked = await api.grocery.commit();
-			toast.success(
-				`${locked.length} ${locked.length === 1 ? "item" : "items"} locked in for purchase`,
-			);
-			await router.invalidate();
-		} catch {
-			toast.error("Could not commit the list — try again.");
-		}
-	}
-
-	async function releaseList() {
-		try {
-			await api.grocery.release();
-			toast.success("List reopened for editing");
-			await router.invalidate();
-		} catch {
-			toast.error("Could not release the list — try again.");
 		}
 	}
 
@@ -148,8 +96,8 @@ function GroceryListPage() {
 			<GroceryItemSection
 				items={underReview}
 				selections={selections}
-				onSave={saveItem}
-				onRemove={removeItem}
+				onSave={actions.save}
+				onRemove={actions.remove}
 				onClearChoice={choices.clear}
 				empty={
 					committed.length > 0
@@ -161,8 +109,8 @@ function GroceryListPage() {
 			<CommitBar
 				activeCount={underReview.length}
 				committedCount={committed.length}
-				onCommit={commitList}
-				onRelease={releaseList}
+				onCommit={actions.commit}
+				onRelease={actions.release}
 			/>
 
 			<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -184,8 +132,8 @@ function GroceryListPage() {
 					<GroceryItemSection
 						items={committed}
 						selections={selections}
-						onSave={saveItem}
-						onRemove={removeItem}
+						onSave={actions.save}
+						onRemove={actions.remove}
 						onClearChoice={choices.clear}
 					/>
 				</>

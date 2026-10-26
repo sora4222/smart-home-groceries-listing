@@ -1,6 +1,7 @@
 # Runtime bundles contain no site configuration. Install/update tests run on disposable VMs.
 # On a pull request the steps run only when bundle files change; the jobs
 # themselves always run so the required check names keep reporting.
+# Caches are never used for release tags, so published bytes come from a clean build.
 name: Native service install and release
 on:
   pull_request:
@@ -22,6 +23,8 @@ jobs:
       pull-requests: read
     outputs:
       run: ${{ steps.run.outputs.run }}
+    env:
+      CACHE: ${{ !startsWith(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -35,17 +38,26 @@ jobs:
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
           echo "RUN=$RUN" >> "$GITHUB_ENV"
       - if: env.RUN == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version: 22
-      - if: env.RUN == 'true'
         uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
         with:
           version: 10.28.0
       - if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: ${{ env.CACHE == 'true' && 'pnpm' || '' }}
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - if: env.RUN == 'true'
         uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: ${{ env.CACHE }}
+          cache-dependency-glob: sidecars/alexa-bridge/uv.lock
       - if: env.RUN == 'true'
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - if: env.RUN == 'true' && env.CACHE == 'true'
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: backend
       - name: Install build prerequisites
         if: env.RUN == 'true'
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends cmake clang libclang-dev pkg-config perl python3

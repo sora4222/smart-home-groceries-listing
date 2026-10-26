@@ -31,12 +31,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      # The runner's bundled Compose can reject watch.initial_sync.
       - uses: docker/setup-compose-action@v2
         with:
           version: v5.6.1

@@ -39,5 +39,6 @@ pub fn choice(item: &GroceryItem, store: Store, product_id: &str, price: Decimal
         selected_by: "user".into(),
         selected_at: chrono::Utc::now(),
         for_order: true,
+        quantity: None,
     }
 }

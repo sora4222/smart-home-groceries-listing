@@ -60,3 +60,8 @@ pub fn bought_at(picks: &[(Uuid, Store)]) {
         .collect();
     tracing::info!(picks = ?picks, "order stores set for items");
 }
+
+/// How many of one of an item's products to buy was changed.
+pub fn quantity_set(item_id: Uuid, product_id: &str, quantity: i32) {
+    tracing::info!(%item_id, product_id, quantity, "chosen product quantity set");
+}

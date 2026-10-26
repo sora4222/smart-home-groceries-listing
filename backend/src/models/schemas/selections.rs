@@ -1,4 +1,4 @@
-//! Bodies for choosing products for list items, one per store.
+//! Bodies for choosing products for list items.
 //!
 //! The request names only the store and the store's product id; every other
 //! detail in the response came from the store's search answer. Money is a
@@ -11,7 +11,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::models::db::ItemSelection;
-use crate::services::selections::ItemChoices;
+use crate::services::selections::{Counted, ItemChoices};
 use crate::services::stores::{Basis, Store};
 
 /// Longest store product id accepted, matching the `product_id` CHECK.
@@ -44,19 +44,36 @@ pub struct OrderStorePick {
     pub store: Store,
 }
 
-/// `DELETE /api/grocery-items/{id}/selection?store=`: which store's choice
-/// to clear. No store clears the item's choices at every store.
+/// `DELETE /api/grocery-items/{id}/selection?store=&product_id=`: what to
+/// clear. A product id clears that product at the store; a store alone
+/// clears every product there; nothing clears every choice.
 #[derive(Debug, Default, Deserialize, Validate)]
 pub struct ItemSelectionClear {
     pub store: Option<Store>,
+    #[validate(length(min = 1, max = MAX_PRODUCT_ID_LEN))]
+    pub product_id: Option<String>,
 }
 
-/// One item's choices in `GET /api/item-selections`: the one the order buys,
-/// with the item's choices at the other stores.
+/// `PUT /api/grocery-items/{id}/selection/quantity`: how many of one of the
+/// item's chosen products to buy.
+#[derive(Debug, Deserialize, Validate)]
+pub struct ItemSelectionQuantity {
+    pub store: Store,
+    #[validate(length(min = 1, max = MAX_PRODUCT_ID_LEN))]
+    pub product_id: String,
+    #[validate(range(min = 1, max = 999))]
+    pub quantity: i32,
+}
+
+/// One item's choices in `GET /api/item-selections`: the oldest product the
+/// order buys, the order's other products for it, and the item's choices at
+/// the other stores.
 #[derive(Debug, Serialize)]
 pub struct ItemChoicesResponse {
     #[serde(flatten)]
     pub chosen: ItemSelectionResponse,
+    /// More products the order buys for the item, at the same store.
+    pub bought_with: Vec<ItemSelectionResponse>,
     /// The item's choices at other stores, which the order does not buy now.
     pub also_chosen: Vec<ItemSelectionResponse>,
 }
@@ -65,6 +82,7 @@ impl From<ItemChoices> for ItemChoicesResponse {
     fn from(choices: ItemChoices) -> Self {
         Self {
             chosen: choices.for_order.into(),
+            bought_with: choices.bought_with.into_iter().map(Into::into).collect(),
             also_chosen: choices.others.into_iter().map(Into::into).collect(),
         }
     }
@@ -90,6 +108,8 @@ pub struct ItemSelectionResponse {
     pub image_url: Option<String>,
     pub selected_by: String,
     pub selected_at: DateTime<Utc>,
+    /// How many of this product the order buys.
+    pub quantity: i32,
 }
 
 /// The normalised unit price saved with a choice.
@@ -99,7 +119,17 @@ pub struct SelectedUnitPrice {
     pub per: Basis,
 }
 
+impl From<Counted> for ItemSelectionResponse {
+    fn from(counted: Counted) -> Self {
+        let mut response = Self::from(counted.selection);
+        response.quantity = counted.quantity;
+        response
+    }
+}
+
 impl From<ItemSelection> for ItemSelectionResponse {
+    /// A choice read on its own: its stored count, or the quantity it was
+    /// priced for.
     fn from(row: ItemSelection) -> Self {
         let unit_price = row
             .unit_price
@@ -121,6 +151,7 @@ impl From<ItemSelection> for ItemSelectionResponse {
             image_url: row.image_url,
             selected_by: row.selected_by,
             selected_at: row.selected_at,
+            quantity: row.quantity.unwrap_or(row.priced_quantity),
         }
     }
 }

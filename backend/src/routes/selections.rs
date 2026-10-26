@@ -1,7 +1,7 @@
-//! Choosing products for each list item, one per store.
+//! Choosing products for each list item.
 //!
-//! The price comparison saves the household's pick here, and the order screen
-//! reads every pick back to know what to buy.
+//! The Select item page saves the household's picks here, and the order
+//! screen reads every pick back to know what to buy.
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -12,8 +12,8 @@ use uuid::Uuid;
 use crate::auth::AuthUser;
 use crate::error::ApiError;
 use crate::models::schemas::{
-    ItemChoicesResponse, ItemSelectionChoose, ItemSelectionClear, ItemSelectionResponse,
-    OrderStoresSet,
+    ItemChoicesResponse, ItemSelectionChoose, ItemSelectionClear, ItemSelectionQuantity,
+    ItemSelectionResponse, OrderStoresSet,
 };
 use crate::routes::extract::{ValidatedJson, ValidatedQuery};
 use crate::services::selections::SelectionService;
@@ -28,6 +28,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/grocery-items/{item_id}/selection",
             put(choose_product).delete(clear_selection),
+        )
+        .route(
+            "/api/grocery-items/{item_id}/selection/quantity",
+            put(set_quantity),
         )
 }
 
@@ -60,8 +64,8 @@ async fn choose_product(
     Ok(Json(selection.into()))
 }
 
-/// `DELETE /api/grocery-items/{id}/selection[?store=]` — forget the item's
-/// product at one store, or at every store.
+/// `DELETE /api/grocery-items/{id}/selection[?store=[&product_id=]]` —
+/// forget one product, every product at a store, or every choice.
 async fn clear_selection(
     State(state): State<AppState>,
     _user: AuthUser,
@@ -69,7 +73,24 @@ async fn clear_selection(
     ValidatedQuery(query): ValidatedQuery<ItemSelectionClear>,
 ) -> Result<StatusCode, ApiError> {
     SelectionService::new(&state.pool, &state.stores)
-        .clear(item_id, query.store)
+        .clear(item_id, query.store, query.product_id.as_deref())
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// `PUT /api/grocery-items/{id}/selection/quantity` — how many of one of the
+/// item's products to buy, when it has several at that store.
+///
+/// 404 unknown item or product; 422 only one product there, or a count that
+/// leaves no room for the others; 409 the item has been ordered.
+async fn set_quantity(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(item_id): Path<Uuid>,
+    ValidatedJson(body): ValidatedJson<ItemSelectionQuantity>,
+) -> Result<StatusCode, ApiError> {
+    SelectionService::new(&state.pool, &state.stores)
+        .set_quantity(item_id, body.store, &body.product_id, body.quantity)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }

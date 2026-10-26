@@ -2,7 +2,7 @@
 //!
 //! The one place that table is read or written, including the delete the
 //! grocery list triggers when an item is renamed and the switch the order
-//! planner makes between an item's choices at different stores. Every statement is a
+//! planner makes between an item's stores. Every statement is a
 //! literal `&'static str` with bind parameters.
 
 use rust_decimal::Decimal;
@@ -30,6 +30,8 @@ pub struct NewSelection<'a> {
     pub url: &'a str,
     pub image_url: Option<&'a str>,
     pub selected_by: &'a str,
+    /// How many to buy; `None` for the only product at its store.
+    pub quantity: Option<i32>,
 }
 
 /// The choice each item's order buys (one per item), oldest first.
@@ -40,7 +42,8 @@ where
     Ok(sqlx::query_as::<_, ItemSelection>(
         "SELECT id, grocery_item_id, store, product_id, product_name, brand,
                 package_size, price, unit_price, unit_price_per, total_price,
-                priced_quantity, url, image_url, selected_by, selected_at, for_order
+                priced_quantity, url, image_url, selected_by, selected_at, for_order,
+                quantity
          FROM item_selections
          WHERE for_order
          ORDER BY selected_at",
@@ -57,7 +60,8 @@ where
     Ok(sqlx::query_as::<_, ItemSelection>(
         "SELECT id, grocery_item_id, store, product_id, product_name, brand,
                 package_size, price, unit_price, unit_price_per, total_price,
-                priced_quantity, url, image_url, selected_by, selected_at, for_order
+                priced_quantity, url, image_url, selected_by, selected_at, for_order,
+                quantity
          FROM item_selections
          ORDER BY selected_at",
     )
@@ -65,17 +69,17 @@ where
     .await?)
 }
 
-/// Saves the item's choice at the new choice's store, replacing any earlier
-/// one there, and makes it the choice the order buys. The item's choice at
-/// another store is kept, no longer for the order.
+/// Saves the product as one of the item's choices at its store (refreshing
+/// it when already chosen, keeping its count), and makes that store's
+/// products the ones the order buys. Choices at other stores are kept, no
+/// longer for the order.
 pub async fn upsert(
     tx: &mut Transaction<'_, Postgres>,
     new: &NewSelection<'_>,
 ) -> Result<ItemSelection, ApiError> {
-    // First, so the one-per-item `for_order` index never sees two.
     sqlx::query(
-        "UPDATE item_selections SET for_order = false
-         WHERE grocery_item_id = $1 AND store <> $2 AND for_order",
+        "UPDATE item_selections SET for_order = (store = $2)
+         WHERE grocery_item_id = $1",
     )
     .bind(new.grocery_item_id)
     .bind(new.store)
@@ -85,10 +89,9 @@ pub async fn upsert(
         "INSERT INTO item_selections
              (id, grocery_item_id, store, product_id, product_name, brand,
               package_size, price, unit_price, unit_price_per, total_price,
-              priced_quantity, url, image_url, selected_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-         ON CONFLICT (grocery_item_id, store) DO UPDATE SET
-             product_id = EXCLUDED.product_id,
+              priced_quantity, url, image_url, selected_by, quantity)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         ON CONFLICT (grocery_item_id, store, product_id) DO UPDATE SET
              product_name = EXCLUDED.product_name,
              brand = EXCLUDED.brand,
              package_size = EXCLUDED.package_size,
@@ -104,7 +107,8 @@ pub async fn upsert(
              for_order = true
          RETURNING id, grocery_item_id, store, product_id, product_name, brand,
                    package_size, price, unit_price, unit_price_per, total_price,
-                   priced_quantity, url, image_url, selected_by, selected_at, for_order",
+                   priced_quantity, url, image_url, selected_by, selected_at, for_order,
+                   quantity",
     )
     .bind(Uuid::new_v4())
     .bind(new.grocery_item_id)
@@ -121,8 +125,85 @@ pub async fn upsert(
     .bind(new.url)
     .bind(new.image_url)
     .bind(new.selected_by)
+    .bind(new.quantity)
     .fetch_one(&mut **tx)
     .await?)
+}
+
+/// The item's products at `store`, oldest choice first, locked.
+pub async fn lock_at_store(
+    tx: &mut Transaction<'_, Postgres>,
+    grocery_item_id: Uuid,
+    store: Store,
+) -> Result<Vec<ItemSelection>, ApiError> {
+    Ok(sqlx::query_as::<_, ItemSelection>(
+        "SELECT id, grocery_item_id, store, product_id, product_name, brand,
+                package_size, price, unit_price, unit_price_per, total_price,
+                priced_quantity, url, image_url, selected_by, selected_at, for_order,
+                quantity
+         FROM item_selections
+         WHERE grocery_item_id = $1 AND store = $2
+         ORDER BY selected_at, id
+         FOR UPDATE",
+    )
+    .bind(grocery_item_id)
+    .bind(store)
+    .fetch_all(&mut **tx)
+    .await?)
+}
+
+/// Stores how many of one chosen product to buy.
+pub async fn set_quantity(
+    tx: &mut Transaction<'_, Postgres>,
+    selection_id: Uuid,
+    quantity: i32,
+) -> Result<(), ApiError> {
+    sqlx::query("UPDATE item_selections SET quantity = $2 WHERE id = $1")
+        .bind(selection_id)
+        .bind(quantity)
+        .execute(&mut **tx)
+        .await?;
+    Ok(())
+}
+
+/// Forgets every product at `store` except `keep`: choosing for an item that
+/// wants one replaces its product.
+pub async fn delete_others_at_store(
+    tx: &mut Transaction<'_, Postgres>,
+    grocery_item_id: Uuid,
+    store: Store,
+    keep: &str,
+) -> Result<(), ApiError> {
+    sqlx::query(
+        "DELETE FROM item_selections
+         WHERE grocery_item_id = $1 AND store = $2 AND product_id <> $3",
+    )
+    .bind(grocery_item_id)
+    .bind(store)
+    .bind(keep)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// Forgets one product at `store`. `false` means it was not chosen.
+pub async fn delete_product(
+    tx: &mut Transaction<'_, Postgres>,
+    grocery_item_id: Uuid,
+    store: Store,
+    product_id: &str,
+) -> Result<bool, ApiError> {
+    let result = sqlx::query(
+        "DELETE FROM item_selections
+         WHERE grocery_item_id = $1 AND store = $2 AND product_id = $3",
+    )
+    .bind(grocery_item_id)
+    .bind(store)
+    .bind(product_id)
+    .execute(&mut **tx)
+    .await?;
+    hand_over_for_order(tx, grocery_item_id).await?;
+    Ok(result.rows_affected() > 0)
 }
 
 /// Forgets an item's choices at every store. `false` means it had none.
@@ -137,9 +218,9 @@ where
     Ok(result.rows_affected() > 0)
 }
 
-/// Forgets the item's choice at `store`. If that was the one the order
-/// bought, the item's other choice (if any) becomes it. `false` means there
-/// was no choice at `store`.
+/// Forgets the item's products at `store`. If the order bought from there,
+/// the item's other store (if any) becomes it. `false` means there was no
+/// choice at `store`.
 pub async fn delete_at_store(
     tx: &mut Transaction<'_, Postgres>,
     grocery_item_id: Uuid,
@@ -151,6 +232,16 @@ pub async fn delete_at_store(
             .bind(store)
             .execute(&mut **tx)
             .await?;
+    hand_over_for_order(tx, grocery_item_id).await?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// When nothing left is for the order, the remaining products (all at one
+/// store, as there are two) become it.
+async fn hand_over_for_order(
+    tx: &mut Transaction<'_, Postgres>,
+    grocery_item_id: Uuid,
+) -> Result<(), ApiError> {
     sqlx::query(
         "UPDATE item_selections SET for_order = true
          WHERE grocery_item_id = $1
@@ -160,7 +251,7 @@ pub async fn delete_at_store(
     .bind(grocery_item_id)
     .execute(&mut **tx)
     .await?;
-    Ok(result.rows_affected() > 0)
+    Ok(())
 }
 
 /// Makes the item's choice at `store` the one the order buys. `false` means

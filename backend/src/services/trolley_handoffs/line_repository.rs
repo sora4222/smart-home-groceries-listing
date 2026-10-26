@@ -6,6 +6,7 @@
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
+use super::split::{self, ChosenRow};
 use crate::error::ApiError;
 use crate::models::db::{TrolleyHandoffLine, TrolleyLineOutcome};
 use crate::services::stores::Store;
@@ -15,9 +16,10 @@ use crate::services::stores::Store;
 pub type ChosenLine = (Uuid, String, String, i32);
 
 /// Every list item still to be bought (active or committed) whose order buys
-/// its chosen product at `store`, oldest item first. An item's choice at
-/// another store, not the one to buy, is never sent. Quantities are the items' current
-/// quantities, not the quantity the product was priced at.
+/// its chosen products at `store`, oldest item first, one line per product.
+/// An item's choices at another store, not the one to buy, are never sent.
+/// Counts come from the items' current quantities ([`split`]), not the
+/// quantity a product was priced at.
 pub async fn chosen_lines_for_store<'e, E>(
     executor: E,
     store: Store,
@@ -25,16 +27,17 @@ pub async fn chosen_lines_for_store<'e, E>(
 where
     E: PgExecutor<'e>,
 {
-    Ok(sqlx::query_as::<_, ChosenLine>(
-        "SELECT i.id, s.product_id, s.product_name, i.quantity
+    let rows = sqlx::query_as::<_, ChosenRow>(
+        "SELECT i.id, s.product_id, s.product_name, i.quantity, s.quantity
          FROM grocery_items i
          JOIN item_selections s ON s.grocery_item_id = i.id
          WHERE s.store = $1 AND s.for_order AND i.status IN ('active', 'committed')
-         ORDER BY i.created_at, i.id",
+         ORDER BY i.created_at, i.id, s.selected_at, s.id",
     )
     .bind(store)
     .fetch_all(executor)
-    .await?)
+    .await?;
+    Ok(split::into_lines(rows))
 }
 
 /// Inserts one line of a handoff; `position` keeps the list's order.

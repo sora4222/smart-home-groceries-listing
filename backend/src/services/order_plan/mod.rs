@@ -1,8 +1,8 @@
 //! The order planner: the ways to buy the committed list, with delivery,
 //! ranked the household's way.
 //!
-//! Every committed item's chosen products (one per store at most) are
-//! re-priced today at their stores, the same way the order review does. The
+//! Every committed item's chosen products are re-priced today at their
+//! stores (several products at one store joined into one line, [`combine`]), the same way the order review does. The
 //! planner then costs four ways to buy them — all at Woolworths, all at
 //! Coles, the best mix, and the stores the order buys from now — adding each
 //! store's delivery fee from Settings › Delivery, and ranks them by the mode
@@ -16,6 +16,7 @@
 //! [`search`]; ranking in [`rank`]; putting it together in [`build`].
 
 mod build;
+mod combine;
 mod fees;
 mod log;
 mod option;
@@ -37,8 +38,9 @@ use crate::services::delivery_settings::{DeliverySettings, DeliverySettingsServi
 use crate::services::grocery::repository as items;
 use crate::services::order_review::reprice;
 use crate::services::product_search::ProductSearchService;
+use crate::services::selections::parts::parts;
 use crate::services::selections::repository as selections;
-use crate::services::stores::StoreClients;
+use crate::services::stores::{Store, StoreClients};
 use option::Candidate;
 
 /// The order's options, best first.
@@ -104,9 +106,18 @@ impl<'a> OrderPlanService<'a> {
                 continue;
             };
             let mut offers = Vec::new();
-            for choice in item_choices {
-                let outcome = search.search_at(&item, choice.store).await;
-                offers.push(reprice(item.clone(), choice, outcome));
+            for store in Store::ALL {
+                let at_store: Vec<_> = item_choices
+                    .iter()
+                    .filter(|c| c.store == store)
+                    .cloned()
+                    .collect();
+                let mut lines = Vec::new();
+                for (part, choice) in parts(&item, at_store) {
+                    let outcome = search.search_at(&part, store).await;
+                    lines.push(reprice(part, choice, outcome));
+                }
+                offers.extend(combine::combine(&item, lines));
             }
             candidates.push(Candidate {
                 item,

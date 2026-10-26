@@ -61,10 +61,11 @@ async fn price_all(
     handoff: &TrolleyHandoff,
     added: &[TrolleyHandoffLine],
 ) -> Result<Vec<BoughtLine>, ApiError> {
-    let mut choices: HashMap<Uuid, _> = selections::list_for_order(pool)
+    // An item can have several products in the order: one line each.
+    let choices: HashMap<(Uuid, String), _> = selections::list_for_order(pool)
         .await?
         .into_iter()
-        .map(|choice| (choice.grocery_item_id, choice))
+        .map(|choice| ((choice.grocery_item_id, choice.product_id.clone()), choice))
         .collect();
     let search = ProductSearchService::new(pool, stores);
     let mut bought = Vec::new();
@@ -75,14 +76,8 @@ async fn price_all(
             continue;
         };
         let outcome = search.search_at(&item, handoff.store).await;
-        let choice = choices.remove(&item.id);
-        match price_line(
-            handoff.store,
-            line,
-            &item,
-            choice.as_ref(),
-            outcome.as_ref(),
-        ) {
+        let choice = choices.get(&(item.id, line.product_id.clone()));
+        match price_line(handoff.store, line, &item, choice, outcome.as_ref()) {
             Some(priced) => bought.push(priced),
             None => log::line_skipped(line, "no price from the store or the choice"),
         }

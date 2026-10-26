@@ -3,6 +3,7 @@ import { DislikeNotice } from "#/components/dislikes/dislike-notice";
 import { ChooseProductButton } from "#/components/products/choose-product-button";
 import { PastPurchases } from "#/components/products/past-purchases";
 import { ProductRow } from "#/components/products/product-row";
+import type { DisplaySettings } from "#/lib/display-settings";
 import type { StoreListing } from "#/lib/product-sort";
 
 /**
@@ -14,9 +15,11 @@ import type { StoreListing } from "#/lib/product-sort";
 export function ProductList({
 	listings,
 	quantity,
+	display,
 }: {
 	listings: StoreListing[];
 	quantity: number;
+	display?: Pick<DisplaySettings, "imageSize" | "showWasPrice">;
 }) {
 	if (listings.length === 0) return null;
 
@@ -37,6 +40,8 @@ export function ProductList({
 						quantity={quantity}
 						storeName={storeName}
 						notice={<DislikeNotice store={store} product={product} />}
+						imageSize={display?.imageSize}
+						showWasPrice={display?.showWasPrice}
 					>
 						<DislikeButton
 							store={store}

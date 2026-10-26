@@ -3,6 +3,7 @@ import { createContext, type ReactNode, useContext, useState } from "react";
 import { ProductDislikesProvider } from "#/components/dislikes/product-dislikes";
 import { PastPurchasesProvider } from "#/components/products/past-purchases";
 import { ProductChoiceProvider } from "#/components/products/product-choice";
+import { ProductFilterBar } from "#/components/products/product-filter-bar";
 import { ProductList } from "#/components/products/product-list";
 import { ProductSortSelect } from "#/components/products/product-sort-select";
 import { SpecialsOnlySwitch } from "#/components/products/specials-only-switch";
@@ -26,6 +27,11 @@ import type {
 	ProductChoice,
 	StoreProducts,
 } from "#/lib/api";
+import {
+	filterListings,
+	NO_FILTERS,
+	type ProductFilters,
+} from "#/lib/product-filters";
 import {
 	commonBasis,
 	DEFAULT_SORT,
@@ -127,6 +133,7 @@ function Results({ item }: { item: GroceryItem }) {
 	const dislikes = useItemDislikes(item.id);
 	const [specialsOnly, setSpecialsOnly] = useState(false);
 	const [sort, setSort] = useState<ProductSort>(DEFAULT_SORT);
+	const [filters, setFilters] = useState<ProductFilters>(NO_FILTERS);
 	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}`;
 	const { state, retry } = useItemProducts(item.id, true, searchKey);
 
@@ -159,11 +166,15 @@ function Results({ item }: { item: GroceryItem }) {
 						onCheckedChange={setSpecialsOnly}
 					/>
 				</div>
+				<ProductFilterBar value={filters} onChange={setFilters} />
 				<StoreNotices stores={state.data.stores} specialsOnly={specialsOnly} />
 				<WithPastPurchases search={state.data}>
 					<ProductList
 						listings={sortListings(
-							listingsOf(state.data.stores, specialsOnly),
+							filterListings(
+								listingsOf(state.data.stores, specialsOnly),
+								filters,
+							),
 							sort,
 							{
 								quantity: state.data.item.quantity,

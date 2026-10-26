@@ -6,6 +6,7 @@ import { ProductPrice } from "#/components/products/product-price";
 import { UnitPriceLine } from "#/components/products/unit-price-line";
 import { Badge } from "#/components/ui/badge";
 import type { StoreProduct } from "#/lib/api";
+import type { ImageSize } from "#/lib/display-settings";
 import { cn } from "#/lib/utils";
 
 /**
@@ -23,10 +24,14 @@ export function ProductRow({
 	storeName,
 	children,
 	notice,
+	imageSize = "md",
+	showWasPrice = true,
 }: {
 	product: StoreProduct;
 	quantity: number;
 	storeName: string;
+	imageSize?: ImageSize;
+	showWasPrice?: boolean;
 	children?: ReactNode;
 	notice?: ReactNode;
 }) {
@@ -38,11 +43,13 @@ export function ProductRow({
 			data-product-id={product.product_id}
 			aria-label={title}
 			className={cn(
-				"flex items-start gap-3 py-3",
+				"flex gap-3 py-3",
+				// A picture at the store's size gets its own line.
+				imageSize === "full" ? "flex-col" : "items-start",
 				!product.available && "opacity-60",
 			)}
 		>
-			<ProductImage src={product.image_url} name={title} />
+			<ProductImage src={product.image_url} name={title} size={imageSize} />
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				<div className="flex items-start justify-between gap-3">
 					<div className="flex min-w-0 flex-col">
@@ -53,7 +60,11 @@ export function ProductRow({
 							</span>
 						) : null}
 					</div>
-					<ProductPrice product={product} quantity={quantity} />
+					<ProductPrice
+						product={product}
+						quantity={quantity}
+						showWasPrice={showWasPrice}
+					/>
 				</div>
 
 				<UnitPriceLine product={product} />

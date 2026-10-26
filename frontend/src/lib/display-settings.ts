@@ -47,8 +47,12 @@ export function parseDisplay(raw: string | null): DisplaySettings {
 	};
 }
 
+/** The last save storage refused, kept so it lasts until reload. */
+let unsaved: string | null = null;
+
 /** The raw stored text; `null` when there is none or storage is off. */
 export function readDisplayRaw(): string | null {
+	if (unsaved !== null) return unsaved;
 	try {
 		return window.localStorage.getItem(KEY);
 	} catch {
@@ -58,10 +62,13 @@ export function readDisplayRaw(): string | null {
 
 /** Saves the settings and tells every open page they changed. */
 export function saveDisplay(settings: DisplaySettings): void {
+	const raw = JSON.stringify(settings);
 	try {
-		window.localStorage.setItem(KEY, JSON.stringify(settings));
+		window.localStorage.setItem(KEY, raw);
+		unsaved = null;
 	} catch {
-		// Storage is off (private window); the change lasts until reload.
+		// Storage is off or full; the change lasts until reload.
+		unsaved = raw;
 	}
 	window.dispatchEvent(new Event(CHANGED));
 }

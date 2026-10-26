@@ -57,12 +57,11 @@ pub fn by_item(rows: Vec<ItemSelection>, quantities: &HashMap<Uuid, i32>) -> Vec
             let total = quantities.get(&id).copied();
             let mut products = counted(bought.remove(&id)?, total).into_iter();
             let for_order = products.next()?;
-            let mut rest = others.remove(&id).unwrap_or_default();
-            rest.sort_by_key(|row| Store::ALL.iter().position(|store| *store == row.store));
+            let rest = others.remove(&id).unwrap_or_default();
             let others = Store::ALL
                 .iter()
                 .flat_map(|store| {
-                    let at: Vec<_> = rest.iter().filter(|r| r.store == *store).cloned().collect();
+                    let at = rest.iter().filter(|r| r.store == *store).cloned().collect();
                     counted(at, total)
                 })
                 .collect();

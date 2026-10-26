@@ -23,6 +23,7 @@ use crate::state::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/grocery-items", get(list_items).post(add_item))
+        .route("/api/grocery-items/restore", post(restore_item))
         .route("/api/grocery-items/commit", post(commit_list))
         .route("/api/grocery-items/release", post(release_list))
         .route(
@@ -33,15 +34,10 @@ pub fn router() -> Router<AppState> {
 
 /// `?on_duplicate=merge` folds the quantity into the existing active item and
 /// `?on_duplicate=separate` keeps both entries, instead of answering 409.
-///
-/// `?restore=true` puts a removed item back exactly as it was (Undo): no
-/// duplicate check and no item rules.
 #[derive(Debug, Default, Deserialize)]
 pub struct AddQuery {
     #[serde(default)]
     pub on_duplicate: OnDuplicate,
-    #[serde(default)]
-    pub restore: bool,
 }
 
 /// `?ids=a,b` limits a commit or release to those items; without it, every one.
@@ -89,12 +85,22 @@ async fn add_item(
     Query(query): Query<AddQuery>,
     ValidatedJson(body): ValidatedJson<GroceryItemCreate>,
 ) -> Result<(StatusCode, Json<GroceryItemResponse>), ApiError> {
-    let service = GroceryService::new(&state.pool);
-    let item = if query.restore {
-        service.restore(&body, &user.id).await?
-    } else {
-        service.add(&body, &user.id, query.on_duplicate).await?
-    };
+    let item = GroceryService::new(&state.pool)
+        .add(&body, &user.id, query.on_duplicate)
+        .await?;
+    Ok((StatusCode::CREATED, Json(item.into())))
+}
+
+/// `POST /api/grocery-items/restore` — put a removed item back exactly as it
+/// was (Undo): no duplicate check and no item rules.
+async fn restore_item(
+    State(state): State<AppState>,
+    user: AuthUser,
+    ValidatedJson(body): ValidatedJson<GroceryItemCreate>,
+) -> Result<(StatusCode, Json<GroceryItemResponse>), ApiError> {
+    let item = GroceryService::new(&state.pool)
+        .restore(&body, &user.id)
+        .await?;
     Ok((StatusCode::CREATED, Json(item.into())))
 }
 

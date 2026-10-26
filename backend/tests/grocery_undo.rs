@@ -67,7 +67,7 @@ async fn a_restored_item_keeps_its_chips_and_skips_the_rules(pool: PgPool) {
 
     let (status, restored): (StatusCode, Value) = app
         .post_json(
-            "/api/grocery-items?restore=true",
+            "/api/grocery-items/restore",
             &json!({ "name": "milk", "quantity": 2, "filter_terms": ["lactose free"] }),
         )
         .await;

@@ -31,7 +31,7 @@ src/
 │   ├── voice.rs         # POST /api/voice-requests (webhook, shared secret) + queue routes
 │   ├── alexa.rs         # POST /api/intake/alexa (bridge sidecar, shared secret)
 │   ├── alexa_list_changes.rs # POST /api/intake/alexa/remove, /undo
-│   ├── grocery.rs       # /api/grocery-items — the list: add, edit, delete, commit
+│   ├── grocery.rs       # /api/grocery-items — the list: add, restore, edit, delete, commit
 │   ├── item_rules.rs    # /api/item-rules — list, add, edit, delete rules
 │   ├── products.rs      # GET /api/grocery-items/{id}/products — store search
 │   ├── selections.rs    # products chosen per item and store; PUT /api/order-stores

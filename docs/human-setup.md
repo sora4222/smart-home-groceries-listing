@@ -1,61 +1,5 @@
 # Setup
 
-## Native service installation from a runtime bundle
-
-Use Ubuntu 26.04 with PostgreSQL. See [the deployment contract](features/FEATURE_SERVICE_DEPLOYMENT.md).
-
-1. Run `sudo bash deploy/service/install-dependencies.sh` for runtime prerequisites.
-2. Obtain a tested runtime bundle and verify its provenance using your server's
-   deployment policy. Local bundle installation trusts the supplied file.
-3. Run `sudo bash deploy/start.sh --bundle /protected/runtime.json.gz --config /protected/application.env`.
-   Use a mode-0600 input file, or preserve only intended application exports
-   through sudo. Startup persists values root-only for unattended reboots.
-4. Optional 1Password: add `--op-token-file /protected/token` and
-   `--op-environment-id ENVIRONMENT_ID`, or provide `OP_SERVICE_ACCOUNT_TOKEN`
-   and `OP_ENVIRONMENT_ID` as startup exports. Never put secrets in argv. Manage
-   Developer Environments through their MCP server and use an app-scoped service
-   account. Install the 1Password CLI only when using it. Omitted inputs retain
-   existing settings. A plain file/export installation requires no 1Password.
-5. Verify `systemctl is-enabled grocery.target` and
-   `systemctl is-active grocery-backend grocery-frontend`, then test sign-in and
-   a grocery operation through your private ingress. Services bind loopback;
-   exposing them is a separate access-policy decision.
-
-To adopt an existing native service, back it up, then run
-`sudo bash deploy/start.sh --adopt-existing`. This retains its data/configuration,
-installs the fixed control layer and enables services at boot without fetching
-or building new application code.
-
-## GitHub release protections
-
-Configure these repository rulesets before enabling unattended release updates.
-The workflow and installer do not create GitHub rulesets. Confirm they are
-**Active**, rather than Evaluate or Disabled; this guide does not establish
-that the protections are configured.
-
-1. In **Settings → Rules → Rulesets**, create an Active branch ruleset for
-   `main`. Require pull requests and required status checks, require the branch
-   to be up to date before merging, and block force pushes and deletion.
-   After the native-service workflow has run, select its actual check names:
-   `build`, `installation (file)`, `installation (env)`,
-   `installation (op-file)` and `installation (op-env)`. Set GitHub Actions
-   as their expected source. The publication job is not a required PR check
-   because it runs only for production tags.
-2. Create an Active tag ruleset targeting `release-*` that restricts tag
-   creation. Allow bypass only to trusted maintainers responsible for
-   creating production releases.
-3. Create a separate Active tag ruleset for the same `release-*` pattern
-   that restricts updates and deletion, with no bypass actors. Keeping this
-   separate ensures creation bypass cannot rewrite or delete an existing tag.
-
-Review effective rules, required-check sources and bypass lists after setup.
-Main must pass required checks before merging; release tags must point to main
-commits. Create a new version tag for every release; never move an existing
-tag. For the current GitHub controls, see
-[creating repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository)
-and [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
-
-
 One-time provisioning of the external services and the home-server
 deployment. Audience: a software developer comfortable with a shell, `.env`
 files, Docker Compose and vendor developer consoles. Sections are ordered by
@@ -146,18 +90,6 @@ their own fields. Loading them does not rotate database credentials.
    value, it retries once using desktop app integration. Without a token it
    goes straight to the desktop app. A headless server needs a working token;
    when both methods fail, startup stops.
-
-The shared startup loader, direct Rust backend, and direct Alexa bridge use this
-order. Each CLI subprocess gets only the selected authentication method:
-Connect and manual-session variables are removed, and the desktop attempt
-also removes the service token and enables app integration. The parent shell
-is unchanged. Desktop access may prompt for approval; an already authorized
-session may succeed without another prompt. Service-account access does not
-require a desktop prompt. See [CLI authentication variables](https://www.1password.dev/cli/environment-variables)
-and [desktop integration](https://www.1password.dev/cli/app-integration).
-
-1Password Developer Environments may also mount `.env` with literal values.
-Manage those mounts through the 1Password Environments MCP server.
 
 **Verify:** startup succeeds without printing values. If a reference fails,
 correct the named variable's item, vault access, or desktop authorization.
@@ -347,10 +279,6 @@ development is only enabled on that account's devices.
 7. **Test** tab: set skill testing to **Development**.
 
 **Verify:** endpoint saved, model build succeeded, `ALEXA_SKILL_ID` set.
-
-**Updating an existing skill:** if the skill already exists with only
-`AddItemIntent`, do steps 3–4 only: add the three new intents, save,
-rebuild. The endpoint and Skill ID do not change.
 
 ---
 
@@ -706,6 +634,37 @@ the list, records each open task, then deletes it. Spec:
 
 ---
 
+## Optional: GitHub release protections
+
+Configure these repository rulesets before enabling unattended release updates.
+The workflow and installer do not create GitHub rulesets. Confirm they are
+**Active**, rather than Evaluate or Disabled; this guide does not establish
+that the protections are configured.
+
+1. In **Settings → Rules → Rulesets**, create an Active branch ruleset for
+   `main`. Require pull requests and required status checks, require the branch
+   to be up to date before merging, and block force pushes and deletion.
+   After the native-service workflow has run, select its actual check names:
+   `build`, `installation (file)`, `installation (env)`,
+   `installation (op-file)` and `installation (op-env)`. Set GitHub Actions
+   as their expected source. The publication job is not a required PR check
+   because it runs only for production tags.
+2. Create an Active tag ruleset targeting `release-*` that restricts tag
+   creation. Allow bypass only to trusted maintainers responsible for
+   creating production releases.
+3. Create a separate Active tag ruleset for the same `release-*` pattern
+   that restricts updates and deletion, with no bypass actors. Keeping this
+   separate ensures creation bypass cannot rewrite or delete an existing tag.
+
+Review effective rules, required-check sources and bypass lists after setup.
+Main must pass required checks before merging; release tags must point to main
+commits. Create a new version tag for every release; never move an existing
+tag. For the current GitHub controls, see
+[creating repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository)
+and [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
+
+---
+
 ## Optional: generic intake webhook
 
 For Home Assistant, IFTTT or `curl`. Not needed if Alexa works.
@@ -725,16 +684,6 @@ For Home Assistant, IFTTT or `curl`. Not needed if Alexa works.
 **Verify:** the item appears in **Pending Requests**.
 
 ---
-
-## Optional: network allowlist for Claude's cloud workspace
-
-The agent workspace only reaches allowlisted hosts. If an agent reports a
-host as blocked, add it next to `*.woolworths.media`:
-
-| Host | Needed for |
-|---|---|
-| `*.woolworths.media` | Woolworths page scripts (already added) |
-| `ui.shadcn.com` | `shadcn` CLI component installs |
 
 ## Desktop client through Tailscale or Cloudflare
 
@@ -790,14 +739,6 @@ token, database credential or Clerk secret in the desktop app.
    restarts to replace its command permission. **Reload server** retries the
    current page after reconnecting a tunnel. Development builds have separate
    settings, cookies and instance locks for each worktree.
-
-Set the development Environment's `GROCERY_DESKTOP_SERVER_URL` to your
-frontend's HTTPS origin. Its optional `SERVER_API_BASE_URL` can be blank.
-Use your existing local Environment mount, or launch with
-`op run --environment ENVIRONMENT_ID -- make hm-dev-desktop` after replacing
-`ENVIRONMENT_ID` with your own selection.
-The launcher passes only the public default URL to the native build. Saved
-application settings still take priority.
 
 The configuration and private Service routing guidance are in
 [production operations](production.md#private-ingress-with-tailscale).

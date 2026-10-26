@@ -59,7 +59,6 @@ Rust CLI adapter tests and Alexa tests cover denied service access followed
 by desktop access. Provider tests use fixtures, never real accounts.
 
 Provisioning: [human setup](../human-setup.md#1password).
-Commands: [operations](../using-the-app.md#configuration-and-1password).
 
 Compose lifecycle commands share `runCompose` in `scripts/compose.mjs` and
 pass the selected file explicitly to Compose. Actions that need only Compose

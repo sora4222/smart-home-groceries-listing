@@ -66,21 +66,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 ```
 
 ## Make targets
-| Target | Action |
-|---|---|
-| `make dev` | Start the complete watched stack with worktree-specific ports |
-| `make hm-dev-frontend` | Only the web app, against the backend at `VITE_API_BASE_URL` |
-| `make stop-all` | Remove this worktree's development containers; retain volumes |
-| `make test` | All tests (compact output) |
-| `make update-db` | Apply pending `sqlx` migrations |
-| `make migration-new name="desc"` | Create a new migration file |
-| `make check` | Formatting, lint, type checks and file-length gate |
-| `make hm-fix` | Apply what can be fixed automatically |
-| `make hm-dev` | Full-stack development with streamed logs |
-| `make build` | Build `build/production` and package a configuration-free runtime bundle (no Docker) |
-| `sudo make hm-install-server` | Install the packaged runtime as systemd services; `bundle=PATH` selects another local bundle |
-| `make hm-update-server` | Verify and install a completed `release-N.N.N` release through the server updater |
-| `make hm-test` | Human-readable test output |
+`make dev`, `make check` and `make test` are the common ones. The README lists
+the rest, and the `Makefile` is the source of truth.
 
 ## Rules (non-negotiable)
 
@@ -112,9 +99,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
 
 ## Key decisions
 
-- **Backend language:** Rust + Axum, replacing Python + FastAPI. One compiled
-  binary with migrations embedded, no interpreter or virtualenv on the home
-  server, and the request contract unchanged so the frontend was untouched.
+- **Backend language:** Rust + Axum. One compiled binary with migrations
+  embedded, and no interpreter on the home server.
 - **No ORM:** `sqlx` with literal SQL. Queries are visible where they run, and
   sqlx refuses a runtime-assembled query string outright.
 - **Intake:** Google Home cannot be integrated directly — the Smart Home
@@ -127,7 +113,6 @@ contains no business logic and holds no database credentials. See "Sidecars".
   "Hey Google, add to my shopping list" does not reach it — Google keeps that
   list to itself. Google Keep is paused, not built — see
   `docs/features/FEATURE_VOICE.md`.
-  **Verify the assumptions in the intake brief before building on them.**
 - **Nothing reaches the list unasked:** every intake item lands as `pending`
   and needs a household member to accept it, however confident the channel
   was. LLM triage (`INTAKE_LLM_PROVIDER`, `FEATURE_TRIAGE.md`) only decides
@@ -147,8 +132,8 @@ contains no business logic and holds no database credentials. See "Sidecars".
   (`backend/src/services/encryption.rs`). Key in an env var. Never logged,
   never sent to the frontend.
 - **Optimisation:** minimise (item prices × qty) + all delivery fees.
-  Split-store evaluated. Delivery windows fetched live (15-min hold). User
-  constraints set in Settings.
+  Split-store evaluated. Delivery fees are typed in Settings. Live delivery
+  windows are not built.
 - **Auth:** Clerk JWT on every backend request, verified against Clerk's JWKS.
   Intake endpoints use shared secrets instead, since they cannot carry a
   session. All of it behind `backend/src/auth/mod.rs`.

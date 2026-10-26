@@ -149,3 +149,42 @@ async fn an_accept_says_whether_it_merged(pool: PgPool) {
     assert_eq!(created["merged"], false);
     assert_eq!(merged["merged"], true);
 }
+
+#[sqlx::test]
+async fn undoing_a_new_entry_keeps_what_later_merges_added(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let item = unique_item();
+    let first = app.create_pending(&item, 1).await;
+    app.post(&format!("/api/voice-requests/{first}/accept"))
+        .await;
+    let second = app.create_pending(&item, 3).await;
+    app.post(&format!(
+        "/api/voice-requests/{second}/accept?on_duplicate=merge"
+    ))
+    .await;
+
+    let (status, _) = app
+        .post(&format!("/api/voice-requests/{first}/undo-accept"))
+        .await;
+
+    assert_eq!(status, StatusCode::OK);
+    let items = items_named(&app, &item).await;
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["quantity"], 3);
+}
+
+#[sqlx::test]
+async fn undoing_after_the_list_was_committed_is_a_conflict(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let item = unique_item();
+    let id = app.create_pending(&item, 2).await;
+    app.post(&format!("/api/voice-requests/{id}/accept")).await;
+    app.post("/api/grocery-items/commit").await;
+
+    let (status, _) = app
+        .post(&format!("/api/voice-requests/{id}/undo-accept"))
+        .await;
+
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(items_named(&app, &item).await.len(), 1);
+}

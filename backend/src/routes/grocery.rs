@@ -33,10 +33,38 @@ pub fn router() -> Router<AppState> {
 
 /// `?on_duplicate=merge` folds the quantity into the existing active item and
 /// `?on_duplicate=separate` keeps both entries, instead of answering 409.
+///
+/// `?restore=true` puts a removed item back exactly as it was (Undo): no
+/// duplicate check and no item rules.
 #[derive(Debug, Default, Deserialize)]
 pub struct AddQuery {
     #[serde(default)]
     pub on_duplicate: OnDuplicate,
+    #[serde(default)]
+    pub restore: bool,
+}
+
+/// `?ids=a,b` limits a commit or release to those items; without it, every one.
+#[derive(Debug, Default, Deserialize)]
+pub struct MoveQuery {
+    pub ids: Option<String>,
+}
+
+impl MoveQuery {
+    fn ids(&self) -> Result<Option<Vec<Uuid>>, ApiError> {
+        self.ids
+            .as_deref()
+            .map(|ids| {
+                ids.split(',')
+                    .map(|id| {
+                        id.trim().parse().map_err(|_| {
+                            ApiError::UnprocessableEntity(format!("{id} is not an item id"))
+                        })
+                    })
+                    .collect()
+            })
+            .transpose()
+    }
 }
 
 /// `GET /api/grocery-items` — the list, newest first.
@@ -61,9 +89,12 @@ async fn add_item(
     Query(query): Query<AddQuery>,
     ValidatedJson(body): ValidatedJson<GroceryItemCreate>,
 ) -> Result<(StatusCode, Json<GroceryItemResponse>), ApiError> {
-    let item = GroceryService::new(&state.pool)
-        .add(&body, &user.id, query.on_duplicate)
-        .await?;
+    let service = GroceryService::new(&state.pool);
+    let item = if query.restore {
+        service.restore(&body, &user.id).await?
+    } else {
+        service.add(&body, &user.id, query.on_duplicate).await?
+    };
     Ok((StatusCode::CREATED, Json(item.into())))
 }
 
@@ -93,19 +124,29 @@ async fn delete_item(
 }
 
 /// `POST /api/grocery-items/commit` — lock the reviewed list in for purchase.
+/// `?ids=` commits only those items (Undo of a release).
 async fn commit_list(
     State(state): State<AppState>,
     _user: AuthUser,
+    Query(query): Query<MoveQuery>,
 ) -> Result<Json<Vec<GroceryItemResponse>>, ApiError> {
-    let items = GroceryService::new(&state.pool).commit_list().await?;
+    let ids = query.ids()?;
+    let items = GroceryService::new(&state.pool)
+        .commit_list(ids.as_deref())
+        .await?;
     Ok(Json(items.into_iter().map(Into::into).collect()))
 }
 
 /// `POST /api/grocery-items/release` — reopen a committed list for editing.
+/// `?ids=` releases only those items (Undo of a commit).
 async fn release_list(
     State(state): State<AppState>,
     _user: AuthUser,
+    Query(query): Query<MoveQuery>,
 ) -> Result<Json<Vec<GroceryItemResponse>>, ApiError> {
-    let items = GroceryService::new(&state.pool).release_list().await?;
+    let ids = query.ids()?;
+    let items = GroceryService::new(&state.pool)
+        .release_list(ids.as_deref())
+        .await?;
     Ok(Json(items.into_iter().map(Into::into).collect()))
 }

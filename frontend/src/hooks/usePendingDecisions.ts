@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { acceptFailure } from "#/lib/accept-failure";
 import { acceptMessage } from "#/lib/accept-message";
 import { api, type VoiceRequest } from "#/lib/api";
+import { ApiError } from "#/lib/api/client";
 import { ruleTermsDescription } from "#/lib/rule-terms";
 import { toastWithUndo } from "#/lib/undo-toast";
 
@@ -26,7 +27,7 @@ export function usePendingDecisions(pending: VoiceRequest[]) {
 	const requests = [
 		...pending,
 		...rejected.filter((r) => !pending.some((p) => p.id === r.id)),
-	].filter((r) => !accepting.has(r.id));
+	];
 	const rejectedIds = new Set(rejected.map((r) => r.id));
 
 	function forget(id: string) {
@@ -54,7 +55,10 @@ export function usePendingDecisions(pending: VoiceRequest[]) {
 					result.merged ? [] : result.grocery_item.filter_terms,
 				),
 				undo: () => api.voice.undoAccept(id),
-				failure: "Could not undo that. Check the list.",
+				failure: (error) =>
+					error instanceof ApiError && error.status === 409
+						? "The list is ready to order. Release it to undo."
+						: "Could not undo that. Check the list.",
 				after: refresh,
 			});
 			await refresh();
@@ -82,5 +86,6 @@ export function usePendingDecisions(pending: VoiceRequest[]) {
 		}
 	}
 
-	return { requests, rejectedIds, accept, reject };
+	// A card being accepted stays, busy, so its edits survive a failure.
+	return { requests, rejectedIds, busyIds: accepting, accept, reject };
 }

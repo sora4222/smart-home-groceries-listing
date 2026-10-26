@@ -10,8 +10,8 @@ import { toast } from "sonner";
 export interface UndoToast {
 	/** Reverses the change. */
 	undo: () => Promise<unknown>;
-	/** Shown when the undo itself fails. */
-	failure: string;
+	/** Shown when the undo itself fails; a function picks it from the error. */
+	failure: string | ((error: unknown) => string);
 	/** Runs after the undo, whether it worked or not. */
 	after?: () => Promise<unknown>;
 	description?: ReactNode;
@@ -29,8 +29,8 @@ export async function runUndo({ undo, failure, after }: UndoToast) {
 	try {
 		await undo();
 		toast.success("Undone");
-	} catch {
-		toast.error(failure);
+	} catch (error) {
+		toast.error(typeof failure === "string" ? failure : failure(error));
 	}
 	await after?.();
 }

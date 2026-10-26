@@ -21,6 +21,7 @@ import { Route as OrderHistoryRouteImport } from './routes/order/history'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsDeliveryRouteImport } from './routes/settings/delivery'
 import { Route as SettingsDislikesRouteImport } from './routes/settings/dislikes'
+import { Route as SettingsDisplayRouteImport } from './routes/settings/display'
 import { Route as SettingsHelpRouteImport } from './routes/settings/help'
 import { Route as SettingsIntakeRouteImport } from './routes/settings/intake'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
@@ -88,6 +89,11 @@ const SettingsDislikesRoute = SettingsDislikesRouteImport.update({
   path: '/dislikes',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsDisplayRoute = SettingsDisplayRouteImport.update({
+  id: '/display',
+  path: '/display',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsHelpRoute = SettingsHelpRouteImport.update({
   id: '/help',
   path: '/help',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/display': typeof SettingsDisplayRoute
   '/settings/help': typeof SettingsHelpRoute
   '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/display': typeof SettingsDisplayRoute
   '/settings/help': typeof SettingsHelpRoute
   '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/order/history': typeof OrderHistoryRoute
   '/settings/delivery': typeof SettingsDeliveryRoute
   '/settings/dislikes': typeof SettingsDislikesRoute
+  '/settings/display': typeof SettingsDisplayRoute
   '/settings/help': typeof SettingsHelpRoute
   '/settings/intake': typeof SettingsIntakeRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
+    | '/settings/display'
     | '/settings/help'
     | '/settings/intake'
     | '/settings/item-rules'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
+    | '/settings/display'
     | '/settings/help'
     | '/settings/intake'
     | '/settings/item-rules'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/order/history'
     | '/settings/delivery'
     | '/settings/dislikes'
+    | '/settings/display'
     | '/settings/help'
     | '/settings/intake'
     | '/settings/item-rules'
@@ -337,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsDislikesRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/display': {
+      id: '/settings/display'
+      path: '/display'
+      fullPath: '/settings/display'
+      preLoaderRoute: typeof SettingsDisplayRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/help': {
       id: '/settings/help'
       path: '/help'
@@ -397,6 +416,7 @@ const OrderRouteWithChildren = OrderRoute._addFileChildren(OrderRouteChildren)
 interface SettingsRouteChildren {
   SettingsDeliveryRoute: typeof SettingsDeliveryRoute
   SettingsDislikesRoute: typeof SettingsDislikesRoute
+  SettingsDisplayRoute: typeof SettingsDisplayRoute
   SettingsHelpRoute: typeof SettingsHelpRoute
   SettingsIntakeRoute: typeof SettingsIntakeRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
@@ -407,6 +427,7 @@ interface SettingsRouteChildren {
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsDeliveryRoute: SettingsDeliveryRoute,
   SettingsDislikesRoute: SettingsDislikesRoute,
+  SettingsDisplayRoute: SettingsDisplayRoute,
   SettingsHelpRoute: SettingsHelpRoute,
   SettingsIntakeRoute: SettingsIntakeRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,

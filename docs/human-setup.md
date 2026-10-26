@@ -634,6 +634,37 @@ the list, records each open task, then deletes it. Spec:
 
 ---
 
+## Optional: GitHub release protections
+
+Configure these repository rulesets before enabling unattended release updates.
+The workflow and installer do not create GitHub rulesets. Confirm they are
+**Active**, rather than Evaluate or Disabled; this guide does not establish
+that the protections are configured.
+
+1. In **Settings → Rules → Rulesets**, create an Active branch ruleset for
+   `main`. Require pull requests and required status checks, require the branch
+   to be up to date before merging, and block force pushes and deletion.
+   After the native-service workflow has run, select its actual check names:
+   `build`, `installation (file)`, `installation (env)`,
+   `installation (op-file)` and `installation (op-env)`. Set GitHub Actions
+   as their expected source. The publication job is not a required PR check
+   because it runs only for production tags.
+2. Create an Active tag ruleset targeting `release-*` that restricts tag
+   creation. Allow bypass only to trusted maintainers responsible for
+   creating production releases.
+3. Create a separate Active tag ruleset for the same `release-*` pattern
+   that restricts updates and deletion, with no bypass actors. Keeping this
+   separate ensures creation bypass cannot rewrite or delete an existing tag.
+
+Review effective rules, required-check sources and bypass lists after setup.
+Main must pass required checks before merging; release tags must point to main
+commits. Create a new version tag for every release; never move an existing
+tag. For the current GitHub controls, see
+[creating repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository)
+and [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
+
+---
+
 ## Optional: generic intake webhook
 
 For Home Assistant, IFTTT or `curl`. Not needed if Alexa works.

@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use crate::error::ApiError;
 use crate::models::db::{GroceryItem, GroceryItemSource, GroceryItemStatus};
+use crate::models::schemas::MAX_QUANTITY;
 
 /// Collapses whitespace runs and lowercases a name for duplicate comparison.
 ///
@@ -251,6 +252,24 @@ where
             .bind(status)
             .execute(executor)
             .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// Adds `quantity` back to an item still on the list (Undo of a partly
+/// bought item); `true` when it changed.
+pub async fn add_back<'e, E>(executor: E, item_id: Uuid, quantity: i32) -> Result<bool, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    let result = sqlx::query(
+        "UPDATE grocery_items SET quantity = LEAST(quantity + $2, $3)
+         WHERE id = $1 AND status IN ('active', 'committed')",
+    )
+    .bind(item_id)
+    .bind(quantity)
+    .bind(MAX_QUANTITY)
+    .execute(executor)
+    .await?;
     Ok(result.rows_affected() > 0)
 }
 

@@ -2,7 +2,8 @@
 //!
 //! The order and its purchases are deleted, and each list item they
 //! fulfilled goes back to the status it had (active or committed) — if it is
-//! still `ordered`. An item deleted since stays deleted.
+//! still `ordered`. An item that was only partly bought, so stayed on the
+//! list, gets the bought quantity back. An item deleted since stays deleted.
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -33,7 +34,9 @@ pub async fn undo(pool: &PgPool, id: Uuid, user_id: &str) -> Result<Undone, ApiE
         let Some(item_id) = purchase.grocery_item_id else {
             continue;
         };
-        if items::unmark_ordered(&mut *tx, item_id, purchase.item_status_before).await? {
+        if items::unmark_ordered(&mut *tx, item_id, purchase.item_status_before).await?
+            || items::add_back(&mut *tx, item_id, purchase.quantity).await?
+        {
             items_restored += 1;
         }
     }

@@ -4,12 +4,14 @@
 //! saved as bought: priced ([`super::price`]), given its share of the
 //! delivery fee ([`super::fee`]) and a category ([`super::category`]). The
 //! list items it fulfilled become `ordered`, so they leave the list. A product
-//! that could not be added stays on the list and is not saved.
+//! that could not be added stays on the list and is not saved: an item with
+//! some products added and others not keeps the rest of its quantity and
+//! those products' choices.
 //!
 //! The stores are asked before the transaction opens, so no row is locked
 //! while a store answers.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
 use rust_decimal::Decimal;
@@ -41,17 +43,19 @@ pub async fn trolley_fill(
     let Some(handoff) = handoffs::find_handoff(pool, handoff_id).await? else {
         return Ok(None);
     };
-    let added: Vec<TrolleyHandoffLine> = line_repository::lines_of(pool, handoff_id)
-        .await?
-        .into_iter()
-        .filter(|line| line.outcome == Some(TrolleyLineOutcome::Added))
-        .collect();
+    let (added, not_added): (Vec<TrolleyHandoffLine>, Vec<_>) =
+        line_repository::lines_of(pool, handoff_id)
+            .await?
+            .into_iter()
+            .partition(|line| line.outcome == Some(TrolleyLineOutcome::Added));
+    // Items with a product the trolley did not take are only partly bought.
+    let partly: HashSet<Uuid> = not_added.iter().map(|line| line.grocery_item_id).collect();
     let bought = price_all(pool, stores, &handoff, &added).await?;
     if bought.is_empty() {
         log::nothing_to_save(&handoff, added.len());
         return Ok(None);
     }
-    save(pool, &handoff, &bought).await
+    save(pool, &handoff, &bought, &partly).await
 }
 
 /// Prices every added line whose list item is still to be bought.
@@ -90,6 +94,7 @@ async fn save(
     pool: &PgPool,
     handoff: &TrolleyHandoff,
     bought: &[BoughtLine],
+    partly: &HashSet<Uuid>,
 ) -> Result<Option<PurchaseOrder>, ApiError> {
     let totals: Vec<Decimal> = bought.iter().map(|line| line.total_price).collect();
     let delivery_fee = handoff.delivery_fee.unwrap_or(Decimal::ZERO);
@@ -133,8 +138,14 @@ async fn save(
         };
         repository::insert_purchase(&mut *tx, &order, &purchase).await?;
     }
-    let ids: Vec<Uuid> = bought.iter().map(|line| line.grocery_item_id).collect();
+    let (partial, whole): (Vec<&BoughtLine>, Vec<&BoughtLine>) = bought
+        .iter()
+        .partition(|line| partly.contains(&line.grocery_item_id));
+    let ids: Vec<Uuid> = whole.iter().map(|line| line.grocery_item_id).collect();
     let moved = items::mark_ordered(&mut *tx, &ids).await?;
+    for line in partial {
+        keep_the_rest(&mut tx, handoff, line).await?;
+    }
     tx.commit().await?;
     log::saved(&order, bought.len(), moved.len());
     Ok(Some(order))
@@ -146,4 +157,21 @@ fn still_to_buy(status: GroceryItemStatus) -> bool {
         status,
         GroceryItemStatus::Active | GroceryItemStatus::Committed
     )
+}
+
+/// A product bought for an item whose other products the trolley did not
+/// take: the item keeps the rest of its quantity, and the bought product's
+/// choice goes so the next trolley sends only what is left.
+async fn keep_the_rest(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    handoff: &TrolleyHandoff,
+    line: &BoughtLine,
+) -> Result<(), ApiError> {
+    let Some(item) = items::lock_item(tx, line.grocery_item_id).await? else {
+        return Ok(());
+    };
+    let rest = (item.quantity - line.quantity).max(1);
+    items::set_item_quantity(tx, item.id, rest).await?;
+    selections::delete_product(tx, item.id, handoff.store, &line.product_id).await?;
+    Ok(())
 }

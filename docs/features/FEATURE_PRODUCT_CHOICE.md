@@ -7,7 +7,7 @@ reads these choices.
 ## Behaviour
 - **Select item** on a list card opens `/items/$itemId/select`, a full page
   with both stores' products (`FEATURE_STORE_INTEGRATION.md`). Each product
-  has **Choose**.
+  has **Choose**; pressing **Chosen** again clears it.
 - **Several products per item.** An item with quantity 1 keeps one product
   per store; choosing again swaps it. An item with quantity N can keep up to
   N products at a store. A new product starts at 1, taken from the product

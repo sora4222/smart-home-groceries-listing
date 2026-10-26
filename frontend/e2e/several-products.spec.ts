@@ -63,4 +63,29 @@ test.describe("several products for one item", () => {
 		await expect(card.getByRole("region", { name: "Chosen product for milk" })).toContainText("×2");
 		await expect(card.getByRole("combobox")).toHaveCount(0);
 	});
+
+	test("tapping Chosen again un-chooses the product, with Undo", async ({ page }) => {
+		await gotoList(page);
+		await addItem(page, "milk");
+		const view = await openSelectItem(page, "milk");
+		await view
+			.getByRole("button", { name: "Choose Woolworths Full Cream Milk at Woolworths" })
+			.click();
+
+		await view
+			.getByRole("button", { name: "Woolworths Full Cream Milk at Woolworths is chosen" })
+			.click();
+		await expect(
+			view.getByRole("button", { name: "Choose Woolworths Full Cream Milk at Woolworths" }),
+		).toBeVisible();
+
+		await page
+			.locator("[data-sonner-toast]")
+			.filter({ hasText: "Chosen product cleared" })
+			.getByRole("button", { name: "Undo" })
+			.click();
+		await expect(
+			view.getByRole("button", { name: "Woolworths Full Cream Milk at Woolworths is chosen" }),
+		).toBeVisible();
+	});
 });

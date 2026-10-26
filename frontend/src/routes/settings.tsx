@@ -15,6 +15,7 @@ function SettingsLayout() {
 				{ to: "/settings/item-rules", label: "Item rules" },
 				{ to: "/settings/dislikes", label: "Dislikes" },
 				{ to: "/settings/delivery", label: "Delivery" },
+				{ to: "/settings/display", label: "Display" },
 				{ to: "/settings/logs", label: "Logs" },
 				{ to: "/settings/help", label: "Help" },
 			]}

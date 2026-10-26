@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { cn } from "#/lib/utils";
 
-const SIZES = { sm: "size-10", md: "size-16" } as const;
+const SIZES = { sm: "size-10", md: "size-16", lg: "size-24" } as const;
 
 /**
  * A product's picture from the store's image server, at a fixed square size

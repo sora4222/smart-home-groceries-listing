@@ -21,7 +21,8 @@ use uuid::Uuid;
 
 use crate::error::ApiError;
 use crate::models::db::{
-    GroceryItem, GroceryItemSource, IntakeSource, VoiceRequest, VoiceRequestStatus,
+    GroceryItem, GroceryItemSource, GroceryItemStatus, IntakeSource, VoiceRequest,
+    VoiceRequestStatus,
 };
 use crate::models::schemas::{
     AlexaIntakeCreate, VoiceRequestCreate, VoiceRequestDecision, MAX_QUANTITY,
@@ -200,11 +201,13 @@ impl<'a> VoiceService<'a> {
         Ok((accepted, grocery_item, merged_quantity.is_some()))
     }
 
-    /// Undoes an accept: takes back what it added to an existing item, or
-    /// deletes the item it created, and returns the request to Pending
-    /// Requests. An item already removed from the list is left removed.
+    /// Undoes an accept: takes back what it added to the item, and returns the
+    /// request to Pending Requests. The item it created is deleted only when
+    /// nothing was merged into it since. An item already removed from the
+    /// list is left removed.
     ///
-    /// Only an accepted request can be undone; anything else is a conflict.
+    /// Only an accepted request whose item is still on the active list can be
+    /// undone; anything else is a conflict (release a committed list first).
     pub async fn undo_accept(&self, request_id: Uuid) -> Result<VoiceRequest, ApiError> {
         let mut tx = self.pool.begin().await?;
         let request = repository::lock_request(&mut tx, request_id)
@@ -217,14 +220,18 @@ impl<'a> VoiceService<'a> {
         let merged = accept_undo_repository::merged_quantity(&mut tx, request.id).await?;
         if let Some(item_id) = request.grocery_item_id {
             if let Some(item) = grocery_repository::lock_item(&mut tx, item_id).await? {
-                match merged {
-                    Some(added) => {
-                        let back = (item.quantity - added).max(1);
-                        grocery_repository::set_item_quantity(&mut tx, item.id, back).await?;
-                    }
-                    None => {
-                        grocery_repository::delete_item(&mut tx, item.id).await?;
-                    }
+                if item.status != GroceryItemStatus::Active {
+                    return Err(ApiError::Conflict(format!(
+                        "{item_id} is committed for purchase — release the list to undo"
+                    )));
+                }
+                // A created item keeps what later accepts merged into it.
+                let added = merged.unwrap_or(request.parsed_quantity);
+                if merged.is_none() && item.quantity <= added {
+                    grocery_repository::delete_item(&mut tx, item.id).await?;
+                } else {
+                    let back = (item.quantity - added).max(1);
+                    grocery_repository::set_item_quantity(&mut tx, item.id, back).await?;
                 }
             }
         }

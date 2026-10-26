@@ -61,7 +61,7 @@ test.describe("order review", () => {
 			.getByRole("link", { name: "Order" })
 			.click();
 
-		await expect(page.getByRole("heading", { name: "Order" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "In Progress" })).toBeVisible();
 	});
 
 	test("committed items are priced and grouped by store", async ({

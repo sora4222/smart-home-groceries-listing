@@ -21,7 +21,7 @@ interface OrderSearch {
 	mode?: OrderMode;
 }
 
-export const Route = createFileRoute("/order")({
+export const Route = createFileRoute("/order/")({
 	validateSearch: (search: Record<string, unknown>): OrderSearch =>
 		ORDER_MODES.some((m) => m.mode === search.mode)
 			? { mode: search.mode as OrderMode }
@@ -53,7 +53,7 @@ export const Route = createFileRoute("/order")({
 });
 
 /**
- * `/order` — the order review and its options.
+ * `/order` › In Progress — the order review and its options.
  *
  * "Ways to buy" ranks every way to split the order between the stores, with
  * delivery fees, by the household's mode; **Use this** moves items between
@@ -86,7 +86,7 @@ function OrderPage() {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-wrap items-center justify-between gap-2">
-				<h1 className="text-lg font-semibold">Order</h1>
+				<h1 className="text-lg font-semibold">In Progress</h1>
 				<Button
 					variant="outline"
 					size="sm"

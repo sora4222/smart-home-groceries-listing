@@ -67,7 +67,7 @@ function RootComponent() {
 		<RootDocument>
 			<SignInOffNotice />
 			{!isAuthPath(pathname) && <Nav />}
-			<main className="mx-auto max-w-3xl p-4">
+			<main className="mx-auto w-full max-w-5xl p-4">
 				<Outlet />
 			</main>
 			<Toaster richColors position="top-right" />

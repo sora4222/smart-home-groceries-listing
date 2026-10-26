@@ -24,7 +24,7 @@ test.describe("the access log", () => {
 			}, { message: `${path} should be logged` })
 			.toBe(true);
 
-		await gotoList(page, "/logs");
+		await gotoList(page, "/settings/logs");
 
 		const row = page.locator(`[data-log-path="${path}"]`);
 		await expect(row).toContainText("404");
@@ -48,7 +48,7 @@ test.describe("the access log", () => {
 			}, { message: "the health check should be logged" })
 			.toBe(true);
 
-		await gotoList(page, "/logs");
+		await gotoList(page, "/settings/logs");
 		const health = page.locator('[data-log-path="/api/health"]');
 		await expect(page.getByRole("list", { name: "Access log" })).toBeVisible();
 		await expect(health).toHaveCount(0);
@@ -57,9 +57,13 @@ test.describe("the access log", () => {
 		await expect(health.first()).toBeVisible();
 	});
 
-	test("is reachable from the nav", async ({ page }) => {
+	test("is in Settings", async ({ page }) => {
 		await gotoList(page, "/");
-		await page.getByRole("link", { name: "Logs" }).click();
-		await expect(page.getByRole("heading", { name: "Access log" })).toBeVisible();
+		await page.getByRole("link", { name: "Settings" }).click();
+		await page
+			.getByRole("navigation", { name: "Settings sections" })
+			.getByRole("link", { name: "Logs" })
+			.click();
+		await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible();
 	});
 });

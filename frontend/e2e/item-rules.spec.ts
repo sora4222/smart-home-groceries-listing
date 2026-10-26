@@ -38,9 +38,9 @@ async function addRule(
 }
 
 test.describe("item rules page", () => {
-	test("is reachable from the nav and starts empty", async ({ page }) => {
+	test("is the first Settings page and starts empty", async ({ page }) => {
 		await gotoList(page);
-		await page.getByRole("link", { name: "Item Rules" }).click();
+		await page.getByRole("link", { name: "Settings" }).click();
 
 		await expect(page.getByRole("heading", { name: "Item Rules" })).toBeVisible();
 		await expect(page.getByText("No rules yet.")).toBeVisible();

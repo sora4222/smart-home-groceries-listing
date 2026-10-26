@@ -36,7 +36,7 @@ export function useGoogleSignInReturn({ code, state, error }: GoogleReturn) {
 					toast.error("Could not connect Google Tasks — try again.");
 				}
 			}
-			await navigate({ to: "/settings/intake", search: {}, replace: true });
+			await navigate({ to: "/settings/help", search: {}, replace: true });
 			await router.invalidate();
 		}
 		void finish();

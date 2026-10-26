@@ -131,7 +131,7 @@ function GroceryListPage() {
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
 			<h1 className="text-lg font-semibold">Grocery List</h1>
 
 			<AddItemForm onAdd={(item) => addItem(item)} />

@@ -18,6 +18,8 @@ interface PendingRequestCardProps {
 	onReject: (id: string) => void;
 	/** Called when the user changes the name or quantity. */
 	onEdit?: (id: string) => void;
+	/** A decision is being saved: the buttons wait, the edits stay. */
+	busy?: boolean;
 }
 
 /**
@@ -33,6 +35,7 @@ export function PendingRequestCard({
 	onAccept,
 	onReject,
 	onEdit,
+	busy = false,
 }: PendingRequestCardProps) {
 	const [name, setName] = useState(request.parsed_name);
 	const [quantity, setQuantity] = useState(request.parsed_quantity);
@@ -87,6 +90,7 @@ export function PendingRequestCard({
 			<CardFooter>
 				<Button
 					size="sm"
+					disabled={busy}
 					onClick={() => onAccept(request.id, name, quantity)}
 					aria-label={`Accept ${name}`}
 				>
@@ -96,6 +100,7 @@ export function PendingRequestCard({
 					<Button
 						size="sm"
 						variant="outline"
+						disabled={busy}
 						onClick={() => onReject(request.id)}
 						aria-label={`Reject ${name}`}
 					>

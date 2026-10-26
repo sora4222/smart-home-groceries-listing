@@ -74,4 +74,24 @@ describe("PendingRequestCard", () => {
 		expect(onEdit).toHaveBeenCalledTimes(2);
 		expect(onEdit).toHaveBeenCalledWith(request.id);
 	});
+
+	it("keeps the edits and turns its buttons off while busy", async () => {
+		const user = userEvent.setup();
+		const props = {
+			request,
+			dulled: false,
+			onAccept: vi.fn(),
+			onReject: vi.fn(),
+		};
+		const { rerender } = render(<PendingRequestCard {...props} />);
+		await user.clear(screen.getByLabelText("Item name"));
+		await user.type(screen.getByLabelText("Item name"), "oat milk");
+
+		rerender(<PendingRequestCard {...props} busy />);
+		expect(screen.getByRole("button", { name: /accept/i })).toBeDisabled();
+		expect(screen.getByRole("button", { name: /reject/i })).toBeDisabled();
+
+		rerender(<PendingRequestCard {...props} />);
+		expect(screen.getByLabelText("Item name")).toHaveValue("oat milk");
+	});
 });

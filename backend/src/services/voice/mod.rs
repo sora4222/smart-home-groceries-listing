@@ -6,6 +6,7 @@
 //! single transaction and locks the request row first, so two browser tabs
 //! racing to accept the same card cannot both succeed.
 
+mod accept_undo_repository;
 pub mod counts;
 mod log;
 mod polled;
@@ -20,7 +21,8 @@ use uuid::Uuid;
 
 use crate::error::ApiError;
 use crate::models::db::{
-    GroceryItem, GroceryItemSource, IntakeSource, VoiceRequest, VoiceRequestStatus,
+    GroceryItem, GroceryItemSource, GroceryItemStatus, IntakeSource, VoiceRequest,
+    VoiceRequestStatus,
 };
 use crate::models::schemas::{
     AlexaIntakeCreate, VoiceRequestCreate, VoiceRequestDecision, MAX_QUANTITY,
@@ -128,6 +130,8 @@ impl<'a> VoiceService<'a> {
     /// entry. A new list entry gets the chips of every item rule matching its
     /// (corrected) name; a merge leaves the existing item's chips alone.
     ///
+    /// The returned flag is true when the accept merged into an existing item.
+    ///
     /// Accepting is allowed from `pending` *and* `rejected` — the latter backs
     /// the web app's "dulled, undo-on-hover" reject. Only an already-accepted
     /// request is a closed decision.
@@ -137,7 +141,7 @@ impl<'a> VoiceService<'a> {
         decision: &VoiceRequestDecision,
         user_id: &str,
         on_duplicate: OnDuplicate,
-    ) -> Result<(VoiceRequest, GroceryItem), ApiError> {
+    ) -> Result<(VoiceRequest, GroceryItem, bool), ApiError> {
         let mut tx = self.pool.begin().await?;
 
         let request = repository::lock_request(&mut tx, request_id)
@@ -151,7 +155,7 @@ impl<'a> VoiceService<'a> {
         let quantity = decision.quantity.unwrap_or(request.parsed_quantity);
 
         let clash = grocery_repository::lock_active_duplicate(&mut tx, &name).await?;
-        let (grocery_item, merged) = match (clash, on_duplicate) {
+        let (grocery_item, merged_quantity) = match (clash, on_duplicate) {
             (Some(existing), OnDuplicate::Ask) => {
                 // Nothing has been written yet; rolling back just releases
                 // the locks before the 409 goes out.
@@ -163,7 +167,7 @@ impl<'a> VoiceService<'a> {
                 let merged = existing.quantity.saturating_add(quantity).min(MAX_QUANTITY);
                 let item =
                     grocery_repository::set_item_quantity(&mut tx, existing.id, merged).await?;
-                (item, true)
+                (item, Some(merged - existing.quantity))
             }
             // No clash, or the user asked for both entries to exist.
             (_, _) => {
@@ -182,18 +186,62 @@ impl<'a> VoiceService<'a> {
                     user_id,
                 )
                 .await?;
-                (item, false)
+                (item, None)
             }
         };
 
         let accepted =
             repository::mark_accepted(&mut tx, request.id, &name, quantity, grocery_item.id)
                 .await?;
+        accept_undo_repository::set_merged_quantity(&mut tx, request.id, merged_quantity).await?;
         tx.commit().await?;
-        log::accepted(&accepted, &grocery_item, merged, user_id);
+        log::accepted(&accepted, &grocery_item, merged_quantity.is_some(), user_id);
 
         self.publish_counts().await?;
-        Ok((accepted, grocery_item))
+        Ok((accepted, grocery_item, merged_quantity.is_some()))
+    }
+
+    /// Undoes an accept: takes back what it added to the item, and returns the
+    /// request to Pending Requests. The item it created is deleted only when
+    /// nothing was merged into it since. An item already removed from the
+    /// list is left removed.
+    ///
+    /// Only an accepted request whose item is still on the active list can be
+    /// undone; anything else is a conflict (release a committed list first).
+    pub async fn undo_accept(&self, request_id: Uuid) -> Result<VoiceRequest, ApiError> {
+        let mut tx = self.pool.begin().await?;
+        let request = repository::lock_request(&mut tx, request_id)
+            .await?
+            .ok_or_else(|| ApiError::NotFound(request_id.to_string()))?;
+        if request.status != VoiceRequestStatus::Accepted {
+            return Err(ApiError::Conflict(request_id.to_string()));
+        }
+
+        let merged = accept_undo_repository::merged_quantity(&mut tx, request.id).await?;
+        if let Some(item_id) = request.grocery_item_id {
+            if let Some(item) = grocery_repository::lock_item(&mut tx, item_id).await? {
+                if item.status != GroceryItemStatus::Active {
+                    return Err(ApiError::Conflict(format!(
+                        "{item_id} is committed for purchase — release the list to undo"
+                    )));
+                }
+                // A created item keeps what later accepts merged into it.
+                let added = merged.unwrap_or(request.parsed_quantity);
+                if merged.is_none() && item.quantity <= added {
+                    grocery_repository::delete_item(&mut tx, item.id).await?;
+                } else {
+                    let back = (item.quantity - added).max(1);
+                    grocery_repository::set_item_quantity(&mut tx, item.id, back).await?;
+                }
+            }
+        }
+
+        let restored = accept_undo_repository::mark_pending(&mut tx, request.id).await?;
+        tx.commit().await?;
+        log::accept_undone(&restored);
+
+        self.publish_counts().await?;
+        Ok(restored)
     }
 
     /// Rejects a pending request. Rejections are recorded, never deleted, so

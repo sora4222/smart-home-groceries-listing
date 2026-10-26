@@ -3,8 +3,10 @@
  * (Settings › Display). Nothing here reaches the server.
  */
 
+const SIZES = ["sm", "md", "lg", "full"] as const;
+
 /** `full` is the picture at the store's own size. */
-export type ImageSize = "sm" | "md" | "lg" | "full";
+export type ImageSize = (typeof SIZES)[number];
 
 export interface DisplaySettings {
 	imageSize: ImageSize;
@@ -23,7 +25,10 @@ export const DEFAULT_DISPLAY: DisplaySettings = {
 const KEY = "grocery.display-settings";
 const CHANGED = "grocery:display-settings";
 
-const SIZES: ImageSize[] = ["sm", "md", "lg", "full"];
+const isSize = (value: unknown): value is ImageSize =>
+	SIZES.some((size) => size === value);
+const isBoolean = (value: unknown): value is boolean =>
+	typeof value === "boolean";
 
 /** Stored settings, with defaults for anything missing or unreadable. */
 export function parseDisplay(raw: string | null): DisplaySettings {
@@ -33,18 +38,15 @@ export function parseDisplay(raw: string | null): DisplaySettings {
 	} catch {
 		// Unreadable: start again from the defaults.
 	}
+	const d = DEFAULT_DISPLAY;
 	return {
-		imageSize: SIZES.includes(stored.imageSize as ImageSize)
-			? (stored.imageSize as ImageSize)
-			: DEFAULT_DISPLAY.imageSize,
-		showWasPrice:
-			typeof stored.showWasPrice === "boolean"
-				? stored.showWasPrice
-				: DEFAULT_DISPLAY.showWasPrice,
-		showUnavailable:
-			typeof stored.showUnavailable === "boolean"
-				? stored.showUnavailable
-				: DEFAULT_DISPLAY.showUnavailable,
+		imageSize: isSize(stored.imageSize) ? stored.imageSize : d.imageSize,
+		showWasPrice: isBoolean(stored.showWasPrice)
+			? stored.showWasPrice
+			: d.showWasPrice,
+		showUnavailable: isBoolean(stored.showUnavailable)
+			? stored.showUnavailable
+			: d.showUnavailable,
 	};
 }
 

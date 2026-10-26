@@ -36,6 +36,7 @@ function PendingPage() {
 			<PendingSection
 				requests={decisions.requests}
 				rejectedIds={decisions.rejectedIds}
+				busyIds={decisions.busyIds}
 				onAccept={decisions.accept}
 				onReject={decisions.reject}
 			/>

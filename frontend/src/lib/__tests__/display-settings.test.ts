@@ -39,4 +39,18 @@ describe("saveDisplay", () => {
 		expect(onChange).toHaveBeenCalledOnce();
 		stop();
 	});
+
+	it("keeps the change in memory when storage refuses it", () => {
+		const setItem = vi
+			.spyOn(Storage.prototype, "setItem")
+			.mockImplementation(() => {
+				throw new Error("quota");
+			});
+
+		saveDisplay({ ...DEFAULT_DISPLAY, imageSize: "lg" });
+
+		expect(parseDisplay(readDisplayRaw()).imageSize).toBe("lg");
+		setItem.mockRestore();
+		saveDisplay(DEFAULT_DISPLAY);
+	});
 });

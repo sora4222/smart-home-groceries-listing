@@ -65,6 +65,19 @@ pub struct ItemSelectionQuantity {
     pub quantity: i32,
 }
 
+/// `POST /api/grocery-items/{id}/selection/snapshot`: the saved snapshot.
+#[derive(Debug, Serialize)]
+pub struct SelectionSnapshotResponse {
+    pub id: Uuid,
+}
+
+/// `POST /api/selection-snapshots/{id}/restore?grocery_item_id=`: the item
+/// to put the products on, when not the one the snapshot was taken of.
+#[derive(Debug, Default, Deserialize, Validate)]
+pub struct SelectionRestoreQuery {
+    pub grocery_item_id: Option<Uuid>,
+}
+
 /// One item's choices in `GET /api/item-selections`: the oldest product the
 /// order buys, the order's other products for it, and the item's choices at
 /// the other stores.

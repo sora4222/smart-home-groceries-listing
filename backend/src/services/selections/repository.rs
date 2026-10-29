@@ -1,9 +1,9 @@
 //! Every SQL statement for `item_selections`.
 //!
 //! The one place that table is read or written, including the delete the
-//! grocery list triggers when an item is renamed and the switch the order
-//! planner makes between an item's stores. Every statement is a
-//! literal `&'static str` with bind parameters.
+//! grocery list triggers when an item is renamed, the switch the order
+//! planner makes between an item's stores, and the snapshots Undo puts
+//! back. Every statement is a literal `&'static str` with bind parameters.
 
 use rust_decimal::Decimal;
 use sqlx::{PgExecutor, Postgres, Transaction};
@@ -289,4 +289,84 @@ pub async fn buy_at_store(
     .execute(&mut **tx)
     .await?;
     Ok(true)
+}
+
+/// Saves the item's products as a new snapshot for Undo, and forgets
+/// snapshots older than a day. Returns the snapshot's id.
+pub async fn save_snapshot(
+    tx: &mut Transaction<'_, Postgres>,
+    grocery_item_id: Uuid,
+) -> Result<Uuid, ApiError> {
+    sqlx::query("DELETE FROM selection_snapshots WHERE taken_at < now() - interval '1 day'")
+        .execute(&mut **tx)
+        .await?;
+    let id = Uuid::new_v4();
+    sqlx::query("INSERT INTO selection_snapshots (id, grocery_item_id) VALUES ($1, $2)")
+        .bind(id)
+        .bind(grocery_item_id)
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query(
+        "INSERT INTO selection_snapshot_rows
+             (snapshot_id, id, grocery_item_id, store, product_id, product_name, brand,
+              package_size, price, unit_price, unit_price_per, total_price,
+              priced_quantity, url, image_url, selected_by, selected_at, for_order,
+              quantity)
+         SELECT $1, id, grocery_item_id, store, product_id, product_name, brand,
+                package_size, price, unit_price, unit_price_per, total_price,
+                priced_quantity, url, image_url, selected_by, selected_at, for_order,
+                quantity
+         FROM item_selections
+         WHERE grocery_item_id = $2",
+    )
+    .bind(id)
+    .bind(grocery_item_id)
+    .execute(&mut **tx)
+    .await?;
+    Ok(id)
+}
+
+/// The item a snapshot was taken of, with the snapshot locked. `None` when
+/// there is no such snapshot (or it was older than a day).
+pub async fn lock_snapshot(
+    tx: &mut Transaction<'_, Postgres>,
+    snapshot_id: Uuid,
+) -> Result<Option<Uuid>, ApiError> {
+    Ok(sqlx::query_scalar(
+        "SELECT grocery_item_id FROM selection_snapshots WHERE id = $1 FOR UPDATE",
+    )
+    .bind(snapshot_id)
+    .fetch_optional(&mut **tx)
+    .await?)
+}
+
+/// Replaces the item's products with the snapshot's, each as it was saved.
+/// New row ids, so a snapshot can be put back more than once.
+pub async fn put_back_snapshot(
+    tx: &mut Transaction<'_, Postgres>,
+    snapshot_id: Uuid,
+    grocery_item_id: Uuid,
+) -> Result<(), ApiError> {
+    sqlx::query("DELETE FROM item_selections WHERE grocery_item_id = $1")
+        .bind(grocery_item_id)
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query(
+        "INSERT INTO item_selections
+             (id, grocery_item_id, store, product_id, product_name, brand,
+              package_size, price, unit_price, unit_price_per, total_price,
+              priced_quantity, url, image_url, selected_by, selected_at, for_order,
+              quantity)
+         SELECT gen_random_uuid(), $2, store, product_id, product_name, brand,
+                package_size, price, unit_price, unit_price_per, total_price,
+                priced_quantity, url, image_url, selected_by, selected_at, for_order,
+                quantity
+         FROM selection_snapshot_rows
+         WHERE snapshot_id = $1",
+    )
+    .bind(snapshot_id)
+    .bind(grocery_item_id)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
 }

@@ -50,8 +50,8 @@ interface HeldAddition {
  */
 function GroceryListPage() {
 	const { items, selections } = Route.useLoaderData();
-	const choices = useProductChoices(selections);
-	const actions = useGroceryListActions(items, selections);
+	const choices = useProductChoices();
+	const actions = useGroceryListActions(items);
 	const [held, setHeld] = useState<HeldAddition | null>(null);
 
 	const underReview = items.filter((item) => item.status === "active");

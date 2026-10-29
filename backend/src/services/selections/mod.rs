@@ -12,7 +12,8 @@
 //! so the order planner can switch the item between stores
 //! ([`SelectionService::buy_at`]). Renaming an item or changing its chips
 //! drops its choices ([`forget_if_stale`]); removing the item removes them.
-//! Ordered items cannot be re-chosen.
+//! Ordered items cannot be re-chosen. Undo puts back a snapshot of the
+//! item's products taken before the change ([`SelectionService::restore`]).
 //!
 //! SQL lives in [`repository`]; finding the product in a search in [`offer`];
 //! grouping each item's choices in [`grouping`].
@@ -211,6 +212,39 @@ impl<'a> SelectionService<'a> {
         }
         tx.commit().await?;
         log::bought_at(picks);
+        Ok(())
+    }
+
+    /// Saves the item's products, at every store, so Undo can put them
+    /// back ([`Self::restore`]). 404 for an unknown item.
+    pub async fn snapshot(&self, item_id: Uuid) -> Result<Uuid, ApiError> {
+        if items::find_item(self.pool, item_id).await?.is_none() {
+            return Err(ApiError::NotFound("Grocery item not found".into()));
+        }
+        let mut tx = self.pool.begin().await?;
+        let snapshot_id = repository::save_snapshot(&mut tx, item_id).await?;
+        tx.commit().await?;
+        log::snapshot_saved(item_id, snapshot_id);
+        Ok(snapshot_id)
+    }
+
+    /// Puts a snapshot back in one step: the item's products become exactly
+    /// the saved ones, with their counts, stores and details, and no store
+    /// is searched. `onto` names the item when it is not the one the
+    /// snapshot was taken of (Undo of a removal re-adds it with a new id).
+    /// 404 for an unknown snapshot or item; 409 for an item no longer on
+    /// the list.
+    pub async fn restore(&self, snapshot_id: Uuid, onto: Option<Uuid>) -> Result<(), ApiError> {
+        let mut tx = self.pool.begin().await?;
+        let Some(taken_of) = repository::lock_snapshot(&mut tx, snapshot_id).await? else {
+            return Err(ApiError::NotFound(
+                "That undo is no longer available.".into(),
+            ));
+        };
+        let item = lock_choosable_item(&mut tx, onto.unwrap_or(taken_of)).await?;
+        repository::put_back_snapshot(&mut tx, snapshot_id, item.id).await?;
+        tx.commit().await?;
+        log::snapshot_restored(item.id, snapshot_id);
         Ok(())
     }
 }

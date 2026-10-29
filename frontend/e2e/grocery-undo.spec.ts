@@ -66,6 +66,33 @@ test.describe("undo on the grocery list", () => {
 		await expect(itemCard(page, "milk")).toBeVisible();
 	});
 
+	test("renaming an item, then Undo, brings its product back", async ({
+		page,
+	}) => {
+		await gotoList(page);
+		await addItem(page, "milk");
+		const view = await openSelectItem(page, "milk");
+		await view
+			.getByRole("button", { name: "Choose Coles Full Cream Milk at Coles" })
+			.click();
+		await backToList(page);
+		const card = itemCard(page, "milk");
+		await card.getByLabel("Edit milk").click();
+		await card.getByLabel("Item", { exact: true }).fill("oat milk");
+		await card.getByRole("button", { name: "Save" }).click();
+		await expect(itemCard(page, "oat milk")).toContainText(
+			"No product chosen yet",
+		);
+
+		await undo(page, "Saved");
+
+		await expect(
+			itemCard(page, "milk").getByLabel("Chosen product for milk", {
+				exact: true,
+			}),
+		).toContainText("Coles Full Cream Milk");
+	});
+
 	test("committing the list", async ({ page }) => {
 		await gotoList(page);
 		await addItem(page, "milk");

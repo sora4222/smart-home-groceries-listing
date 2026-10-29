@@ -91,9 +91,10 @@ src/
 │   │                    #   fake catalogue, cache — see skills/store-integration.md
 │   ├── product_search/  # one item across every store: query, chip filter,
 │   │                    #   pricing at quantity, comparability notes, ordering
-│   ├── selections/      # choosing one product per item: offer.rs checks it
-│   │                    #   against the store's answer, staleness.rs drops it
+│   ├── selections/      # choosing an item's products: offer.rs checks each
+│   │                    #   against the store's answer, staleness.rs drops them
 │   │                    #   on rename/re-chip, repository.rs owns the table
+│   │                    #   and the Undo snapshots
 │   ├── dislikes/        # per-member dislikes, per-item overrides; skip.rs is
 │   │                    #   the pure rule the optimiser calls — skills/dislikes.md
 │   ├── order_review/    # the committed list re-priced: line/ (one choice, pure),

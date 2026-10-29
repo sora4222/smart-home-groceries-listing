@@ -185,5 +185,5 @@ review; `order line needs attention` (warn) for a line with a problem;
   cap, every mode, 20 items by local search); `backend/tests/order_options.rs`,
   `delivery_settings.rs`, `item_selections_per_store.rs`.
 - Web: `components/order-options/__tests__`, `components/delivery/__tests__`,
-  `lib/__tests__/delivery-form.test.ts`, `option-notes.test.ts`,
-  `choice-undo.test.ts`; `frontend/e2e/order-options.spec.ts`.
+  `lib/__tests__/delivery-form.test.ts`, `option-notes.test.ts`;
+  `frontend/e2e/order-options.spec.ts`.

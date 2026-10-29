@@ -34,7 +34,7 @@ export const Route = createFileRoute("/items/$itemId/select")({
  */
 function SelectItemRoute() {
 	const { item, selections } = Route.useLoaderData();
-	const choices = useProductChoices(selections);
+	const choices = useProductChoices();
 	const selection = selections.get(item.id);
 	const chosen = selection ? everyChoice(selection) : [];
 

@@ -1,7 +1,7 @@
 /**
  * The products chosen for each list item:
- * `/api/item-selections`, `/api/grocery-items/{id}/selection` and
- * `/api/order-stores`.
+ * `/api/item-selections`, `/api/grocery-items/{id}/selection`,
+ * `/api/selection-snapshots` and `/api/order-stores`.
  *
  * Only the store and its product id are sent; the backend checks the product
  * against the store's own answer and saves the store's details with it. Money
@@ -105,6 +105,23 @@ export const selectionsApi = {
 			method: "PUT",
 			body: JSON.stringify({ store, product_id: productId, quantity }),
 		}),
+	/** Saves the item's products before a change, for Undo. */
+	snapshot: (itemId: string) =>
+		request<{ id: string }>(`/api/grocery-items/${itemId}/selection/snapshot`, {
+			method: "POST",
+		}),
+	/**
+	 * Undo: puts a snapshot's products back in one step, with no store
+	 * search. `itemId` names the item when it is not the one the snapshot
+	 * was taken of (a removed item re-added with a new id).
+	 */
+	restore: (snapshotId: string, itemId?: string) => {
+		const search = itemId ? `?grocery_item_id=${itemId}` : "";
+		return request<void>(
+			`/api/selection-snapshots/${snapshotId}/restore${search}`,
+			{ method: "POST" },
+		);
+	},
 	/** Makes each item's choice at the paired store the one the order buys. */
 	buyAt: (picks: OrderStorePick[]) =>
 		request<void>("/api/order-stores", {

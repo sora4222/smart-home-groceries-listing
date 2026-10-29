@@ -5,11 +5,9 @@ import {
 	api,
 	type GroceryItem,
 	type GroceryItemEdit,
-	type ItemChoices,
 	type NewGroceryItem,
 	type OnDuplicate,
 } from "#/lib/api";
-import { restoreChoices } from "#/lib/item-restore";
 import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
 import { toastWithUndo } from "#/lib/undo-toast";
 
@@ -18,13 +16,12 @@ import { toastWithUndo } from "#/lib/undo-toast";
  * change's toast has Undo. Each goes through `lib/api` and then
  * `router.invalidate()`, so the loader stays the source of truth.
  *
- * `items` and `selections` are what the page shows now: what Undo restores.
+ * `items` is what the page shows now: what Undo restores. An edit or a
+ * removal first saves the item's products as a snapshot, which Undo puts
+ * back (a new name or chips, or removing the item, forgets them).
  * `add` rejects with the backend's error so the page can ask about a duplicate.
  */
-export function useGroceryListActions(
-	items: GroceryItem[],
-	selections: Map<string, ItemChoices>,
-) {
+export function useGroceryListActions(items: GroceryItem[]) {
 	const router = useRouter();
 
 	async function refresh() {
@@ -70,23 +67,22 @@ export function useGroceryListActions(
 	async function save(id: string, edit: GroceryItemEdit) {
 		const before = items.find((i) => i.id === id);
 		try {
+			const snapshot = await api.selections.snapshot(id);
 			await api.grocery.update(id, edit);
+			if (before) {
+				done("Saved", async () => {
+					await api.grocery.update(id, {
+						name: before.name,
+						quantity: before.quantity,
+						note: before.note ?? "",
+						filter_terms: before.filter_terms,
+					});
+					await api.selections.restore(snapshot.id);
+				});
+			}
 		} catch {
 			toast.error("Could not save that change — try again.");
 			throw new Error("save failed");
-		}
-		if (before) {
-			done("Saved", async () => {
-				await api.grocery.update(id, {
-					name: before.name,
-					quantity: before.quantity,
-					note: before.note ?? "",
-					filter_terms: before.filter_terms,
-				});
-				// A new name or chips cleared the product; put it back.
-				if (edit.name === undefined && edit.filter_terms === undefined) return;
-				await restoreChoices(id, selections.get(id));
-			});
 		}
 		await refresh();
 	}
@@ -94,23 +90,24 @@ export function useGroceryListActions(
 	async function remove(id: string) {
 		const before = items.find((i) => i.id === id);
 		try {
+			const snapshot = await api.selections.snapshot(id);
 			await api.grocery.remove(id);
+			if (before) {
+				done("Item removed", async () => {
+					const back = await api.grocery.restore({
+						name: before.name,
+						quantity: before.quantity,
+						note: before.note ?? undefined,
+						filter_terms: before.filter_terms,
+					});
+					await api.selections.restore(snapshot.id, back.id);
+				});
+			} else {
+				toast.success("Item removed");
+			}
 		} catch {
 			toast.error("Could not remove that item — try again.");
 			return;
-		}
-		if (!before) {
-			toast.success("Item removed");
-		} else {
-			done("Item removed", async () => {
-				const back = await api.grocery.restore({
-					name: before.name,
-					quantity: before.quantity,
-					note: before.note ?? undefined,
-					filter_terms: before.filter_terms,
-				});
-				await restoreChoices(back.id, selections.get(id));
-			});
 		}
 		await refresh();
 	}

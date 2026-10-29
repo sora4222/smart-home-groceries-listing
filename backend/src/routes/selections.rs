@@ -5,7 +5,7 @@
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::{get, put};
+use axum::routing::{get, post, put};
 use axum::{Json, Router};
 use uuid::Uuid;
 
@@ -13,14 +13,14 @@ use crate::auth::AuthUser;
 use crate::error::ApiError;
 use crate::models::schemas::{
     ItemChoicesResponse, ItemSelectionChoose, ItemSelectionClear, ItemSelectionQuantity,
-    ItemSelectionResponse, OrderStoresSet,
+    ItemSelectionResponse, OrderStoresSet, SelectionRestoreQuery, SelectionSnapshotResponse,
 };
 use crate::routes::extract::{ValidatedJson, ValidatedQuery};
 use crate::services::selections::SelectionService;
 use crate::state::AppState;
 
-/// `/api/item-selections`, `/api/grocery-items/{id}/selection` and
-/// `/api/order-stores`.
+/// `/api/item-selections`, `/api/grocery-items/{id}/selection`,
+/// `/api/selection-snapshots` and `/api/order-stores`.
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/item-selections", get(list_selections))
@@ -32,6 +32,14 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/grocery-items/{item_id}/selection/quantity",
             put(set_quantity),
+        )
+        .route(
+            "/api/grocery-items/{item_id}/selection/snapshot",
+            post(save_snapshot),
+        )
+        .route(
+            "/api/selection-snapshots/{snapshot_id}/restore",
+            post(restore_snapshot),
         )
 }
 
@@ -111,6 +119,34 @@ async fn set_order_stores(
         .collect();
     SelectionService::new(&state.pool, &state.stores)
         .buy_at(&picks)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// `POST /api/grocery-items/{id}/selection/snapshot` — save the item's
+/// products before a change, for Undo. 404 unknown item.
+async fn save_snapshot(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(item_id): Path<Uuid>,
+) -> Result<(StatusCode, Json<SelectionSnapshotResponse>), ApiError> {
+    let id = SelectionService::new(&state.pool, &state.stores)
+        .snapshot(item_id)
+        .await?;
+    Ok((StatusCode::CREATED, Json(SelectionSnapshotResponse { id })))
+}
+
+/// `POST /api/selection-snapshots/{id}/restore[?grocery_item_id=]` — Undo:
+/// put the saved products back in one step. 404 unknown snapshot or item;
+/// 409 the item is no longer on the list.
+async fn restore_snapshot(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(snapshot_id): Path<Uuid>,
+    ValidatedQuery(query): ValidatedQuery<SelectionRestoreQuery>,
+) -> Result<StatusCode, ApiError> {
+    SelectionService::new(&state.pool, &state.stores)
+        .restore(snapshot_id, query.grocery_item_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }

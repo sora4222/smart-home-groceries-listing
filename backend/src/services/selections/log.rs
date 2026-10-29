@@ -65,3 +65,13 @@ pub fn bought_at(picks: &[(Uuid, Store)]) {
 pub fn quantity_set(item_id: Uuid, product_id: &str, quantity: i32) {
     tracing::info!(%item_id, product_id, quantity, "chosen product quantity set");
 }
+
+/// An item's products were saved for Undo.
+pub fn snapshot_saved(item_id: Uuid, snapshot_id: Uuid) {
+    tracing::debug!(item_id = %item_id, snapshot_id = %snapshot_id, "item's products saved for undo");
+}
+
+/// Undo put an item's saved products back.
+pub fn snapshot_restored(item_id: Uuid, snapshot_id: Uuid) {
+    tracing::info!(item_id = %item_id, snapshot_id = %snapshot_id, "item's products put back by undo");
+}

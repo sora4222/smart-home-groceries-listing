@@ -19,9 +19,11 @@ reads these choices.
 - **One store is bought.** Choosing makes that store the one the order buys
   (`for_order` on every product there). The card shows the other store's
   choice as "Also at …".
-- **Undo.** Choose, clear and count changes show a toast with Undo. Undo puts
-  the changed store's products and counts back, then the store bought from
-  (`lib/choice-undo.ts`, `lib/item-restore.ts`).
+- **Undo.** Before a choose, clear or count change, and before an item edit
+  or removal, the web app saves the item's products as a snapshot. Undo puts
+  the snapshot back in one transaction: every product, count and store, with
+  the details saved then, and no store search. Snapshots last a day
+  (`selection_snapshots`).
 - Choosing works on a committed list. Ordered items return 409.
 - Nothing is chosen for the household. No defaults.
 
@@ -34,6 +36,8 @@ reads these choices.
 | `PUT` | `/api/grocery-items/{id}/selection/quantity` | 204. Body `{store, product_id, quantity}`. Others at the store share the rest. 404, 422 (no room for the others) |
 | `DELETE` | `/api/grocery-items/{id}/selection[?store=[&product_id=]]` | 204. One product, one store, or everything. Clearing the bought store hands that role to the other |
 | `PUT` | `/api/order-stores` `{picks: [{grocery_item_id, store}]}` | 204; 422 when an item has no choice at that store |
+| `POST` | `/api/grocery-items/{id}/selection/snapshot` | 201 `{id}`. Saves the item's products for Undo. 404 |
+| `POST` | `/api/selection-snapshots/{id}/restore[?grocery_item_id=]` | 204. Undo: the item's products become the snapshot's. `grocery_item_id` names a re-added item. 404, 409 (item not on the list) |
 
 Only the store and product id are sent. Price and other details come from
 the store's own search answer. Money is a decimal string. `total_price` is a
@@ -70,6 +74,7 @@ send several products.
 
 ## Tests
 - Backend: `tests/item_selections*.rs`, `tests/item_selection_quantities.rs`,
+  `tests/selection_snapshots.rs`,
   unit tests in `allocation.rs`, `grouping.rs`, `parts.rs`, `split.rs`.
-- Frontend: `components/selections/__tests__`, `lib/__tests__/choice-undo.test.ts`.
-- e2e: `product-choice.spec.ts`, `several-products.spec.ts`.
+- Frontend: `components/selections/__tests__`.
+- e2e: `product-choice.spec.ts`, `several-products.spec.ts`, `grocery-undo.spec.ts`.

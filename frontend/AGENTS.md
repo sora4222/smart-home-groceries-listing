@@ -56,6 +56,7 @@ File-based routing — one file per route:
 |---|---|
 | `routes/__root.tsx` | Root layout (nav, Sonner toaster) |
 | `routes/index.tsx` | `/` — Grocery list |
+| `routes/items.$itemId.select.tsx` | `/items/$itemId/select` — Select item page (not in the nav) |
 | `routes/pending.tsx` | `/pending` — Confirmation queue, then Held / Rejected (`?tab=rejected`) |
 | `routes/sign-in.$.tsx` | `/sign-in` — Clerk's sign-in box (goes home with sign-in off) |
 | `routes/sign-up.$.tsx` | `/sign-up` — Clerk's sign-up box (goes home with sign-in off) |
@@ -66,10 +67,10 @@ File-based routing — one file per route:
 | `routes/settings/index.tsx` | `/settings` — "Pick a section" |
 | `routes/settings/item-rules.tsx` | `/settings/item-rules` |
 | `routes/settings/dislikes.tsx` | `/settings/dislikes` — every member's dislikes |
-| `routes/settings/help.tsx` | `/settings/help` — Google Tasks connect + other channels; Google's sign-in returns here |
-| `routes/settings/stores.tsx` | `/settings/stores` |
 | `routes/settings/delivery.tsx` | `/settings/delivery` |
+| `routes/settings/display.tsx` | `/settings/display` — image size, filters |
 | `routes/settings/logs.tsx` | `/settings/logs` |
+| `routes/settings/help.tsx` | `/settings/help` — Google Tasks connect + other channels; Google's sign-in returns here |
 
 ```typescript
 // Navigation

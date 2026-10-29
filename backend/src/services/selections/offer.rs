@@ -46,8 +46,8 @@ pub fn find(search: ItemSearch, store: Store, product_id: &str) -> Result<Priced
 /// The store's results for the item do not include the product.
 fn not_offered(store: Store, item_name: &str) -> ApiError {
     ApiError::UnprocessableEntity(format!(
-        "{} does not offer that product for {item_name} any more — compare prices again and \
-         choose another.",
+        "{} does not offer that product for {item_name} any more. Open Select item \
+         again and choose another.",
         store.display_name()
     ))
 }

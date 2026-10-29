@@ -23,6 +23,7 @@ pub mod delivery;
 pub mod line_repository;
 mod log;
 pub mod repository;
+mod split;
 pub mod store_tab;
 
 use chrono::{Duration, Utc};

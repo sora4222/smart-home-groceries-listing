@@ -4,9 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import { ProductChoiceProvider } from "#/components/products/product-choice";
 import { ProductResults } from "#/components/products/product-results";
 import { SelectItemPage } from "#/components/products/select-item-page";
+import { ChosenProduct } from "#/components/selections/chosen-product";
 import { Button } from "#/components/ui/button";
 import { useProductChoices } from "#/hooks/useProductChoices";
-import { api, selectionsByItem } from "#/lib/api";
+import { api, everyChoice, selectionsByItem } from "#/lib/api";
 
 export const Route = createFileRoute("/items/$itemId/select")({
 	loader: async ({ params }) => {
@@ -35,14 +36,24 @@ function SelectItemRoute() {
 	const { item, selections } = Route.useLoaderData();
 	const choices = useProductChoices(selections);
 	const selection = selections.get(item.id);
-	const chosen = selection ? [selection, ...(selection.also_chosen ?? [])] : [];
+	const chosen = selection ? everyChoice(selection) : [];
 
 	return (
 		<SelectItemPage item={item} back={<BackToList />}>
+			<ChosenProduct
+				itemName={item.name}
+				selection={selection ?? null}
+				onClear={(store, productId) => choices.clear(item.id, store, productId)}
+				onSetCount={(store, productId, count) =>
+					choices.setCount(item.id, store, productId, count)
+				}
+			/>
 			<ProductChoiceProvider
 				value={{
 					chosen,
 					onChoose: (choice) => choices.choose(item.id, choice),
+					onUnchoose: (choice) =>
+						choices.clear(item.id, choice.store, choice.product_id),
 				}}
 			>
 				<ProductResults item={item} />

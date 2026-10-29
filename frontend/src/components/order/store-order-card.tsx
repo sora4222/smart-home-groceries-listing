@@ -38,7 +38,10 @@ export function StoreOrderCard({
 			<CardContent>
 				<ul className="flex list-none flex-col p-0">
 					{order.lines.map((line) => (
-						<OrderLineRow key={line.grocery_item_id} line={line} />
+						<OrderLineRow
+							key={`${line.grocery_item_id}-${line.product_id}`}
+							line={line}
+						/>
 					))}
 				</ul>
 			</CardContent>

@@ -64,7 +64,7 @@ export const groceryApi = {
 		}),
 	/** Puts a removed item back as it was: no duplicate check, no item rules. */
 	restore: (item: NewGroceryItem) =>
-		request<GroceryItem>("/api/grocery-items?restore=true", {
+		request<GroceryItem>("/api/grocery-items/restore", {
 			method: "POST",
 			body: JSON.stringify(item),
 		}),

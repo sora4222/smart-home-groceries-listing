@@ -7,6 +7,7 @@ import { acceptMessage } from "#/lib/accept-message";
 import { api, type VoiceRequest } from "#/lib/api";
 import { ApiError } from "#/lib/api/client";
 import { ruleTermsDescription } from "#/lib/rule-terms";
+import { toastWithUndo } from "#/lib/undo-toast";
 
 /**
  * Pending Requests' cards and their actions.
@@ -42,20 +43,6 @@ export function usePendingDecisions(pending: VoiceRequest[]) {
 		}
 	}
 
-	async function undo(id: string) {
-		try {
-			await api.voice.undoAccept(id);
-			toast.success("Undone");
-		} catch (error) {
-			toast.error(
-				error instanceof ApiError && error.status === 409
-					? "The list is ready to order. Release it to undo."
-					: "Could not undo that — check the list.",
-			);
-		}
-		await refresh();
-	}
-
 	async function accept(id: string, name: string, quantity: number) {
 		setAccepting((prev) => new Set(prev).add(id));
 		try {
@@ -63,11 +50,16 @@ export function usePendingDecisions(pending: VoiceRequest[]) {
 			forget(id);
 			// A voice item brings no chips of its own, so every one came from a
 			// rule. A merge keeps the existing item's chips.
-			toast.success(acceptMessage(name, result), {
+			toastWithUndo(acceptMessage(name, result), {
 				description: ruleTermsDescription(
 					result.merged ? [] : result.grocery_item.filter_terms,
 				),
-				action: { label: "Undo", onClick: () => undo(id) },
+				undo: () => api.voice.undoAccept(id),
+				failure: (error) =>
+					error instanceof ApiError && error.status === 409
+						? "The list is ready to order. Release it to undo."
+						: "Could not undo that. Check the list.",
+				after: refresh,
 			});
 			await refresh();
 		} catch (error) {

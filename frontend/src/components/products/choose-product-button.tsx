@@ -9,11 +9,12 @@ import { Button } from "#/components/ui/button";
 import type { StoreId, StoreProduct } from "#/lib/api";
 
 /**
- * Chooses one product as the item's product, or shows that it already is.
+ * A toggle: chooses the product for the item, or, when it is chosen already,
+ * clears it.
  *
- * Renders nothing outside a comparison that can choose. An unavailable product
- * cannot be chosen, and the button is disabled while a choice is being saved
- * so a double click does not send two.
+ * Renders nothing outside a page that can choose. An unavailable product
+ * cannot be chosen, and the button is disabled while saving so a double
+ * click does not send two.
  */
 export function ChooseProductButton({
 	store,
@@ -32,11 +33,11 @@ export function ChooseProductButton({
 	const thisProduct = { store, product_id: product.product_id };
 	const chosen = isChosen(choice.chosen, thisProduct);
 
-	async function choose() {
-		if (!choice || chosen) return;
+	async function toggle() {
+		if (!choice) return;
 		setSaving(true);
 		try {
-			await choice.onChoose(thisProduct);
+			await (chosen ? choice.onUnchoose : choice.onChoose)(thisProduct);
 		} catch {
 			// The page has already said why; the button only has to recover.
 		} finally {
@@ -54,8 +55,8 @@ export function ChooseProductButton({
 					? `${title} at ${storeName} is chosen`
 					: `Choose ${title} at ${storeName}`
 			}
-			disabled={saving || !product.available}
-			onClick={choose}
+			disabled={saving || (!chosen && !product.available)}
+			onClick={toggle}
 		>
 			{chosen && <Check aria-hidden />}
 			{chosen ? "Chosen" : saving ? "Choosing…" : "Choose"}

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { DeliverySettingsForm } from "#/components/delivery/delivery-settings-form";
 import { api, type DeliverySettings } from "#/lib/api";
+import { toastWithUndo } from "#/lib/undo-toast";
 
 export const Route = createFileRoute("/settings/delivery")({
 	loader: () => api.deliverySettings.get(),
@@ -29,19 +30,11 @@ function DeliveryPage() {
 			throw error;
 		}
 		await router.invalidate();
-		toast.success("Delivery settings saved", {
-			action: { label: "Undo", onClick: () => undo(previous) },
+		toastWithUndo("Delivery settings saved", {
+			undo: () => api.deliverySettings.save(previous),
+			failure: "Could not undo. Check the settings.",
+			after: () => router.invalidate(),
 		});
-	}
-
-	async function undo(previous: DeliverySettings) {
-		try {
-			await api.deliverySettings.save(previous);
-			toast.success("Undone");
-		} catch {
-			toast.error("Could not undo — check the settings.");
-		}
-		await router.invalidate();
 	}
 
 	return (

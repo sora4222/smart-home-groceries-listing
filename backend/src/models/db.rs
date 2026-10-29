@@ -136,8 +136,8 @@ pub struct ItemRule {
 }
 
 /// A product chosen for a list item at one store, as the store described it
-/// when it was chosen. An item keeps at most one choice per store; the one
-/// marked `for_order` is what the order buys.
+/// when it was chosen. An item may have several products at a store (no more
+/// than its quantity); those marked `for_order` are what the order buys.
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ItemSelection {
     pub id: Uuid,
@@ -163,8 +163,11 @@ pub struct ItemSelection {
     /// The household member who chose it.
     pub selected_by: String,
     pub selected_at: DateTime<Utc>,
-    /// This is the item's choice the order buys (one per item).
+    /// The order buys this product (every product at one store).
     pub for_order: bool,
+    /// How many of this product to buy; `None` while it is the only one at
+    /// its store. Read through [`crate::services::selections::allocation`].
+    pub quantity: Option<i32>,
 }
 
 // Trolley handoff, dislike and Google Tasks rows live in their own files;

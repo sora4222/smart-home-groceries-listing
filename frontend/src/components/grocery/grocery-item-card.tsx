@@ -15,7 +15,7 @@ import {
 import type {
 	GroceryItem,
 	GroceryItemEdit,
-	ItemSelection,
+	ItemChoices,
 	StoreId,
 } from "#/lib/api";
 
@@ -24,11 +24,22 @@ interface GroceryItemCardProps {
 	onSave: (id: string, edit: GroceryItemEdit) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
 	/** The product chosen for this item, if any. */
-	selection?: ItemSelection | null;
+	selection?: ItemChoices | null;
 	/** The "Select item" link to the item's product page. */
 	selectLink?: ReactNode;
 	/** Forgets the item's chosen product; leave out to hide "Clear". */
-	onClearChoice?: (id: string, store: StoreId) => Promise<void>;
+	onClearChoice?: (
+		id: string,
+		store: StoreId,
+		productId: string,
+	) => Promise<void>;
+	/** Sets how many of one of the item's products to buy. */
+	onSetCount?: (
+		id: string,
+		store: StoreId,
+		productId: string,
+		count: number,
+	) => Promise<void>;
 }
 
 /**
@@ -51,6 +62,7 @@ export function GroceryItemCard({
 	selection = null,
 	selectLink,
 	onClearChoice,
+	onSetCount,
 }: GroceryItemCardProps) {
 	const [editing, setEditing] = useState(false);
 	const [confirmingRemoval, setConfirmingRemoval] = useState(false);
@@ -109,7 +121,15 @@ export function GroceryItemCard({
 				<ChosenProduct
 					itemName={item.name}
 					selection={selection}
-					onClear={onClearChoice && ((store) => onClearChoice(item.id, store))}
+					onClear={
+						onClearChoice &&
+						((store, productId) => onClearChoice(item.id, store, productId))
+					}
+					onSetCount={
+						onSetCount &&
+						((store, productId, count) =>
+							onSetCount(item.id, store, productId, count))
+					}
 				/>
 
 				<div className="flex flex-wrap items-center justify-between gap-2">

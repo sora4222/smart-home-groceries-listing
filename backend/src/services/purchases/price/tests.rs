@@ -52,6 +52,7 @@ fn choice(item: &GroceryItem, product_id: &str, total: Decimal, priced: i32) -> 
         selected_by: "user".into(),
         selected_at: chrono::Utc::now(),
         for_order: true,
+        quantity: None,
     }
 }
 

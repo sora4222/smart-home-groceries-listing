@@ -384,7 +384,7 @@ API (`docs/features/FEATURE_TROLLEY_HANDOFF.md`).
 
 1. Show the bookmarks bar (**Ctrl/Cmd+Shift+B**).
 2. In the web app, choose a Woolworths product for at least one item
-   (**Compare prices → Choose**), then press **Send to Woolworths**.
+   (**Select item → Choose**), then press **Send to Woolworths**.
 3. Drag **Fill Woolworths trolley** onto the bookmarks bar.
 4. In a new tab, sign in at [woolworths.com.au](https://www.woolworths.com.au)
    and set a delivery address if prompted (**Set your delivery address**).

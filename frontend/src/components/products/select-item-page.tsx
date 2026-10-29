@@ -34,6 +34,8 @@ export function SelectItemPage({
 				</h1>
 				<p className="text-sm text-muted-foreground">
 					Choose a product to buy as this item.
+					{item.quantity > 1 &&
+						` You can choose up to ${item.quantity} and split the quantity.`}
 				</p>
 				<TermChips terms={item.filter_terms} />
 			</div>

@@ -21,7 +21,7 @@ export function HouseholdDislikes({
 		return (
 			<p className="text-sm text-muted-foreground">
 				Nobody dislikes a product yet. Press Dislike on a product when you
-				compare prices.
+				select an item.
 			</p>
 		);
 	}

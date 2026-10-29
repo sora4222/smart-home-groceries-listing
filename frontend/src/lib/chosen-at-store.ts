@@ -1,7 +1,7 @@
 /**
  * How many list items a trolley handoff to a store would send.
  */
-import type { GroceryItem, ItemSelection, StoreId } from "#/lib/api";
+import type { GroceryItem, ItemChoices, StoreId } from "#/lib/api";
 
 /**
  * Items still to buy (active or committed) whose chosen product is at
@@ -9,7 +9,7 @@ import type { GroceryItem, ItemSelection, StoreId } from "#/lib/api";
  */
 export function chosenAtStore(
 	items: GroceryItem[],
-	selections: Map<string, ItemSelection>,
+	selections: Map<string, ItemChoices>,
 	store: StoreId,
 ): number {
 	return items.filter(

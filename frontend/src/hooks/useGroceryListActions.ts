@@ -5,12 +5,13 @@ import {
 	api,
 	type GroceryItem,
 	type GroceryItemEdit,
-	type ItemSelection,
+	type ItemChoices,
 	type NewGroceryItem,
 	type OnDuplicate,
 } from "#/lib/api";
 import { restoreChoices } from "#/lib/item-restore";
 import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
+import { toastWithUndo } from "#/lib/undo-toast";
 
 /**
  * Adding, editing, removing and committing on the grocery list page. Every
@@ -22,7 +23,7 @@ import { ruleTermsDescription, termsAddedByRules } from "#/lib/rule-terms";
  */
 export function useGroceryListActions(
 	items: GroceryItem[],
-	selections: Map<string, ItemSelection>,
+	selections: Map<string, ItemChoices>,
 ) {
 	const router = useRouter();
 
@@ -34,15 +35,18 @@ export function useGroceryListActions(
 		}
 	}
 
-	/** Runs an undo, says how it went, and reloads the list. */
-	async function undo(action: () => Promise<unknown>) {
-		try {
-			await action();
-			toast.success("Undone");
-		} catch {
-			toast.error("Could not undo that — check the list.");
-		}
-		await refresh();
+	/** The success toast, whose Undo runs `undo` and reloads the list. */
+	function done(
+		message: string,
+		undo: () => Promise<unknown>,
+		description?: string,
+	) {
+		toastWithUndo(message, {
+			undo,
+			description,
+			failure: "Could not undo that. Check the list.",
+			after: refresh,
+		});
 	}
 
 	async function add(item: NewGroceryItem, onDuplicate: OnDuplicate) {
@@ -52,18 +56,14 @@ export function useGroceryListActions(
 		const fromRules = before
 			? []
 			: termsAddedByRules(item.filter_terms, created.filter_terms);
-		toast.success(`${created.name} is on the list`, {
-			description: ruleTermsDescription(fromRules),
-			action: {
-				label: "Undo",
-				onClick: () =>
-					undo(() =>
-						before
-							? api.grocery.update(created.id, { quantity: before.quantity })
-							: api.grocery.remove(created.id),
-					),
-			},
-		});
+		done(
+			`${created.name} is on the list`,
+			() =>
+				before
+					? api.grocery.update(created.id, { quantity: before.quantity })
+					: api.grocery.remove(created.id),
+			ruleTermsDescription(fromRules),
+		);
 		await refresh();
 	}
 
@@ -76,23 +76,16 @@ export function useGroceryListActions(
 			throw new Error("save failed");
 		}
 		if (before) {
-			toast.success("Saved", {
-				action: {
-					label: "Undo",
-					onClick: () =>
-						undo(async () => {
-							await api.grocery.update(id, {
-								name: before.name,
-								quantity: before.quantity,
-								note: before.note ?? "",
-								filter_terms: before.filter_terms,
-							});
-							// A new name or chips cleared the product; put it back.
-							if (edit.name === undefined && edit.filter_terms === undefined)
-								return;
-							await restoreChoices(id, selections.get(id));
-						}),
-				},
+			done("Saved", async () => {
+				await api.grocery.update(id, {
+					name: before.name,
+					quantity: before.quantity,
+					note: before.note ?? "",
+					filter_terms: before.filter_terms,
+				});
+				// A new name or chips cleared the product; put it back.
+				if (edit.name === undefined && edit.filter_terms === undefined) return;
+				await restoreChoices(id, selections.get(id));
 			});
 		}
 		await refresh();
@@ -106,35 +99,28 @@ export function useGroceryListActions(
 			toast.error("Could not remove that item — try again.");
 			return;
 		}
-		toast.success("Item removed", {
-			action: before && {
-				label: "Undo",
-				onClick: () =>
-					undo(async () => {
-						const back = await api.grocery.restore({
-							name: before.name,
-							quantity: before.quantity,
-							note: before.note ?? undefined,
-							filter_terms: before.filter_terms,
-						});
-						await restoreChoices(back.id, selections.get(id));
-					}),
-			},
-		});
+		if (!before) {
+			toast.success("Item removed");
+		} else {
+			done("Item removed", async () => {
+				const back = await api.grocery.restore({
+					name: before.name,
+					quantity: before.quantity,
+					note: before.note ?? undefined,
+					filter_terms: before.filter_terms,
+				});
+				await restoreChoices(back.id, selections.get(id));
+			});
+		}
 		await refresh();
 	}
 
 	async function commit() {
 		try {
 			const locked = await api.grocery.commit();
-			toast.success(
+			done(
 				`${locked.length} ${locked.length === 1 ? "item" : "items"} ready to order`,
-				{
-					action: {
-						label: "Undo",
-						onClick: () => undo(() => api.grocery.release(idsOf(locked))),
-					},
-				},
+				() => api.grocery.release(idsOf(locked)),
 			);
 		} catch {
 			toast.error("Could not commit the list — try again.");
@@ -145,12 +131,7 @@ export function useGroceryListActions(
 	async function release() {
 		try {
 			const reopened = await api.grocery.release();
-			toast.success("List reopened", {
-				action: {
-					label: "Undo",
-					onClick: () => undo(() => api.grocery.commit(idsOf(reopened))),
-				},
-			});
+			done("List reopened", () => api.grocery.commit(idsOf(reopened)));
 		} catch {
 			toast.error("Could not reopen the list — try again.");
 		}

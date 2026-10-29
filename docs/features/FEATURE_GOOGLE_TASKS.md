@@ -67,7 +67,7 @@ Google only accepts `http` redirect URIs on `localhost`, so with the default
 server. Another address needs HTTPS on a real domain.
 
 ## Restore to source
-`POST /api/triage/{id}/restore` (Triage → **Put back in Google Tasks**, only
+`POST /api/triage/{id}/restore` (Pending, triage section → **Put back in Google Tasks**, only
 on Tasks items). Holding the poll lock and the request row lock, it inserts a
 task with the original `raw_text`, records `intake_restores (tasks, new task
 id)`, and closes the request as `rejected`. The next poll that sees that id

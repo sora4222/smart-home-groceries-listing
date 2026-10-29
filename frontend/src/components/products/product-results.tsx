@@ -12,20 +12,19 @@ import { useDisplaySettings } from "#/hooks/useDisplaySettings";
 import { useItemDislikes } from "#/hooks/useItemDislikes";
 import { useItemProducts } from "#/hooks/useItemProducts";
 import { useProductHistory } from "#/hooks/useProductHistory";
-import type { GroceryItem, ItemProducts, StoreProducts } from "#/lib/api";
+import type { GroceryItem, ItemProducts } from "#/lib/api";
 import {
-	filterListings,
 	NO_FILTERS,
 	type ProductFilters,
+	shownListings,
+	storesShown,
 } from "#/lib/product-filters";
 import {
 	commonBasis,
 	DEFAULT_SORT,
 	type ProductSort,
-	type StoreListing,
 	sortListings,
 } from "#/lib/product-sort";
-import { visibleProducts } from "#/lib/specials";
 
 /**
  * Searches both stores for one list item and shows the products in one
@@ -35,13 +34,11 @@ import { visibleProducts } from "#/lib/specials";
 export function ProductResults({ item }: { item: GroceryItem }) {
 	const dislikes = useItemDislikes(item.id);
 	const display = useDisplaySettings();
-	const [specialsOnly, setSpecialsOnly] = useState(false);
 	const [sort, setSort] = useState<ProductSort>(DEFAULT_SORT);
 	const [filters, setFilters] = useState<ProductFilters>(NO_FILTERS);
-	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}`;
-	const { state, retry } = useItemProducts(item.id, true, searchKey);
+	const { state, retry } = useItemProducts(item);
 
-	if (state.status === "idle" || state.status === "loading") {
+	if (state.status === "loading") {
 		return (
 			<output className="block text-sm text-muted-foreground">
 				Searching the stores…
@@ -60,12 +57,10 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 		);
 	}
 
-	const stores = state.data.stores.filter(
-		(results) => filters.store === "both" || results.store === filters.store,
-	);
-	const listings = filterListings(
-		listingsOf(stores, specialsOnly, display.showUnavailable),
+	const listings = shownListings(
+		state.data.stores,
 		filters,
+		display.showUnavailable,
 	);
 
 	return (
@@ -74,12 +69,17 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 				<div className="flex flex-wrap items-center justify-between gap-2">
 					<ProductSortSelect value={sort} onValueChange={setSort} />
 					<SpecialsOnlySwitch
-						checked={specialsOnly}
-						onCheckedChange={setSpecialsOnly}
+						checked={filters.specialsOnly}
+						onCheckedChange={(specialsOnly) =>
+							setFilters({ ...filters, specialsOnly })
+						}
 					/>
 				</div>
 				<ProductFilterBar value={filters} onChange={setFilters} />
-				<StoreNotices stores={stores} specialsOnly={specialsOnly} />
+				<StoreNotices
+					stores={storesShown(state.data.stores, filters)}
+					specialsOnly={filters.specialsOnly}
+				/>
 				<WithPastPurchases search={state.data}>
 					<ProductList
 						listings={sortListings(listings, sort, {
@@ -95,25 +95,6 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 			</div>
 		</ProductDislikesProvider>
 	);
-}
-
-/** Every product shown from the stores that answered, as one list. */
-function listingsOf(
-	stores: StoreProducts[],
-	specialsOnly: boolean,
-	showUnavailable: boolean,
-): StoreListing[] {
-	return stores
-		.filter((results) => results.status === "ok")
-		.flatMap((results) =>
-			visibleProducts(results.products, specialsOnly)
-				.filter((product) => showUnavailable || product.available)
-				.map((product) => ({
-					store: results.store,
-					storeName: results.store_name,
-					product,
-				})),
-		);
 }
 
 /** Reads the past purchases of every product found, for their rows. */

@@ -1,6 +1,9 @@
 # Feature: Grocery List
 
 Status: **implemented** — read, add, review, annotate, remove and commit.
+Every change shows a toast with **Undo** (`hooks/useGroceryListActions.ts`).
+The card shows the quantity on the right, a red **Remove**, and **Select
+item**, which opens `/items/$itemId/select` (`FEATURE_PRODUCT_CHOICE.md`).
 Product search, pricing and the order itself are the Store Integration and
 Order Optimisation features.
 
@@ -41,8 +44,12 @@ a value outside its range is `422` and never touches a row.
   Every field optional; an absent field is
   left as it was. `409` if the item is committed, `404` if it does not exist.
 - `DELETE /api/grocery-items/{id}` — `204`. `409` if committed.
+- `POST /api/grocery-items/restore` — Undo of a removal: puts the item back
+  as it was, with no duplicate check and no item rules.
 - `POST /api/grocery-items/commit` — every `active` item becomes `committed`.
+  `?ids=a,b` limits it to those items (Undo of a release).
 - `POST /api/grocery-items/release` — every `committed` item becomes `active`.
+  `?ids=a,b` limits it to those items (Undo of a commit).
 
 ### Duplicate handling
 Adding a name that an **active** item already covers answers `409` with a

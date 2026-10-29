@@ -71,7 +71,7 @@ export function HandoffStatus({
 			<ul className="flex flex-col gap-1">
 				{handoff.lines.map((line) => (
 					<li
-						key={line.grocery_item_id}
+						key={`${line.grocery_item_id}-${line.product_id}`}
 						className="flex items-center justify-between gap-2 text-sm"
 					>
 						<span>
